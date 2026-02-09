@@ -4,8 +4,6 @@ using WebApi.Methods.DataBase;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Count.ToString();
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
