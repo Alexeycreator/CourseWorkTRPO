@@ -1,6 +1,24 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WebApi.Methods.DataBase;
+using WebApi.Models.ModelsDataBase;
+
 namespace WebApi.Controllers;
 
-public class TransfersController
+[ApiController]
+[Route("api/[controller]")]
+public sealed class TransfersController
 {
-    
+    private readonly ServerDbContext dbContext;
+
+    public TransfersController(ServerDbContext dbContext)
+    {
+        this.dbContext = dbContext;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<TransfersModel>>> GetTransfers()
+    {
+        return await dbContext.Transfers.ToListAsync();
+    }
 }
