@@ -13,7 +13,7 @@ public sealed class ToursModel
     [Required] [MaxLength(100)] public string Name { get; set; }
     [Required] [MaxLength(100)] public string StartDot { get; set; }
     [Required] [MaxLength(100)] public string EndDot { get; set; }
-    [Required] [MaxLength(2000)] public string Details { get; set; }
+    [Required] [MaxLength(4000)] public string Details { get; set; }
     [Required] [MaxLength(1000)] public string ImageTour { get; private set; }
 
     [Column("Tickets_Id")]

@@ -11,7 +11,7 @@ public sealed class HotelRoomsModel
 
     [Required] [MaxLength(100)] public string NameRoom { get; set; }
 
-    public string? Details { get; set; }
+    [MaxLength(1000)] public string? Details { get; set; }
     [Required] public int Floor { get; set; }
 
     [MaxLength(1000)] public string? ImageRoom { get; set; }
