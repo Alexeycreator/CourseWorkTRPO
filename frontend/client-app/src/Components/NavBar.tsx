@@ -5,7 +5,7 @@ export default class NavBar extends Component {
     return (
       <nav className="navbar navbar-expand-lg navbar-light bg-light">
         <div className="container-fluid">
-          <a className="navbar-brand" href="#">Navbar</a>
+          <a className="navbar-brand" href="#">Меню</a>
           <button 
             className="navbar-toggler" 
             type="button" 
@@ -20,10 +20,10 @@ export default class NavBar extends Component {
           <div className="collapse navbar-collapse" id="navbarSupportedContent">
             <ul className="navbar-nav me-auto mb-2 mb-lg-0">
               <li className="nav-item">
-                <a className="nav-link active" aria-current="page" href="#">Home</a>
+                <a className="nav-link active" aria-current="page" href="#">Домой</a>
               </li>
               <li className="nav-item">
-                <a className="nav-link" href="#">Link</a>
+                <a className="nav-link" href="#">Ссылка</a>
               </li>
               <li className="nav-item dropdown">
                 <a 
@@ -47,10 +47,10 @@ export default class NavBar extends Component {
                 <a 
                   className="nav-link disabled" 
                   href="#" 
-                  tabIndex={-1}  // ✅ tabindex -> tabIndex (camelCase)
+                  tabIndex={-1}  
                   aria-disabled="true"
                 >
-                  Disabled
+                  Недоступно
                 </a>
               </li>
             </ul>
@@ -58,10 +58,10 @@ export default class NavBar extends Component {
               <input 
                 className="form-control me-2" 
                 type="search" 
-                placeholder="Search" 
+                placeholder="Поиск" 
                 aria-label="Search"
               />
-              <button className="btn btn-outline-success" type="submit">Search</button>
+              <button className="btn btn-outline-success" type="submit">Поиск</button>
             </form>
           </div>
         </div>
