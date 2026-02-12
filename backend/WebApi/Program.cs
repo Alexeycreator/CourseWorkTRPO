@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using WebApi.Methods.CsvWorking;
 using WebApi.Methods.DataBase;
+using WebApi.Methods.Parsing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,9 +10,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo 
-    { 
-        Title = "My API", 
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "My API",
         Version = "v1",
         Description = "API для приложения"
     });
@@ -20,12 +22,23 @@ builder.Services.AddDbContext<ServerDbContext>(options =>
     options.UseSqlServer( /*builder.Configuration.GetConnectionString(*/
         $@"Server=(local)\SQLEXPRESS;Database=TravelAgency;Trusted_Connection=True;TrustServerCertificate=True;"));
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactApp",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:3000")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    
+
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
@@ -39,6 +52,7 @@ else
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();

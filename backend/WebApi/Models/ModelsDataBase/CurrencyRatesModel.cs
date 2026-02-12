@@ -17,7 +17,7 @@ public sealed class CurrencyRatesModel
 
     [Required]
     [Column(TypeName = "decimal(18,4)")]
-    public decimal Rate { get; set; }
+    public double Rate { get; set; }
 
     [Required] [MaxLength(25)] public string DateReceipt { get; set; }
 
