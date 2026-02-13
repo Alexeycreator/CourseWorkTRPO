@@ -21,6 +21,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ServerDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddHostedService<CurrencyRateBackgroundService>(provaider =>
     new CurrencyRateBackgroundService(connectionString));
+builder.Services.AddHostedService<DatabaseInitializerBackgroundService>(provaider =>
+    new DatabaseInitializerBackgroundService(connectionString));
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactApp",
