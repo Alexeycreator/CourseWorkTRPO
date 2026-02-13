@@ -13,11 +13,17 @@ public sealed class CurrencyRateBackgroundService : BackgroundService
     private readonly HttpClient httpClient;
     private readonly TimeSpan updateInterval = TimeSpan.FromHours(6);
     private List<CurrencyRatesModel> currencies = new List<CurrencyRatesModel>();
+    private readonly string? connectionString;
 
+    public CurrencyRateBackgroundService(string? connectionString)
+    {
+        this.connectionString = connectionString;
+    }
+    
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
         loggerCurrencyRateBackgroundService.Info("Сервис фонового получения курсов валют запущен");
-
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -55,8 +61,7 @@ public sealed class CurrencyRateBackgroundService : BackgroundService
         try
         {
             var optionsBuilder = new DbContextOptionsBuilder<ServerDbContext>();
-            optionsBuilder.UseSqlServer(
-                $@"Server=(local)\SQLEXPRESS;Database=TravelAgency;Trusted_Connection=True;TrustServerCertificate=True;");
+            optionsBuilder.UseSqlServer($"{connectionString}");
             await using (ServerDbContext dbContext = new ServerDbContext(optionsBuilder.Options))
             {
                 bool isConnected = await dbContext.Database.CanConnectAsync();
