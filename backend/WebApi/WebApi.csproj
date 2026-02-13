@@ -28,7 +28,21 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="SQL\" />
+      <None Include="wwwroot\Image\HotelRooms\room_eco_1.jpg" />
+      <None Include="wwwroot\Image\HotelRooms\room_fam_1.jpg" />
+      <None Include="wwwroot\Image\HotelRooms\room_lux_1.jpg" />
+      <None Include="wwwroot\Image\HotelRooms\room_prez_1.jpg" />
+      <None Include="wwwroot\Image\HotelRooms\room_std_1.jpg" />
+      <None Include="wwwroot\Image\Hotels\central.jpg" />
+      <None Include="wwwroot\Image\Hotels\marriott.jpg" />
+      <None Include="wwwroot\Image\Hotels\mirage.jpg" />
+      <None Include="wwwroot\Image\Hotels\parkinn.jpg" />
+      <None Include="wwwroot\Image\Hotels\seagalaxy.jpg" />
+      <None Include="wwwroot\Image\Tours\ekb_tour.jpg" />
+      <None Include="wwwroot\Image\Tours\kazan_tour.jpg" />
+      <None Include="wwwroot\Image\Tours\moscow_tour.jpg" />
+      <None Include="wwwroot\Image\Tours\sochi_tour.jpg" />
+      <None Include="wwwroot\Image\Tours\spb_tour.jpg" />
     </ItemGroup>
 
 </Project>
