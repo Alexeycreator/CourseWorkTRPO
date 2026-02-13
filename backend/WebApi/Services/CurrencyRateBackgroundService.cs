@@ -9,17 +9,20 @@ namespace WebApi.Services;
 public sealed class CurrencyRateBackgroundService : BackgroundService
 {
     private Logger loggerCurrencyRateBackgroundService = LogManager.GetCurrentClassLogger();
-    private readonly IServiceProvider services;
     private readonly HttpClient httpClient;
     private readonly TimeSpan updateInterval = TimeSpan.FromHours(6);
     private List<CurrencyRatesModel> currencies = new List<CurrencyRatesModel>();
     private readonly string? connectionString;
 
+    public CurrencyRateBackgroundService()
+    {
+    }
+
     public CurrencyRateBackgroundService(string? connectionString)
     {
         this.connectionString = connectionString;
     }
-    
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
