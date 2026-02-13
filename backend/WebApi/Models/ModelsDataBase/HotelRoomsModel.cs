@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApi.Models.ModelsDataBase;
 
+[Table("HotelRooms")]
 public sealed class HotelRoomsModel
 {
     [Key]
