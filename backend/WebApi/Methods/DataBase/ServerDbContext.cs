@@ -3,7 +3,7 @@ using WebApi.Models.ModelsDataBase;
 
 namespace WebApi.Methods.DataBase;
 
-public sealed class ServerDbContext : DbContext
+public sealed class ServerDbContext(DbContextOptions<ServerDbContext> options) : DbContext(options)
 {
     public DbSet<AddressesModel> Addresses { get; set; }
     public DbSet<ClientsModel> Clients { get; set; }
@@ -16,9 +16,4 @@ public sealed class ServerDbContext : DbContext
     public DbSet<PassportsModel> Passports { get; set; }
     public DbSet<ToursModel> Tours { get; set; }
     public DbSet<TransfersModel> Transfers { get; set; }
-    
-    public ServerDbContext(DbContextOptions<ServerDbContext> options)
-        : base(options)
-    {
-    }
 }

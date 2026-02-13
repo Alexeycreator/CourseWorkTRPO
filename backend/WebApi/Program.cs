@@ -1,8 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using WebApi.Methods.CsvWorking;
 using WebApi.Methods.DataBase;
-using WebApi.Methods.Parsing;
+using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,10 +17,12 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-builder.Services.AddDbContext<ServerDbContext>(options =>
-    options.UseSqlServer( /*builder.Configuration.GetConnectionString(*/
-        $@"Server=(local)\SQLEXPRESS;Database=TravelAgency;Trusted_Connection=True;TrustServerCertificate=True;"));
-
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<ServerDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddHostedService<CurrencyRateBackgroundService>(provaider =>
+    new CurrencyRateBackgroundService(connectionString));
+builder.Services.AddHostedService<DatabaseInitializerBackgroundService>(provaider =>
+    new DatabaseInitializerBackgroundService(connectionString));
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactApp",
