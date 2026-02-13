@@ -67,68 +67,75 @@ public sealed class CurrencyRateBackgroundService : BackgroundService
             optionsBuilder.UseSqlServer($"{connectionString}");
             await using (ServerDbContext dbContext = new ServerDbContext(optionsBuilder.Options))
             {
-                bool isConnected = await dbContext.Database.CanConnectAsync();
-                if (isConnected)
+                try
                 {
-                    loggerCurrencyRateBackgroundService.Info($"Подключение к БД прошло успешно");
-                    if (currencies.Any())
+                    bool isConnected = await dbContext.Database.CanConnectAsync();
+                    if (isConnected)
                     {
-                        int countUpdateCurrency = 0;
-                        int countAddedCurrency = 0;
-                        foreach (var currency in currencies)
+                        loggerCurrencyRateBackgroundService.Info($"Подключение к БД прошло успешно");
+                        if (currencies.Any())
                         {
-                            var existingCurrency =
-                                dbContext.CurrencyRates.FirstOrDefault(c =>
-                                    c.LetterCode == currency.LetterCode && c.DateReceipt == currency.DateReceipt);
-                            if (existingCurrency != null)
+                            int countUpdateCurrency = 0;
+                            int countAddedCurrency = 0;
+                            foreach (var currency in currencies)
                             {
-                                bool updated = false;
-                                if (existingCurrency.DigitalCode != currency.DigitalCode)
+                                var existingCurrency =
+                                    dbContext.CurrencyRates.FirstOrDefault(c =>
+                                        c.LetterCode == currency.LetterCode && c.DateReceipt == currency.DateReceipt);
+                                if (existingCurrency != null)
                                 {
-                                    existingCurrency.DigitalCode = currency.DigitalCode;
-                                    updated = true;
-                                }
+                                    bool updated = false;
+                                    if (existingCurrency.DigitalCode != currency.DigitalCode)
+                                    {
+                                        existingCurrency.DigitalCode = currency.DigitalCode;
+                                        updated = true;
+                                    }
 
-                                if (existingCurrency.Units != currency.Units)
-                                {
-                                    existingCurrency.Units = currency.Units;
-                                    updated = true;
-                                }
+                                    if (existingCurrency.Units != currency.Units)
+                                    {
+                                        existingCurrency.Units = currency.Units;
+                                        updated = true;
+                                    }
 
-                                if (existingCurrency.Currency != currency.Currency)
-                                {
-                                    existingCurrency.Currency = currency.Currency;
-                                    updated = true;
-                                }
+                                    if (existingCurrency.Currency != currency.Currency)
+                                    {
+                                        existingCurrency.Currency = currency.Currency;
+                                        updated = true;
+                                    }
 
-                                if (existingCurrency.Rate != currency.Rate)
-                                {
-                                    existingCurrency.Rate = currency.Rate;
-                                    updated = true;
-                                }
+                                    if (existingCurrency.Rate != currency.Rate)
+                                    {
+                                        existingCurrency.Rate = currency.Rate;
+                                        updated = true;
+                                    }
 
-                                dbContext.Entry(existingCurrency).State = EntityState.Modified;
-                                if (updated)
+                                    dbContext.Entry(existingCurrency).State = EntityState.Modified;
+                                    if (updated)
+                                    {
+                                        countUpdateCurrency++;
+                                    }
+                                }
+                                else
                                 {
-                                    countUpdateCurrency++;
+                                    dbContext.CurrencyRates.Add(currency);
+                                    countAddedCurrency++;
                                 }
                             }
-                            else
-                            {
-                                dbContext.CurrencyRates.Add(currency);
-                                countAddedCurrency++;
-                            }
+
+                            int countSavedCurrency = await dbContext.SaveChangesAsync();
+                            loggerCurrencyRateBackgroundService.Info(
+                                $"Обработано валют: {countSavedCurrency} (добавлено: {countAddedCurrency}, обновлено: {countUpdateCurrency})");
                         }
-
-                        int countSavedCurrency = await dbContext.SaveChangesAsync();
-                        loggerCurrencyRateBackgroundService.Info(
-                            $"Обработано валют: {countSavedCurrency} (добавлено: {countAddedCurrency}, обновлено: {countUpdateCurrency})");
+                        else
+                        {
+                            loggerCurrencyRateBackgroundService.Error(
+                                $"Данные о валютах пустые и не могут быть добавлены в таблицу 'CurrencyRates'.");
+                        }
                     }
-                    else
-                    {
-                        loggerCurrencyRateBackgroundService.Error(
-                            $"Данные о валютах пустые и не могут быть добавлены в таблицу 'CurrencyRates'.");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    loggerCurrencyRateBackgroundService.Error($"Ошибка подключения к БД: {ex.Message}");
                 }
             }
         }
