@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NLog;
 using WebApi.Methods.DataBase;
@@ -63,16 +64,16 @@ public sealed class DatabaseInitializerBackgroundService : BackgroundService
         {
             var tableScripts = new Dictionary<string, string>
             {
-                { "Clients", "SQL/InitClients.sql" },
-                { "Addresses", "SQL/InitAddresses.sql" },
                 { "Passports", "SQL/InitPassports.sql" },
+                { "Addresses", "SQL/InitAddresses.sql" },
+                { "Clients", "SQL/InitClients.sql" },
+                { "Tickets", "SQL/InitTickets.sql" },
                 { "Employees", "SQL/InitEmployees.sql" },
-                { "Tours", "SQL/InitTours.sql" },
+                { "HotelRooms", "SQL/InitHotelRooms.sql" },
                 { "Hotels", "SQL/InitHotels.sql" },
                 { "Transfers", "SQL/InitTransfers.sql" },
-                { "Tickets", "SQL/InitTickets.sql" },
-                { "HotelRooms", "SQL/InitHotelRooms.sql" },
-                { "CurrencyRates_Tickets", "SQL/InitCurrencyRates_Tickets.sql" }
+                { "CurrencyRates_Tickets", "SQL/InitCurrencyRates_Tickets.sql" },
+                { "Tours", "SQL/InitTours.sql" }
             };
 
             foreach (var (tableName, scriptPath) in tableScripts)
@@ -128,15 +129,21 @@ public sealed class DatabaseInitializerBackgroundService : BackgroundService
 
     private async Task<bool> CheckIfTableExistsAsync(string tableName, ServerDbContext dbContext)
     {
-        var sql = @"
-            SELECT COUNT(*) 
-            FROM INFORMATION_SCHEMA.TABLES 
-            WHERE TABLE_NAME = '{0}'";
-
-        var count = await dbContext.Database
-            .ExecuteSqlRawAsync(string.Format(sql, tableName));
-
-        return count > 0;
+        try
+        {
+            await dbContext.Database
+                .ExecuteSqlRawAsync($"SELECT TOP 1 1 FROM {tableName}");
+            return true;
+        }
+        catch (SqlException ex) when (ex.Number == 208)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            loggerDatabaseInitializerBackgroundService.Error($"Ошибка при проверке таблицы: {ex.Message}");
+            return false;
+        }
     }
 
     private async Task<int> GetTableRowCountAsync(string tableName, ServerDbContext dbContext)
