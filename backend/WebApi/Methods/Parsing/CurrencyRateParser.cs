@@ -17,7 +17,7 @@ public sealed class CurrencyRateParser
     private readonly string filePath = Path.Combine(dirPath, $"Rate_{dateCurrencyRate}.csv");
     private HttpClient httpClient = new HttpClient();
     private HttpResponseMessage httpResponseMessage = new HttpResponseMessage();
-    private List<CurrencyRatesModel> currencies = new List<CurrencyRatesModel>();
+    private List<CurrencyRatesModel> currencies;
     private readonly string contentId = "content";
 
     public CurrencyRateParser()
