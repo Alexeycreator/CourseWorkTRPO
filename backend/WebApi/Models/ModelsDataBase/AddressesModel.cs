@@ -13,6 +13,7 @@ public sealed class AddressesModel
 
     [Required] [MaxLength(100)] public string Country { get; set; }
     [Required] [MaxLength(100)] public string Region { get; set; }
+    [Required] [MaxLength(100)] public string City { get; set; }
     [Required] [MaxLength(100)] public string Street { get; set; }
     [Required] [MaxLength(100)] public string House { get; set; }
     public int? Apartment { get; set; }
