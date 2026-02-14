@@ -58,7 +58,7 @@ export default class NavBar extends Component {
               <input 
                 className="form-control me-2" 
                 type="search" 
-                placeholder="Поиск" 
+                placeholder="Ввод" 
                 aria-label="Search"
               />
               <button className="btn btn-outline-success" type="submit">Поиск</button>
