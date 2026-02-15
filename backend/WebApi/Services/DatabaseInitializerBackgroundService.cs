@@ -23,7 +23,7 @@ public sealed class DatabaseInitializerBackgroundService : BackgroundService
     {
         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
         loggerDatabaseInitializerBackgroundService.Info(
-            $"Запуск фоновой задачи, на проверку существования данных в БД");
+            $"Запуск фоновой задачи для добавления данных по умолчанию в БД");
         try
         {
             var optionsBuilder = new DbContextOptionsBuilder<ServerDbContext>();
@@ -54,7 +54,7 @@ public sealed class DatabaseInitializerBackgroundService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        loggerDatabaseInitializerBackgroundService.Info("Сервис фонового получения курсов валют останавливается");
+        loggerDatabaseInitializerBackgroundService.Info("Сервис фонового добавления данных по умолчанию в БД останавливается");
         await base.StopAsync(cancellationToken);
     }
 
