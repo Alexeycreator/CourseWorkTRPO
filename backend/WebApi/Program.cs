@@ -19,10 +19,14 @@ builder.Services.AddSwaggerGen(c =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ServerDbContext>(options => options.UseSqlServer(connectionString));
+
 builder.Services.AddHostedService<CurrencyRateBackgroundService>(provaider =>
     new CurrencyRateBackgroundService(connectionString));
 builder.Services.AddHostedService<DatabaseInitializerBackgroundService>(provaider =>
     new DatabaseInitializerBackgroundService(connectionString));
+builder.Services.AddHostedService<DatabaseBackupBackgroundService>(provaider =>
+    new DatabaseBackupBackgroundService(connectionString));
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactApp",
