@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
 
@@ -12,12 +13,15 @@ public sealed class CurrencyRates_TicketsModel
 
     [Column("CurrencyRates_Id")]
     [ForeignKey("CurrencyRate")]
-    public int CurrencyRates_Id { get; set; }
+    public int? CurrencyRates_Id { get; set; }
 
     [Column("Tickets_Id")]
     [ForeignKey("Ticket")]
-    public int Tickets_Id { get; set; }
+    public int? Tickets_Id { get; set; }
 
+    [DeleteBehavior(DeleteBehavior.SetNull)]
     public CurrencyRatesModel CurrencyRate { get; set; }
+    
+    [DeleteBehavior(DeleteBehavior.SetNull)]
     public TicketsModel Ticket { get; set; }
 }

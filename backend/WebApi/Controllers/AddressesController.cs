@@ -1,6 +1,17 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WebApi.Methods.DataBase;
+using WebApi.Models.ModelsDataBase;
+
 namespace WebApi.Controllers;
 
-public class AddressesController
+[ApiController]
+[Route("api/[controller]")]
+public sealed class AddressesController(ServerDbContext dbContext)
 {
-    
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<AddressesModel>>> GetAddresses()
+    {
+        return await dbContext.Addresses.ToListAsync();
+    }
 }

@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
 
@@ -18,17 +20,22 @@ public sealed class HotelsModel
 
     [Column("Address_Id")]
     [ForeignKey("Address")]
-    public int Address_Id { get; set; }
+    public int? Address_Id { get; set; }
 
     [Column("Tickets_Id")]
     [ForeignKey("Ticket")]
-    public int Tickets_Id { get; set; }
+    public int? Tickets_Id { get; set; }
 
     [Column("HotelRooms_Id")]
     [ForeignKey("HotelRoom")]
     public int HotelRooms_Id { get; set; }
 
+    [DeleteBehavior(DeleteBehavior.SetNull)]
     public AddressesModel Address { get; set; }
+    
+    [DeleteBehavior(DeleteBehavior.SetNull)]
     public TicketsModel Ticket { get; set; }
+
+    [DeleteBehavior(DeleteBehavior.Cascade)]
     public HotelRoomsModel HotelRoom { get; set; }
 }

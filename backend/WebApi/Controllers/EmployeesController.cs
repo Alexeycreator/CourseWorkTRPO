@@ -7,11 +7,11 @@ namespace WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class TicketsController(ServerDbContext dbContext)
+public class EmployeesController(ServerDbContext dbContext)
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TicketsModel>>> GetTickets()
+    public async Task<ActionResult<IEnumerable<EmployeesModel>>> GetEmployees()
     {
-        return await dbContext.Tickets.ToListAsync();
+        return await dbContext.Employees.ToListAsync();
     }
 }

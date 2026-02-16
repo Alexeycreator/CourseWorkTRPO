@@ -7,15 +7,8 @@ namespace WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class TransfersController
+public sealed class TransfersController(ServerDbContext dbContext)
 {
-    private readonly ServerDbContext dbContext;
-
-    public TransfersController(ServerDbContext dbContext)
-    {
-        this.dbContext = dbContext;
-    }
-
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TransfersModel>>> GetTransfers()
     {
