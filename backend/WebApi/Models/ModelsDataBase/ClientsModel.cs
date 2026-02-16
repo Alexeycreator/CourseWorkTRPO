@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
 
@@ -35,8 +36,9 @@ public sealed class ClientsModel
 
     [Column("Passport_Id")]
     [ForeignKey("Passport")]
-    public int Passport_Id { get; set; }
+    public int? Passport_Id { get; set; }
 
+    [DeleteBehavior(DeleteBehavior.Cascade)]
     public PassportsModel Passport { get; set; }
 
     public ICollection<TicketsModel> Tickets { get; set; }

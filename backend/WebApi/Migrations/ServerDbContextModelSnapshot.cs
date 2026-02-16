@@ -97,7 +97,7 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("Passport_Id")
+                    b.Property<int?>("Passport_Id")
                         .HasColumnType("int")
                         .HasColumnName("Passport_Id");
 
@@ -168,11 +168,11 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CurrencyRates_Id")
+                    b.Property<int?>("CurrencyRates_Id")
                         .HasColumnType("int")
                         .HasColumnName("CurrencyRates_Id");
 
-                    b.Property<int>("Tickets_Id")
+                    b.Property<int?>("Tickets_Id")
                         .HasColumnType("int")
                         .HasColumnName("Tickets_Id");
 
@@ -223,7 +223,7 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("Tickets_Id")
+                    b.Property<int?>("Tickets_Id")
                         .HasColumnType("int")
                         .HasColumnName("Tickets_Id");
 
@@ -271,7 +271,7 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Address_Id")
+                    b.Property<int?>("Address_Id")
                         .HasColumnType("int")
                         .HasColumnName("Address_Id");
 
@@ -296,7 +296,7 @@ namespace WebApi.Migrations
                     b.Property<int>("Stars")
                         .HasColumnType("int");
 
-                    b.Property<int>("Tickets_Id")
+                    b.Property<int?>("Tickets_Id")
                         .HasColumnType("int")
                         .HasColumnName("Tickets_Id");
 
@@ -348,7 +348,7 @@ namespace WebApi.Migrations
                     b.Property<DateTime>("ArrivalTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Client_Id")
+                    b.Property<int?>("Client_Id")
                         .HasColumnType("int")
                         .HasColumnName("Client_Id");
 
@@ -401,11 +401,11 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("Tickets_Id")
+                    b.Property<int?>("Tickets_Id")
                         .HasColumnType("int")
                         .HasColumnName("Tickets_Id");
 
-                    b.Property<int>("Transfers_Id")
+                    b.Property<int?>("Transfers_Id")
                         .HasColumnType("int")
                         .HasColumnName("Transfers_Id");
 
@@ -460,8 +460,7 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.PassportsModel", "Passport")
                         .WithMany("Clients")
                         .HasForeignKey("Passport_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Passport");
                 });
@@ -471,14 +470,12 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.CurrencyRatesModel", "CurrencyRate")
                         .WithMany("CurrencyRatesTickets")
                         .HasForeignKey("CurrencyRates_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
                         .WithMany("CurrencyRatesTickets")
                         .HasForeignKey("Tickets_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CurrencyRate");
 
@@ -490,8 +487,7 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
                         .WithMany("Employees")
                         .HasForeignKey("Tickets_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Ticket");
                 });
@@ -501,8 +497,7 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.AddressesModel", "Address")
                         .WithMany("Hotels")
                         .HasForeignKey("Address_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("WebApi.Models.ModelsDataBase.HotelRoomsModel", "HotelRoom")
                         .WithMany("Hotels")
@@ -513,8 +508,7 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
                         .WithMany()
                         .HasForeignKey("Tickets_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Address");
 
@@ -528,8 +522,7 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.ClientsModel", "Client")
                         .WithMany("Tickets")
                         .HasForeignKey("Client_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Client");
                 });
@@ -539,14 +532,12 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
                         .WithMany()
                         .HasForeignKey("Tickets_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("WebApi.Models.ModelsDataBase.TransfersModel", "Transfer")
                         .WithMany("Tours")
                         .HasForeignKey("Transfers_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Ticket");
 
