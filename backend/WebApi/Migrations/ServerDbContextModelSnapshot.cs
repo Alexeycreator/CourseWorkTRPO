@@ -64,7 +64,11 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Passport_Id");
+                    b.HasIndex("Passport_Id")
+                        .HasDatabaseName("IX_Addresses_PassportId");
+
+                    b.HasIndex("Country", "City", "Region", "Street", "House")
+                        .HasDatabaseName("IX_Addresses_Full");
 
                     b.ToTable("Addresses");
                 });
@@ -118,7 +122,26 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Passport_Id");
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Clients_Email");
+
+                    b.HasIndex("Login")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Clients_Login");
+
+                    b.HasIndex("Passport_Id")
+                        .HasDatabaseName("IX_Clients_PassportId");
+
+                    b.HasIndex("Password")
+                        .HasDatabaseName("IX_Clients_Password");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Clients_PhoneNumber");
+
+                    b.HasIndex("SurName", "FirstName", "MiddleName")
+                        .HasDatabaseName("IX_Clients_FullName");
 
                     b.ToTable("Clients");
                 });
@@ -157,6 +180,15 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Currency")
+                        .HasDatabaseName("IX_CurrencyRates_Currency");
+
+                    b.HasIndex("LetterCode")
+                        .HasDatabaseName("IX_CurrencyRates_LetterCode");
+
+                    b.HasIndex("Rate")
+                        .HasDatabaseName("IX_CurrencyRates_Rate");
+
                     b.ToTable("CurrencyRates");
                 });
 
@@ -178,9 +210,14 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CurrencyRates_Id");
+                    b.HasIndex("CurrencyRates_Id")
+                        .HasDatabaseName("IX_CurrencyRatesTickets_CurrencyRatesId");
 
-                    b.HasIndex("Tickets_Id");
+                    b.HasIndex("Tickets_Id")
+                        .HasDatabaseName("IX_CurrencyRatesTickets_TicketsId");
+
+                    b.HasIndex("Tickets_Id", "CurrencyRates_Id")
+                        .HasDatabaseName("IX_CurrencyRatesTickets_TicketsCurrencyRatesId");
 
                     b.ToTable("CurrencyRates_Tickets");
                 });
@@ -229,7 +266,19 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Tickets_Id");
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Employees_Email");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Employees_PhoneNumber");
+
+                    b.HasIndex("Tickets_Id")
+                        .HasDatabaseName("IX_Employees_TicketsId");
+
+                    b.HasIndex("SurName", "FirstName", "MiddleName")
+                        .HasDatabaseName("IX_Employees_FullName");
 
                     b.ToTable("Employees");
                 });
@@ -259,6 +308,9 @@ namespace WebApi.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NameRoom")
+                        .HasDatabaseName("IX_HotelRooms_NameRoom");
 
                     b.ToTable("HotelRooms");
                 });
@@ -305,11 +357,20 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Address_Id");
+                    b.HasIndex("Address_Id")
+                        .HasDatabaseName("IX_Hotels_AddressId");
 
-                    b.HasIndex("HotelRooms_Id");
+                    b.HasIndex("HotelRooms_Id")
+                        .HasDatabaseName("IX_Hotels_HotelRoomsId");
 
-                    b.HasIndex("Tickets_Id");
+                    b.HasIndex("Name")
+                        .HasDatabaseName("IX_Hotels_Name");
+
+                    b.HasIndex("Tickets_Id")
+                        .HasDatabaseName("IX_Hotels_TicketsId");
+
+                    b.HasIndex("Tickets_Id", "Address_Id", "HotelRooms_Id")
+                        .HasDatabaseName("IX_Hotels_TicketsAddressesRoomsId");
 
                     b.ToTable("Hotels");
                 });
@@ -330,9 +391,16 @@ namespace WebApi.Migrations
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Type")
+                        .HasDatabaseName("IX_Passports_Type");
+
+                    b.HasIndex("Seria", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Passports_Seria_Number");
 
                     b.ToTable("Passports");
                 });
@@ -363,7 +431,17 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Client_Id");
+                    b.HasIndex("Client_Id")
+                        .HasDatabaseName("IX_Tickets_ClientId");
+
+                    b.HasIndex("DateSale")
+                        .HasDatabaseName("IX_Tickets_DateSale");
+
+                    b.HasIndex("Price")
+                        .HasDatabaseName("IX_Tickets_Price");
+
+                    b.HasIndex("DepartureTime", "ArrivalTime")
+                        .HasDatabaseName("IX_Tickets_Times");
 
                     b.ToTable("Tickets");
                 });
@@ -411,9 +489,20 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Tickets_Id");
+                    b.HasIndex("Name")
+                        .HasDatabaseName("IX_Tours_Name");
 
-                    b.HasIndex("Transfers_Id");
+                    b.HasIndex("Tickets_Id")
+                        .HasDatabaseName("IX_Tours_TicketsId");
+
+                    b.HasIndex("Transfers_Id")
+                        .HasDatabaseName("IX_Tours_TransfersId");
+
+                    b.HasIndex("StartDot", "EndDot")
+                        .HasDatabaseName("IX_Tours_Route");
+
+                    b.HasIndex("Tickets_Id", "Transfers_Id")
+                        .HasDatabaseName("IX_Tours_TicketsTransfersId");
 
                     b.ToTable("Tours");
                 });
@@ -441,6 +530,12 @@ namespace WebApi.Migrations
                         .HasColumnType("nvarchar(1000)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("IX_Transfers_Name");
+
+                    b.HasIndex("Route")
+                        .HasDatabaseName("IX_Transfers_Route");
 
                     b.ToTable("Transfers");
                 });
