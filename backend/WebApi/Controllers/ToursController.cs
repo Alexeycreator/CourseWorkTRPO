@@ -7,15 +7,8 @@ namespace WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class ToursController
+public sealed class ToursController(ServerDbContext dbContext)
 {
-    private readonly ServerDbContext dbContext;
-
-    public ToursController(ServerDbContext dbContext)
-    {
-        this.dbContext = dbContext;
-    }
-
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ToursModel>>> GetTours()
     {
