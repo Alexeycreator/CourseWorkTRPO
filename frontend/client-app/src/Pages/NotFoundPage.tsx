@@ -1,7 +1,7 @@
 import React from "react";
 
-const NotFound = () => {
+const NotFoundPage = () => {
   return (<div>Нет такой страницы!</div>);
 };
 
-export { NotFound };
+export { NotFoundPage };
