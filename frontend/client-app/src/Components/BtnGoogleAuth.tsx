@@ -36,30 +36,39 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
     this.loadGoogleScript();
   }
 
+  componentDidUpdate(prevProps: {}, prevState: ButtonGoogleAuthState) {
+    // Рендерим кнопку Google после загрузки API и когда пользователь не вошел
+    if (!prevState.name && !this.state.name && window.google?.accounts) {
+      setTimeout(() => this.renderGoogleButton(), 100);
+    }
+  }
+
   loadGoogleScript = () => {
     if (window.google?.accounts) {
       this.initializeGoogle();
       return;
     }
 
-    // Проверяем загрузку скрипта
-    const checkInterval = setInterval(() => {
-      if (window.google?.accounts) {
-        clearInterval(checkInterval);
-        this.initializeGoogle();
-      }
-    }, 100);
+    // Загружаем скрипт, если его нет
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
 
-    // Таймаут на случай ошибки
-    setTimeout(() => {
-      clearInterval(checkInterval);
-      if (!window.google?.accounts) {
-        this.setState({ 
-          loadError: 'Не удалось загрузить Google API',
-          isLoading: false
-        });
-      }
-    }, 5000);
+    script.onload = () => {
+      console.log('✅ Google API script loaded');
+      this.initializeGoogle();
+    };
+
+    script.onerror = () => {
+      console.error('❌ Failed to load Google API script');
+      this.setState({
+        loadError: 'Не удалось загрузить Google API',
+        isLoading: false
+      });
+    };
+
+    document.body.appendChild(script);
   };
 
   initializeGoogle = () => {
@@ -74,31 +83,55 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
       auto_select: false,
       cancel_on_tap_outside: true,
       context: 'signin',
-      ux_mode: 'popup',
+      ux_mode: 'popup', // Используем popup вместо iframe
     });
 
     console.log("✅ Google Identity Services initialized");
     this.setState({ isLoading: false, loadError: null });
+
+    // Рендерим кнопку после инициализации
+    setTimeout(() => this.renderGoogleButton(), 100);
+  };
+
+  renderGoogleButton = () => {
+    const buttonContainer = document.getElementById('googleSignInButton');
+    if (buttonContainer && window.google?.accounts) {
+      // Очищаем контейнер перед рендерингом
+      buttonContainer.innerHTML = '';
+
+      window.google.accounts.id.renderButton(
+        buttonContainer,
+        {
+          theme: 'outline',
+          size: 'large',
+          width: 250,        // ВАЖНО: число, не строка!
+          text: 'signin_with',
+          shape: 'pill',
+          logo_alignment: 'left'
+        }
+      );
+      console.log("✅ Google button rendered");
+    }
   };
 
   handleCredentialResponse = (response: any) => {
     try {
       // Декодируем JWT токен
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
-      
+
       this.setState({
         name: payload.name,
         email: payload.email,
         picture: payload.picture,
         isLoading: false
       });
-      
+
       console.log("✅ Signed in as:", payload.name);
     } catch (error) {
       console.error("❌ Error parsing credential:", error);
-      this.setState({ 
+      this.setState({
         loadError: 'Ошибка обработки ответа',
-        isLoading: false 
+        isLoading: false
       });
     }
   };
@@ -112,20 +145,31 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
     this.setState({ isLoading: true, loadError: null });
 
     try {
+      // Пытаемся показать One Tap UI
       window.google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          this.setState({ 
-            isLoading: false,
-            loadError: 'Окно авторизации не открылось автоматически'
-          });
+        if (notification.isNotDisplayed()) {
+          console.log("One Tap не отобразился, показываем кнопку");
+          this.setState({ isLoading: false });
+          this.renderGoogleButton(); // Запасной вариант
+        }
+        if (notification.isSkippedMoment()) {
+          console.log("One Tap пропущен пользователем");
+          this.setState({ isLoading: false });
+          this.renderGoogleButton(); // Запасной вариант
+        }
+        if (notification.isDismissedMoment()) {
+          console.log("One Tap закрыт пользователем");
+          this.setState({ isLoading: false });
+          this.renderGoogleButton(); // Запасной вариант
         }
       });
     } catch (error) {
       console.error("❌ Error during sign in:", error);
-      this.setState({ 
+      this.setState({
         isLoading: false,
         loadError: 'Ошибка при открытии окна авторизации'
       });
+      this.renderGoogleButton(); // Запасной вариант
     }
   };
 
@@ -136,13 +180,17 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
 
     try {
       window.google.accounts.id.disableAutoSelect();
-      this.setState({
-        name: null,
-        email: null,
-        picture: null,
-        isLoading: false
+      window.google.accounts.id.revoke(this.clientId, () => {
+        this.setState({
+          name: null,
+          email: null,
+          picture: null,
+          isLoading: false
+        });
+        console.log("✅ Signed out successfully");
+        // Снова рендерим кнопку после выхода
+        setTimeout(() => this.renderGoogleButton(), 100);
       });
-      console.log("✅ Signed out successfully");
     } catch (error) {
       console.error("❌ Error during sign out:", error);
       this.setState({ isLoading: false });
@@ -182,34 +230,16 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
     if (!name) {
       return (
         <div style={{ textAlign: 'center' }}>
-          <Button
-            color="primary"
-            onClick={this.signIn}
-            disabled={isLoading}
+          {/* КОНТЕЙНЕР ДЛЯ КНОПКИ GOOGLE */}
+          <div
+            id="googleSignInButton"
             style={{
-              background: 'linear-gradient(45deg, #DB4437, #4285F4)',
-              border: 'none',
               width: '100%',
-              marginBottom: '10px',
-              padding: '10px',
+              marginBottom: '15px',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px'
+              justifyContent: 'center'
             }}
-          >
-            {isLoading ? 'Загрузка...' : (
-              <>
-                <svg width="20" height="20" viewBox="0 0 24 24">
-                  <path fill="#ffffff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#ffffff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#ffffff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#ffffff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Войти через Google
-              </>
-            )}
-          </Button>
+          ></div>
         </div>
       );
     }
@@ -226,8 +256,8 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
           borderRadius: '10px'
         }}>
           {picture && (
-            <img 
-              src={picture} 
+            <img
+              src={picture}
               alt={name || ''}
               style={{
                 width: '50px',
