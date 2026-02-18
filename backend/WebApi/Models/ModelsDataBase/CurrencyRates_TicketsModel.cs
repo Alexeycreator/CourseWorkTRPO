@@ -18,6 +18,7 @@ public sealed class CurrencyRates_TicketsModel
     [Column("Tickets_Id")]
     [ForeignKey("Ticket")]
     public int? Tickets_Id { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
     [DeleteBehavior(DeleteBehavior.SetNull)]
     public CurrencyRatesModel CurrencyRate { get; set; }

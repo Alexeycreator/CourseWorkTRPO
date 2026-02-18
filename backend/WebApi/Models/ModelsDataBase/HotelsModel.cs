@@ -17,6 +17,7 @@ public sealed class HotelsModel
     [Required] public int TimeOfStay { get; set; }
     [Required] [MaxLength(1000)] public string ImageHotel { get; set; }
     [MaxLength(2000)] public string? Details { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
     [Column("Address_Id")]
     [ForeignKey("Address")]
@@ -32,7 +33,7 @@ public sealed class HotelsModel
 
     [DeleteBehavior(DeleteBehavior.SetNull)]
     public AddressesModel Address { get; set; }
-    
+
     [DeleteBehavior(DeleteBehavior.SetNull)]
     public TicketsModel Ticket { get; set; }
 

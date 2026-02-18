@@ -18,6 +18,7 @@ public sealed class TicketsModel
     [Required] public DateTime DepartureTime { get; set; }
     [Required] public DateTime ArrivalTime { get; set; }
     [Required] public DateTime DateSale { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
     [Column("Client_Id")]
     [ForeignKey("Client")]

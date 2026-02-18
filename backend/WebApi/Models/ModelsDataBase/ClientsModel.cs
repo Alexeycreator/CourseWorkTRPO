@@ -33,6 +33,7 @@ public sealed class ClientsModel
         ErrorMessage = "Пароль должен быть от 6 до 100 символов")]
     [DataType(DataType.Password)]
     public string Password { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
     [Column("Passport_Id")]
     [ForeignKey("Passport")]

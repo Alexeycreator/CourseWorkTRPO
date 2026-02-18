@@ -25,13 +25,14 @@ public sealed class EmployeesModel
     [MaxLength(100)]
     [DataType(DataType.EmailAddress)]
     public string Email { get; set; }
-
+    
     [Required] [MaxLength(100)] public string Position { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
     [Column("Tickets_Id")]
     [ForeignKey("Ticket")]
     public int? Tickets_Id { get; set; }
-    
+
     [DeleteBehavior(DeleteBehavior.Restrict)]
     public TicketsModel Ticket { get; set; }
 }
