@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
@@ -18,11 +19,14 @@ public sealed class CurrencyRates_TicketsModel
     [Column("Tickets_Id")]
     [ForeignKey("Ticket")]
     public int? Tickets_Id { get; set; }
+
     public bool IsReadOnly { get; set; } = false;
 
     [DeleteBehavior(DeleteBehavior.SetNull)]
-    public CurrencyRatesModel CurrencyRate { get; set; }
-    
+    [JsonIgnore]
+    public CurrencyRatesModel? CurrencyRate { get; set; }
+
     [DeleteBehavior(DeleteBehavior.SetNull)]
-    public TicketsModel Ticket { get; set; }
+    [JsonIgnore]
+    public TicketsModel? Ticket { get; set; }
 }

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
@@ -33,6 +34,7 @@ public sealed class ClientsModel
         ErrorMessage = "Пароль должен быть от 6 до 100 символов")]
     [DataType(DataType.Password)]
     public string Password { get; set; }
+
     public bool IsReadOnly { get; set; } = false;
 
     [Column("Passport_Id")]
@@ -40,7 +42,8 @@ public sealed class ClientsModel
     public int? Passport_Id { get; set; }
 
     [DeleteBehavior(DeleteBehavior.Cascade)]
-    public PassportsModel Passport { get; set; }
+    [JsonIgnore]
+    public PassportsModel? Passport { get; set; }
 
-    public ICollection<TicketsModel> Tickets { get; set; }
+    [JsonIgnore] public ICollection<TicketsModel>? Tickets { get; set; }
 }

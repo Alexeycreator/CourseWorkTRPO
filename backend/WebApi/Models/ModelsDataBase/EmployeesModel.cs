@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
@@ -25,7 +26,7 @@ public sealed class EmployeesModel
     [MaxLength(100)]
     [DataType(DataType.EmailAddress)]
     public string Email { get; set; }
-    
+
     [Required] [MaxLength(100)] public string Position { get; set; }
     public bool IsReadOnly { get; set; } = false;
 
@@ -34,5 +35,6 @@ public sealed class EmployeesModel
     public int? Tickets_Id { get; set; }
 
     [DeleteBehavior(DeleteBehavior.Restrict)]
-    public TicketsModel Ticket { get; set; }
+    [JsonIgnore]
+    public TicketsModel? Ticket { get; set; }
 }

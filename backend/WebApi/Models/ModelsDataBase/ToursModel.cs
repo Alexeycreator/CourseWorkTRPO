@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
@@ -27,8 +28,10 @@ public sealed class ToursModel
     public int? Transfers_Id { get; set; }
 
     [DeleteBehavior(DeleteBehavior.Restrict)]
-    public TicketsModel Ticket { get; set; }
-    
+    [JsonIgnore]
+    public TicketsModel? Ticket { get; set; }
+
     [DeleteBehavior(DeleteBehavior.SetNull)]
-    public TransfersModel Transfer { get; set; }
+    [JsonIgnore]
+    public TransfersModel? Transfer { get; set; }
 }

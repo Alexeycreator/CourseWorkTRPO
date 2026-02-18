@@ -25,7 +25,8 @@ public sealed class AddressesModel
     public int? Passport_Id { get; set; }
 
     [DeleteBehavior(DeleteBehavior.Restrict)]
-    public PassportsModel Passport { get; set; }
+    [JsonIgnore]
+    public PassportsModel? Passport { get; set; }
 
-    public ICollection<HotelsModel> Hotels { get; set; }
+    [JsonIgnore] public ICollection<HotelsModel>? Hotels { get; set; }
 }

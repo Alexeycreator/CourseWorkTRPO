@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace WebApi.Models.ModelsDataBase;
 
@@ -22,5 +23,5 @@ public sealed class CurrencyRatesModel
     [Required] [MaxLength(25)] public string DateReceipt { get; set; }
     public bool IsReadOnly { get; set; } = false;
 
-    public ICollection<CurrencyRates_TicketsModel> CurrencyRatesTickets { get; set; }
+    [JsonIgnore] public ICollection<CurrencyRates_TicketsModel>? CurrencyRatesTickets { get; set; }
 }

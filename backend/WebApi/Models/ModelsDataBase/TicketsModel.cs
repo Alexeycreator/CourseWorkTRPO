@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
@@ -25,8 +26,9 @@ public sealed class TicketsModel
     public int? Client_Id { get; set; }
 
     [DeleteBehavior(DeleteBehavior.SetNull)]
-    public ClientsModel Client { get; set; }
+    [JsonIgnore]
+    public ClientsModel? Client { get; set; }
 
-    public ICollection<CurrencyRates_TicketsModel> CurrencyRatesTickets { get; set; }
-    public ICollection<EmployeesModel> Employees { get; set; }
+    [JsonIgnore] public ICollection<CurrencyRates_TicketsModel>? CurrencyRatesTickets { get; set; }
+    [JsonIgnore] public ICollection<EmployeesModel>? Employees { get; set; }
 }
