@@ -58,6 +58,7 @@ else
     app.UseHsts();
 }
 
+app.UseCors("ReactApp");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
