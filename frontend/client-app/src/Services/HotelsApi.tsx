@@ -3,7 +3,7 @@ import { Address } from "./AddressApi";
 import { Ticket } from "./TicketsApi";
 import { HotelRoom } from "./HotelRoomsApi";
 
-const API_URL = "http://localhost:5027/api";
+const API_URL = "http://localhost:5050/api";
 
 const api = axios.create({
     baseURL: API_URL,
@@ -19,12 +19,12 @@ export interface Hotel {
     timeOfStay: number;
     imageHotel: string;
     details: string | null;
-    address_Id: number | null;
-    tickets_Id: number | null;
-    hotelRooms_Id: number;
-    address?: Address;
-    ticket?: Ticket;
-    hotelRoom?: HotelRoom;
+    address_Id?: number | null;
+    tickets_Id?: number | null;
+    hotelRooms_Id?: number | null;
+    address?: Address | null;
+    ticket?: Ticket | null;
+    hotelRoom?: HotelRoom | null;
 }
 
 export const getHotels = async (): Promise<Hotel[]> => {
