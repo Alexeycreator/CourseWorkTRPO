@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace WebApi.Models.ModelsDataBase;
 
@@ -16,6 +17,7 @@ public sealed class HotelRoomsModel
     [Required] public int Floor { get; set; }
 
     [MaxLength(1000)] public string? ImageRoom { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
-    public ICollection<HotelsModel> Hotels { get; set; }
+    [JsonIgnore] public ICollection<HotelsModel>? Hotels { get; set; }
 }

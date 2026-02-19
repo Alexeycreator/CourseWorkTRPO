@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
@@ -17,13 +18,15 @@ public sealed class AddressesModel
     [Required] [MaxLength(100)] public string Street { get; set; }
     [Required] [MaxLength(100)] public string House { get; set; }
     public int? Apartment { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
     [Column("Passport_Id")]
     [ForeignKey("Passport")]
     public int? Passport_Id { get; set; }
 
     [DeleteBehavior(DeleteBehavior.Restrict)]
-    public PassportsModel Passport { get; set; }
+    [JsonIgnore]
+    public PassportsModel? Passport { get; set; }
 
-    public ICollection<HotelsModel> Hotels { get; set; }
+    [JsonIgnore] public ICollection<HotelsModel>? Hotels { get; set; }
 }

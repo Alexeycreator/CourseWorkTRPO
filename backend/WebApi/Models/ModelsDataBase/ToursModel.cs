@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
@@ -16,6 +17,7 @@ public sealed class ToursModel
     [Required] [MaxLength(100)] public string EndDot { get; set; }
     [Required] [MaxLength(4000)] public string Details { get; set; }
     [Required] [MaxLength(1000)] public string ImageTour { get; private set; }
+    public bool IsReadOnly { get; set; } = false;
 
     [Column("Tickets_Id")]
     [ForeignKey("Ticket")]
@@ -26,8 +28,10 @@ public sealed class ToursModel
     public int? Transfers_Id { get; set; }
 
     [DeleteBehavior(DeleteBehavior.Restrict)]
-    public TicketsModel Ticket { get; set; }
-    
+    [JsonIgnore]
+    public TicketsModel? Ticket { get; set; }
+
     [DeleteBehavior(DeleteBehavior.SetNull)]
-    public TransfersModel Transfer { get; set; }
+    [JsonIgnore]
+    public TransfersModel? Transfer { get; set; }
 }

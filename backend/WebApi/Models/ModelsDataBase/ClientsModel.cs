@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
@@ -13,7 +14,7 @@ public sealed class ClientsModel
 
     [Required] [MaxLength(100)] public string SurName { get; set; }
     [Required] [MaxLength(100)] public string FirstName { get; set; }
-    [Required] [MaxLength(100)] public string MiddleName { get; set; }
+    [MaxLength(100)] public string? MiddleName { get; set; }
 
     [Required]
     [MaxLength(15)]
@@ -34,12 +35,15 @@ public sealed class ClientsModel
     [DataType(DataType.Password)]
     public string Password { get; set; }
 
+    public bool IsReadOnly { get; set; } = false;
+
     [Column("Passport_Id")]
     [ForeignKey("Passport")]
     public int? Passport_Id { get; set; }
 
     [DeleteBehavior(DeleteBehavior.Cascade)]
-    public PassportsModel Passport { get; set; }
+    [JsonIgnore]
+    public PassportsModel? Passport { get; set; }
 
-    public ICollection<TicketsModel> Tickets { get; set; }
+    [JsonIgnore] public ICollection<TicketsModel>? Tickets { get; set; }
 }

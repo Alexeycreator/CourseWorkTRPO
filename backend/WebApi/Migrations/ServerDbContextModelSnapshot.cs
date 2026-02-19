@@ -48,6 +48,9 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
+
                     b.Property<int?>("Passport_Id")
                         .HasColumnType("int")
                         .HasColumnName("Passport_Id");
@@ -91,13 +94,15 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Login")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("MiddleName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -167,6 +172,9 @@ namespace WebApi.Migrations
                     b.Property<int>("DigitalCode")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
+
                     b.Property<string>("LetterCode")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -204,6 +212,9 @@ namespace WebApi.Migrations
                         .HasColumnType("int")
                         .HasColumnName("CurrencyRates_Id");
 
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
+
                     b.Property<int?>("Tickets_Id")
                         .HasColumnType("int")
                         .HasColumnName("Tickets_Id");
@@ -240,8 +251,10 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
+
                     b.Property<string>("MiddleName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -302,6 +315,9 @@ namespace WebApi.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
+
                     b.Property<string>("NameRoom")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -339,6 +355,9 @@ namespace WebApi.Migrations
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -383,6 +402,9 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Number")
                         .HasColumnType("int");
 
@@ -426,6 +448,9 @@ namespace WebApi.Migrations
                     b.Property<DateTime>("DepartureTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
@@ -468,6 +493,9 @@ namespace WebApi.Migrations
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -518,6 +546,9 @@ namespace WebApi.Migrations
                     b.Property<string>("Details")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsReadOnly")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()

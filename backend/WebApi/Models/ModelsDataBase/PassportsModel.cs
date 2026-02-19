@@ -1,6 +1,7 @@
 using System.Collections;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace WebApi.Models.ModelsDataBase;
 
@@ -14,7 +15,8 @@ public sealed class PassportsModel
     [Required] public int Seria { get; set; }
     [Required] public int Number { get; set; }
     [Required] public string Type { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
-    public ICollection<AddressesModel> Addresses { get; set; }
-    public ICollection<ClientsModel> Clients { get; set; }
+    [JsonIgnore] public ICollection<AddressesModel>? Addresses { get; set; }
+    [JsonIgnore] public ICollection<ClientsModel>? Clients { get; set; }
 }
