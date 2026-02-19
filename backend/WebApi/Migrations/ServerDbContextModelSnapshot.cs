@@ -103,7 +103,6 @@ namespace WebApi.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("MiddleName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -256,7 +255,6 @@ namespace WebApi.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("MiddleName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 

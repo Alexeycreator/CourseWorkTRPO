@@ -14,7 +14,7 @@ public sealed class EmployeesModel
 
     [Required] [MaxLength(100)] public string SurName { get; set; }
     [Required] [MaxLength(100)] public string FirstName { get; set; }
-    [Required] [MaxLength(100)] public string MiddleName { get; set; }
+    [MaxLength(100)] public string? MiddleName { get; set; }
 
     [Required]
     [MaxLength(15)]
