@@ -1,4 +1,5 @@
 import React, { useState, FormEvent, useRef, useEffect } from "react";
+import { getAddresses } from "../Services/AddressApi";
 
 const CatalogToursPage = () => {
   const [departure, setDeparture] = useState("");
@@ -8,6 +9,10 @@ const CatalogToursPage = () => {
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [nights, setNights] = useState(7);
+
+  const [cityOptions, setCityOptions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [isGuestSelectorOpen, setIsGuestSelectorOpen] = useState(false);
   const [isDateSelectorOpen, setIsDateSelectorOpen] = useState(false);
@@ -21,11 +26,32 @@ const CatalogToursPage = () => {
   const dateDisplayRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const cityOptions = [
-    "Москва", "Санкт-Петербург", "Сочи", "Калининград", "Казань",
-    "Анталия", "Стамбул", "Бангкок", "Пхукет", "Дубай",
-    "Шарм-эль-Шейх", "Хургада",
-  ];
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        setLoading(true);
+        const addresses = await getAddresses();
+        
+        // Извлекаем уникальные города из адресов
+        const cities = addresses
+          .map(addr => addr.city)
+          .filter((city, index, self) => 
+            city && self.indexOf(city) === index
+          ) // убираем дубликаты и пустые значения
+          .sort(); // сортируем по алфавиту
+        
+        setCityOptions(cities);
+        setError(null);
+      } catch (err) {
+        console.error("Ошибка загрузки городов:", err);
+        setError("Не удалось загрузить список городов");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCities();
+  }, []);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -59,7 +85,7 @@ const CatalogToursPage = () => {
       setGuestSelectorPosition({
         top: displayRect.bottom - formRect.top,
         left: displayRect.left - formRect.left - 50,
-        width: displayRect.width + 100,               
+        width: displayRect.width + 100,
       });
     }
   };
@@ -175,7 +201,7 @@ const CatalogToursPage = () => {
               value={departure}
               onChange={(e) => setDeparture(e.target.value)}
               required
-              placeholder="Москва"
+              placeholder="Выберите город..."
             />
           </div>
           {/* Куда */}
@@ -188,7 +214,7 @@ const CatalogToursPage = () => {
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               required
-              placeholder="Анталия"
+              placeholder="Выберите город..."
             />
           </div>
           <datalist id="cities">

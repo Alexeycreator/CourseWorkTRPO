@@ -1,7 +1,7 @@
 import axios from "axios";
 import { Hotel } from "./HotelsApi";
 
-const API_URL = "http://localhost:5027/api";
+const API_URL = "http://localhost:5050/api";
 
 const api = axios.create({
     baseURL: API_URL,
@@ -16,17 +16,17 @@ export interface HotelRoom {
     details: string | null;
     floor: number;
     imageRoom: string | null;
-    hotels?: Hotel[];
+    hotels?: Hotel[] | null;
 }
 
 export const getHotelRooms = async (): Promise<HotelRoom[]> => {
-    const response = await api.get<HotelRoom[]>('/HotelRoom');
+    const response = await api.get<HotelRoom[]>('/HotelRooms');
     return response.data;
 };
 
 
 export const getHotelRoomById = async (id: number): Promise<HotelRoom> => {
-    const response = await api.get<HotelRoom>(`/HotelRoom/${id}`);
+    const response = await api.get<HotelRoom>(`/HotelRooms/${id}`);
     return response.data;
 };
 
@@ -36,7 +36,7 @@ export const createHotelRoom = async (roomData: {
     floor: number;
     imageRoom?: string | null;
 }): Promise<HotelRoom> => {
-    const response = await api.post<HotelRoom>('/HotelRoom', roomData);
+    const response = await api.post<HotelRoom>('/HotelRooms', roomData);
     return response.data;
 };
 
@@ -46,12 +46,12 @@ export const updateHotelRoom = async (id: number, roomData: {
     floor: number;
     imageRoom?: string | null;
 }): Promise<HotelRoom> => {
-    const response = await api.put<HotelRoom>(`/HotelRoom/${id}`, roomData);
+    const response = await api.put<HotelRoom>(`/HotelRooms/${id}`, roomData);
     return response.data;
 };
 
 export const deleteHotelRoom = async (id: number): Promise<void> => {
-    await api.delete(`/HotelRoom/${id}`);
+    await api.delete(`/HotelRooms/${id}`);
 };
 
 export default api;

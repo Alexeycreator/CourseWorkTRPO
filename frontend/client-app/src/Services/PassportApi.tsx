@@ -2,7 +2,7 @@ import axios from "axios";
 import { Address } from "./AddressApi";
 import { Client } from "./ClientApi";
 
-const API_URL = "http://localhost:5027/api";
+const API_URL = "http://localhost:5050/api";
 
 const api = axios.create({
     baseURL: API_URL,
@@ -16,17 +16,17 @@ export interface Passport {
     seria: number;
     number: number;
     type: string;
-    addresses?: Address[];
-    clients?: Client[];
+    addresses?: Address[] | null;
+    clients?: Client[] | null;
 }
 
 export const getPassports = async (): Promise<Passport[]> => {
-    const response = await api.get<Passport[]>('/Passport');
+    const response = await api.get<Passport[]>('/Passports');
     return response.data;
 };
 
 export const getPassportById = async (id: number): Promise<Passport> => {
-    const response = await api.get<Passport>(`/Passport/${id}`);
+    const response = await api.get<Passport>(`/Passports/${id}`);
     return response.data;
 };
 
@@ -35,7 +35,7 @@ export const createPassport = async (passportData: {
     number: number;
     type: string;
 }): Promise<Passport> => {
-    const response = await api.post<Passport>('/Passport', passportData);
+    const response = await api.post<Passport>('/Passports', passportData);
     return response.data;
 };
 
@@ -44,21 +44,21 @@ export const updatePassport = async (id: number, passportData: {
     number: number;
     type: string;
 }): Promise<Passport> => {
-    const response = await api.put<Passport>(`/Passport/${id}`, passportData);
+    const response = await api.put<Passport>(`/Passports/${id}`, passportData);
     return response.data;
 };
 
 export const deletePassport = async (id: number): Promise<void> => {
-    await api.delete(`/Passport/${id}`);
+    await api.delete(`/Passports/${id}`);
 };
 
 export const getAddressesByPassportId = async (passportId: number): Promise<Address[]> => {
-    const response = await api.get<Address[]>(`/Passport/${passportId}/addresses`);
+    const response = await api.get<Address[]>(`/Passports/${passportId}/addresses`);
     return response.data;
 };
 
 export const getClientsByPassportId = async (passportId: number): Promise<Client[]> => {
-    const response = await api.get<Client[]>(`/Passport/${passportId}/clients`);
+    const response = await api.get<Client[]>(`/Passports/${passportId}/clients`);
     return response.data;
 };
 
