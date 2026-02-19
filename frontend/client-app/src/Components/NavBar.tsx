@@ -52,7 +52,7 @@ export default class NavBar extends Component<{}, NavBarState> {
               background: 'linear-gradient(45deg, #FFD700, #E6E6FA)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.3), 0 0 10px #9370DB',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.3), 0 0 10px #db7c70',
               letterSpacing: '2px',
               padding: '5px 15px',
               borderRadius: '10px',
@@ -374,7 +374,9 @@ export default class NavBar extends Component<{}, NavBarState> {
                   borderRadius: '25px',
                   padding: '8px 20px',
                   backgroundColor: 'rgba(255,255,255,0.1)',
-                  color: 'white'
+                  color: 'white',
+                  //caretColor: '#70db99', // цвет курсора
+                  // accentColor: '#1fcf54' 
                 }}
               />
               <button
