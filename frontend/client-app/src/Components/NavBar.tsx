@@ -6,14 +6,25 @@ import { Modal, ModalHeader, ModalBody } from 'reactstrap';
 // Определяем интерфейс для состояния
 interface NavBarState {
   showAuth: boolean;
-  googleAuthModal: boolean; // Добавлено
+  googleAuthModal: boolean;
+  showCurrencyMenu: boolean;
+  selectedCurrency: string;
 }
 
 export default class NavBar extends Component<{}, NavBarState> {
+  // Массив валют
+  currencies = [
+    { code: 'RUB', symbol: '₽', label: 'RUB' },
+    { code: 'USD', symbol: '$', label: 'USD' },
+    { code: 'EUR', symbol: '€', label: 'EUR' }
+  ];
+
   // Инициализируем состояние
   state: NavBarState = {
     showAuth: false,
-    googleAuthModal: false // Добавлено
+    googleAuthModal: false,
+    showCurrencyMenu: false,
+    selectedCurrency: 'RUB'
   };
 
   // Метод для переключения модального окна
@@ -29,8 +40,33 @@ export default class NavBar extends Component<{}, NavBarState> {
     }));
   };
 
+  // Метод для переключения меню валют
+  toggleCurrencyMenu = () => {
+    this.setState(prevState => ({
+      showCurrencyMenu: !prevState.showCurrencyMenu
+    }));
+  };
+
+  // Метод для выбора валюты
+  selectCurrency = (code: string) => {
+    this.setState({
+      selectedCurrency: code,
+      showCurrencyMenu: false
+    });
+  };
+
+  // Функция для получения символа валюты
+  getCurrencySymbol = (code: string) => {
+    switch(code) {
+      case 'RUB': return '₽';
+      case 'USD': return '$';
+      case 'EUR': return '€';
+      default: return '₽';
+    }
+  };
+
   render() {
-    const { showAuth } = this.state; // Получаем значение из состояния
+    const { showAuth, showCurrencyMenu, selectedCurrency } = this.state; // Получаем значения из состояния
 
     return (
       <nav className="navbar navbar-expand-lg" style={{
@@ -38,7 +74,7 @@ export default class NavBar extends Component<{}, NavBarState> {
         borderBottom: '3px solid #9370DB',
         boxShadow: '0 4px 15px rgba(147, 112, 219, 0.3)',
         padding: '10px 0',
-        position: 'relative' // Добавляем для позиционирования декоративных элементов
+        position: 'relative'
       }}>
         <div className="container-fluid" style={{ padding: '0 30px' }}>
           {/* Логотип - ссылка на главную */}
@@ -52,7 +88,7 @@ export default class NavBar extends Component<{}, NavBarState> {
               background: 'linear-gradient(45deg, #FFD700, #E6E6FA)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.3), 0 0 10px #9370DB',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.3), 0 0 10px #db7c70',
               letterSpacing: '2px',
               padding: '5px 15px',
               borderRadius: '10px',
@@ -362,6 +398,123 @@ export default class NavBar extends Component<{}, NavBarState> {
               </li>
             </ul>
 
+            {/* Селектор валюты */}
+            <div style={{ position: 'relative', marginRight: '15px' }}>
+              <button
+                onClick={this.toggleCurrencyMenu}
+                style={{
+                  backgroundColor: 'rgba(147, 112, 219, 0.3)',
+                  border: '2px solid #9370DB',
+                  borderRadius: '25px',
+                  padding: '8px 20px',
+                  color: '#FFD700',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.5)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>{this.getCurrencySymbol(selectedCurrency)}</span>
+                <span>{selectedCurrency}</span>
+                <span style={{ 
+                  fontSize: '12px',
+                  transform: showCurrencyMenu ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.3s'
+                }}>
+                  ▼
+                </span>
+              </button>
+
+              {/* Выпадающее меню валют */}
+              {showCurrencyMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: '0',
+                  marginTop: '10px',
+                  backgroundColor: '#2E1B3F',
+                  border: '2px solid #9370DB',
+                  borderRadius: '15px',
+                  minWidth: '220px',
+                  zIndex: 1000,
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                }}>
+                  {/* Заголовок */}
+                  <div style={{
+                    padding: '15px 20px',
+                    borderBottom: '2px solid #9370DB',
+                    color: '#FFD700',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    background: 'rgba(147, 112, 219, 0.2)',
+                    textAlign: 'center'
+                  }}>
+                    💰 Выберите валюту
+                  </div>
+
+                  {/* Список валют */}
+                  {this.currencies.map((currency) => (
+                    <button
+                      key={currency.code}
+                      onClick={() => this.selectCurrency(currency.code)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 20px',
+                        border: 'none',
+                        borderBottom: '1px solid rgba(147, 112, 219, 0.3)',
+                        backgroundColor: selectedCurrency === currency.code ? 'rgba(147, 112, 219, 0.3)' : 'transparent',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '15px',
+                        fontSize: '16px',
+                        color: selectedCurrency === currency.code ? '#FFD700' : '#E6E6FA',
+                        transition: 'all 0.3s',
+                        fontWeight: selectedCurrency === currency.code ? 600 : 400
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.5)';
+                        e.currentTarget.style.paddingLeft = '30px';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedCurrency !== currency.code) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        } else {
+                          e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.3)';
+                        }
+                        e.currentTarget.style.paddingLeft = '20px';
+                      }}
+                    >
+                      <span style={{ 
+                        width: '30px',
+                        color: '#FFD700',
+                        fontWeight: 600,
+                        fontSize: '20px'
+                      }}>
+                        {currency.symbol}
+                      </span>
+                      <span style={{ flex: 1, textAlign: 'left' }}>{currency.label}</span>
+                      {selectedCurrency === currency.code && (
+                        <span style={{ color: '#FFD700' }}>✓</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Форма поиска */}
             <form className="d-flex" style={{ marginRight: '20px' }}>
               <input
@@ -407,7 +560,7 @@ export default class NavBar extends Component<{}, NavBarState> {
               <button
                 className="btn"
                 id="authButton"
-                onClick={this.toggleAuthModal} // Используем метод класса
+                onClick={this.toggleAuthModal}
                 style={{
                   background: 'linear-gradient(45deg, #FFD700, #9370DB)',
                   color: 'white',
@@ -436,7 +589,7 @@ export default class NavBar extends Component<{}, NavBarState> {
               </button>
 
               {/* Модальное окно авторизации */}
-              {showAuth && ( // Используем состояние для условного рендеринга
+              {showAuth && (
                 <div
                   id="authModal"
                   style={{
@@ -650,13 +803,13 @@ export default class NavBar extends Component<{}, NavBarState> {
                           e.currentTarget.style.borderColor = '#9370DB';
                           e.currentTarget.style.transform = 'scale(1)';
                         }}
-                        onClick={this.toggleGoogleAuth}  // ИЗМЕНЕНО: вызываем метод класса
+                        onClick={this.toggleGoogleAuth}
                       >
                         G
                       </button>
                     </div>
 
-                    {/* ДОБАВЛЕНО: Модальное окно для GoogleAuth */}
+                    {/* Модальное окно для GoogleAuth */}
                     <Modal
                       isOpen={this.state.googleAuthModal}
                       toggle={this.toggleGoogleAuth}
