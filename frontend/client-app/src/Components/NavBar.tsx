@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import ButtonGoogleAuth from "./BtnGoogleAuth";
 import { Modal, ModalHeader, ModalBody } from 'reactstrap';
 
-// Определяем интерфейс для состояния
 interface NavBarState {
   showAuth: boolean;
   googleAuthModal: boolean;
@@ -12,14 +11,12 @@ interface NavBarState {
 }
 
 export default class NavBar extends Component<{}, NavBarState> {
-  // Массив валют
   currencies = [
     { code: 'RUB', symbol: '₽', label: 'RUB' },
     { code: 'USD', symbol: '$', label: 'USD' },
     { code: 'EUR', symbol: '€', label: 'EUR' }
   ];
 
-  // Инициализируем состояние
   state: NavBarState = {
     showAuth: false,
     googleAuthModal: false,
@@ -27,7 +24,6 @@ export default class NavBar extends Component<{}, NavBarState> {
     selectedCurrency: 'RUB'
   };
 
-  // Метод для переключения модального окна
   toggleAuthModal = () => {
     this.setState(prevState => ({
       showAuth: !prevState.showAuth
@@ -40,14 +36,12 @@ export default class NavBar extends Component<{}, NavBarState> {
     }));
   };
 
-  // Метод для переключения меню валют
   toggleCurrencyMenu = () => {
     this.setState(prevState => ({
       showCurrencyMenu: !prevState.showCurrencyMenu
     }));
   };
 
-  // Метод для выбора валюты
   selectCurrency = (code: string) => {
     this.setState({
       selectedCurrency: code,
@@ -55,7 +49,6 @@ export default class NavBar extends Component<{}, NavBarState> {
     });
   };
 
-  // Функция для получения символа валюты
   getCurrencySymbol = (code: string) => {
     switch(code) {
       case 'RUB': return '₽';
@@ -66,46 +59,46 @@ export default class NavBar extends Component<{}, NavBarState> {
   };
 
   render() {
-    const { showAuth, showCurrencyMenu, selectedCurrency } = this.state; // Получаем значения из состояния
+    const { showAuth, showCurrencyMenu, selectedCurrency } = this.state;
 
     return (
       <nav className="navbar navbar-expand-lg" style={{
-        background: 'linear-gradient(90deg, #2E1B3F 0%, #4B0082 50%, #6A5ACD 100%)',
-        borderBottom: '3px solid #9370DB',
-        boxShadow: '0 4px 15px rgba(147, 112, 219, 0.3)',
-        padding: '10px 0',
+        background: 'linear-gradient(90deg, #F8F0E0 0%, #F0E0D0 50%, #E8D0C0 100%)',
+        borderBottom: '2px solid #C0A080',
+        boxShadow: '0 2px 10px rgba(160, 120, 80, 0.1)',
+        padding: '8px 0',
         position: 'relative'
       }}>
-        <div className="container-fluid" style={{ padding: '0 30px' }}>
-          {/* Логотип - ссылка на главную */}
+        <div className="container-fluid" style={{ padding: '0 20px' }}>
+          {/* Логотип */}
           <Link
             to="/"
             className="navbar-brand"
             style={{
-              fontFamily: "'Poppins', 'Montserrat', 'Arial Black', sans-serif",
+              fontFamily: "'Cormorant Garamond', 'Georgia', serif",
               fontSize: '28px',
-              fontWeight: '800',
-              background: 'linear-gradient(45deg, #FFD700, #E6E6FA)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.3), 0 0 10px #db7c70',
-              letterSpacing: '2px',
+              fontWeight: '600',
+              color: '#8B5A2B',
+              textShadow: '1px 1px 2px rgba(200, 160, 120, 0.3)',
+              letterSpacing: '1px',
               padding: '5px 15px',
-              borderRadius: '10px',
+              borderRadius: '20px',
               transition: 'all 0.3s ease',
-              marginLeft: '20px',
-              textDecoration: 'none'
+              marginLeft: '10px',
+              textDecoration: 'none',
+              background: 'rgba(255, 245, 235, 0.5)',
+              backdropFilter: 'blur(5px)',
+              border: '1px solid #C0A080',
+              whiteSpace: 'nowrap'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.textShadow = '0 0 15px #FFD700';
+              e.currentTarget.style.background = 'rgba(200, 160, 120, 0.15)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.textShadow = '2px 2px 4px rgba(0,0,0,0.3), 0 0 10px #9370DB';
+              e.currentTarget.style.background = 'rgba(255, 245, 235, 0.5)';
             }}
           >
-            🚪 Салли-Турс 🚪
+            <span>𓂀 Шелковые барханы 𓂀</span>
           </Link>
 
           <button
@@ -117,111 +110,101 @@ export default class NavBar extends Component<{}, NavBarState> {
             aria-expanded="false"
             aria-label="Toggle navigation"
             style={{
-              backgroundColor: '#9370DB',
-              border: '2px solid #E6E6FA'
+              backgroundColor: '#C0A080',
+              border: '1px solid #8B5A2B'
             }}
           >
             <span className="navbar-toggler-icon" style={{
-              backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='white' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")`
+              backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%238B5A2B' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")`
             }}></span>
           </button>
 
           <div className="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul className="navbar-nav me-auto mb-2 mb-lg-0" style={{ marginLeft: '30px' }}>
-              {/* Главная */}
+            <ul className="navbar-nav me-auto mb-2 mb-lg-0" style={{ marginLeft: '20px' }}>
               <li className="nav-item">
                 <Link
                   to="/"
                   className="nav-link"
                   style={{
-                    color: '#E6E6FA',
-                    fontSize: '18px',
-                    fontWeight: '500',
-                    padding: '10px 20px',
-                    margin: '0 5px',
+                    color: '#8B5A2B',
+                    fontSize: '16px',
+                    fontWeight: '400',
+                    padding: '8px 15px',
+                    margin: '0 3px',
                     borderRadius: '20px',
                     transition: 'all 0.3s',
                     border: '1px solid transparent',
                     textDecoration: 'none'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.3)';
-                    e.currentTarget.style.border = '1px solid #9370DB';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.backgroundColor = 'rgba(200, 160, 120, 0.15)';
+                    e.currentTarget.style.borderColor = '#C0A080';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.border = '1px solid transparent';
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = 'transparent';
                   }}
                 >
-                  🏠 Домой
+                  𓊹 Главная
                 </Link>
               </li>
 
-              {/* Каталог туров */}
               <li className="nav-item">
                 <Link
                   to="/catalog"
                   className="nav-link"
                   style={{
-                    color: '#E6E6FA',
-                    fontSize: '18px',
-                    fontWeight: '500',
-                    padding: '10px 20px',
-                    margin: '0 5px',
+                    color: '#8B5A2B',
+                    fontSize: '16px',
+                    fontWeight: '400',
+                    padding: '8px 15px',
+                    margin: '0 3px',
                     borderRadius: '20px',
                     transition: 'all 0.3s',
                     border: '1px solid transparent',
                     textDecoration: 'none'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.3)';
-                    e.currentTarget.style.border = '1px solid #9370DB';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.backgroundColor = 'rgba(200, 160, 120, 0.15)';
+                    e.currentTarget.style.borderColor = '#C0A080';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.border = '1px solid transparent';
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = 'transparent';
                   }}
                 >
-                  🚪 Все двери
+                  𓊖 Туры
                 </Link>
               </li>
 
-              {/* Горящие туры */}
               <li className="nav-item">
                 <Link
                   to="/hot-tours"
                   className="nav-link"
                   style={{
-                    color: '#E6E6FA',
-                    fontSize: '18px',
-                    fontWeight: '500',
-                    padding: '10px 20px',
-                    margin: '0 5px',
+                    color: '#8B5A2B',
+                    fontSize: '16px',
+                    fontWeight: '400',
+                    padding: '8px 15px',
+                    margin: '0 3px',
                     borderRadius: '20px',
                     transition: 'all 0.3s',
                     border: '1px solid transparent',
                     textDecoration: 'none'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.3)';
-                    e.currentTarget.style.border = '1px solid #9370DB';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.backgroundColor = 'rgba(200, 160, 120, 0.15)';
+                    e.currentTarget.style.borderColor = '#C0A080';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.border = '1px solid transparent';
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = 'transparent';
                   }}
                 >
-                  🔥 Горящие туры
+                  𓂀 Горящие
                 </Link>
               </li>
 
-              {/* Выпадающее меню с дополнительными страницами */}
               <li className="nav-item dropdown">
                 <a
                   className="nav-link dropdown-toggle"
@@ -231,167 +214,111 @@ export default class NavBar extends Component<{}, NavBarState> {
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                   style={{
-                    color: '#E6E6FA',
-                    fontSize: '18px',
-                    fontWeight: '500',
-                    padding: '10px 20px',
-                    margin: '0 5px',
+                    color: '#8B5A2B',
+                    fontSize: '16px',
+                    fontWeight: '400',
+                    padding: '8px 15px',
+                    margin: '0 3px',
                     borderRadius: '20px',
                     transition: 'all 0.3s',
                     border: '1px solid transparent',
                     textDecoration: 'none'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.3)';
-                    e.currentTarget.style.border = '1px solid #9370DB';
+                    e.currentTarget.style.backgroundColor = 'rgba(200, 160, 120, 0.15)';
+                    e.currentTarget.style.borderColor = '#C0A080';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.border = '1px solid transparent';
+                    e.currentTarget.style.borderColor = 'transparent';
                   }}
                 >
-                  👻 Ещё
+                  𓋴 Ещё
                 </a>
                 <ul
                   className="dropdown-menu"
                   aria-labelledby="navbarDropdown"
                   style={{
-                    backgroundColor: '#2E1B3F',
-                    border: '2px solid #9370DB',
-                    borderRadius: '15px',
-                    padding: '10px',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                    backgroundColor: '#F8F0E0',
+                    border: '1px solid #C0A080',
+                    borderRadius: '10px',
+                    padding: '5px',
+                    boxShadow: '0 5px 15px rgba(160, 120, 80, 0.1)'
                   }}
                 >
-                  {/* Информация */}
                   <li>
                     <Link
                       className="dropdown-item"
                       to="/information"
                       style={{
-                        color: '#E6E6FA',
-                        padding: '10px 20px',
-                        borderRadius: '10px',
+                        color: '#8B5A2B',
+                        padding: '8px 15px',
+                        borderRadius: '8px',
                         transition: 'all 0.3s',
                         textDecoration: 'none',
-                        display: 'block'
+                        display: 'block',
+                        fontSize: '14px'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#9370DB';
-                        e.currentTarget.style.paddingLeft = '30px';
+                        e.currentTarget.style.backgroundColor = '#C0A080';
+                        e.currentTarget.style.color = '#F8F0E0';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.paddingLeft = '20px';
+                        e.currentTarget.style.color = '#8B5A2B';
                       }}
                     >
-                      ℹ️ Информация
+                      𓏛 Информация
                     </Link>
                   </li>
-
-                  {/* Помощь */}
                   <li>
                     <Link
                       className="dropdown-item"
                       to="/help"
                       style={{
-                        color: '#E6E6FA',
-                        padding: '10px 20px',
-                        borderRadius: '10px',
+                        color: '#8B5A2B',
+                        padding: '8px 15px',
+                        borderRadius: '8px',
                         transition: 'all 0.3s',
                         textDecoration: 'none',
-                        display: 'block'
+                        display: 'block',
+                        fontSize: '14px'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#9370DB';
-                        e.currentTarget.style.paddingLeft = '30px';
+                        e.currentTarget.style.backgroundColor = '#C0A080';
+                        e.currentTarget.style.color = '#F8F0E0';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.paddingLeft = '20px';
+                        e.currentTarget.style.color = '#8B5A2B';
                       }}
                     >
-                      ❓ Помощь
+                      𓋴 Помощь
                     </Link>
                   </li>
-
-                  {/* Личный кабинет */}
                   <li>
                     <Link
                       className="dropdown-item"
                       to="/account"
                       style={{
-                        color: '#E6E6FA',
-                        padding: '10px 20px',
-                        borderRadius: '10px',
+                        color: '#8B5A2B',
+                        padding: '8px 15px',
+                        borderRadius: '8px',
                         transition: 'all 0.3s',
                         textDecoration: 'none',
-                        display: 'block'
+                        display: 'block',
+                        fontSize: '14px'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#9370DB';
-                        e.currentTarget.style.paddingLeft = '30px';
+                        e.currentTarget.style.backgroundColor = '#C0A080';
+                        e.currentTarget.style.color = '#F8F0E0';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.paddingLeft = '20px';
+                        e.currentTarget.style.color = '#8B5A2B';
                       }}
                     >
-                      👤 Личный кабинет
-                    </Link>
-                  </li>
-
-                  <li><hr className="dropdown-divider" style={{ borderColor: '#9370DB' }} /></li>
-
-                  {/* Детальная страница тура (пример) */}
-                  <li>
-                    <Link
-                      className="dropdown-item"
-                      to="/tour/1"
-                      style={{
-                        color: '#FFD700',
-                        padding: '10px 20px',
-                        borderRadius: '10px',
-                        transition: 'all 0.3s',
-                        textDecoration: 'none',
-                        display: 'block'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#9370DB';
-                        e.currentTarget.style.paddingLeft = '30px';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.paddingLeft = '20px';
-                      }}
-                    >
-                      🏆 Пример тура
-                    </Link>
-                  </li>
-
-                  {/* Страница не найдена (для примера) */}
-                  <li>
-                    <Link
-                      className="dropdown-item"
-                      to="/404"
-                      style={{
-                        color: '#FF6B6B',
-                        padding: '10px 20px',
-                        borderRadius: '10px',
-                        transition: 'all 0.3s',
-                        textDecoration: 'none',
-                        display: 'block'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#9370DB';
-                        e.currentTarget.style.paddingLeft = '30px';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.paddingLeft = '20px';
-                      }}
-                    >
-                      ⚠️ 404
+                      𓁐 Личный кабинет
                     </Link>
                   </li>
                 </ul>
@@ -399,36 +326,35 @@ export default class NavBar extends Component<{}, NavBarState> {
             </ul>
 
             {/* Селектор валюты */}
-            <div style={{ position: 'relative', marginRight: '15px' }}>
+            <div style={{ position: 'relative', marginRight: '10px', flexShrink: 0 }}>
               <button
                 onClick={this.toggleCurrencyMenu}
                 style={{
-                  backgroundColor: 'rgba(147, 112, 219, 0.3)',
-                  border: '2px solid #9370DB',
-                  borderRadius: '25px',
-                  padding: '8px 20px',
-                  color: '#FFD700',
-                  fontSize: '16px',
-                  fontWeight: '600',
+                  backgroundColor: 'transparent',
+                  border: '1px solid #C0A080',
+                  borderRadius: '20px',
+                  padding: '6px 12px',
+                  color: '#8B5A2B',
+                  fontSize: '14px',
+                  fontWeight: '400',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  transition: 'all 0.3s'
+                  gap: '5px',
+                  transition: 'all 0.3s',
+                  whiteSpace: 'nowrap'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.5)';
-                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.backgroundColor = 'rgba(200, 160, 120, 0.1)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.3)';
-                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <span style={{ fontSize: '20px' }}>{this.getCurrencySymbol(selectedCurrency)}</span>
+                <span>{this.getCurrencySymbol(selectedCurrency)}</span>
                 <span>{selectedCurrency}</span>
                 <span style={{ 
-                  fontSize: '12px',
+                  fontSize: '10px',
                   transform: showCurrencyMenu ? 'rotate(180deg)' : 'none',
                   transition: 'transform 0.3s'
                 }}>
@@ -436,78 +362,50 @@ export default class NavBar extends Component<{}, NavBarState> {
                 </span>
               </button>
 
-              {/* Выпадающее меню валют */}
               {showCurrencyMenu && (
                 <div style={{
                   position: 'absolute',
                   top: '100%',
                   right: '0',
-                  marginTop: '10px',
-                  backgroundColor: '#2E1B3F',
-                  border: '2px solid #9370DB',
-                  borderRadius: '15px',
-                  minWidth: '220px',
+                  marginTop: '5px',
+                  backgroundColor: '#F8F0E0',
+                  border: '1px solid #C0A080',
+                  borderRadius: '10px',
+                  minWidth: '150px',
                   zIndex: 1000,
                   overflow: 'hidden',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                  boxShadow: '0 5px 15px rgba(160, 120, 80, 0.1)'
                 }}>
-                  {/* Заголовок */}
-                  <div style={{
-                    padding: '15px 20px',
-                    borderBottom: '2px solid #9370DB',
-                    color: '#FFD700',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    background: 'rgba(147, 112, 219, 0.2)',
-                    textAlign: 'center'
-                  }}>
-                    💰 Выберите валюту
-                  </div>
-
-                  {/* Список валют */}
                   {this.currencies.map((currency) => (
                     <button
                       key={currency.code}
                       onClick={() => this.selectCurrency(currency.code)}
                       style={{
                         width: '100%',
-                        padding: '12px 20px',
+                        padding: '8px 15px',
                         border: 'none',
-                        borderBottom: '1px solid rgba(147, 112, 219, 0.3)',
-                        backgroundColor: selectedCurrency === currency.code ? 'rgba(147, 112, 219, 0.3)' : 'transparent',
+                        borderBottom: '1px solid #C0A080',
+                        backgroundColor: selectedCurrency === currency.code ? 'rgba(200, 160, 120, 0.15)' : 'transparent',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '15px',
-                        fontSize: '16px',
-                        color: selectedCurrency === currency.code ? '#FFD700' : '#E6E6FA',
+                        gap: '10px',
+                        fontSize: '14px',
+                        color: '#8B5A2B',
                         transition: 'all 0.3s',
-                        fontWeight: selectedCurrency === currency.code ? 600 : 400
+                        fontWeight: selectedCurrency === currency.code ? 500 : 400
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.5)';
-                        e.currentTarget.style.paddingLeft = '30px';
+                        e.currentTarget.style.backgroundColor = 'rgba(200, 160, 120, 0.25)';
                       }}
                       onMouseLeave={(e) => {
-                        if (selectedCurrency !== currency.code) {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        } else {
-                          e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.3)';
-                        }
-                        e.currentTarget.style.paddingLeft = '20px';
+                        e.currentTarget.style.backgroundColor = selectedCurrency === currency.code ? 'rgba(200, 160, 120, 0.15)' : 'transparent';
                       }}
                     >
-                      <span style={{ 
-                        width: '30px',
-                        color: '#FFD700',
-                        fontWeight: 600,
-                        fontSize: '20px'
-                      }}>
-                        {currency.symbol}
-                      </span>
+                      <span style={{ width: '25px' }}>{currency.symbol}</span>
                       <span style={{ flex: 1, textAlign: 'left' }}>{currency.label}</span>
                       {selectedCurrency === currency.code && (
-                        <span style={{ color: '#FFD700' }}>✓</span>
+                        <span>✓</span>
                       )}
                     </button>
                   ))}
@@ -515,203 +413,161 @@ export default class NavBar extends Component<{}, NavBarState> {
               )}
             </div>
 
-            {/* Форма поиска */}
-            <form className="d-flex" style={{ marginRight: '20px' }}>
+            {/* Форма поиска - исправлено позиционирование */}
+            <form className="d-flex" style={{ marginRight: '10px', maxWidth: '250px' }}>
               <input
-                className="form-control me-2"
+                className="form-control"
                 type="search"
-                placeholder="🔍 Найти дверь..."
+                placeholder="Поиск..."
                 aria-label="Search"
                 style={{
-                  border: '2px solid #9370DB',
-                  borderRadius: '25px',
-                  padding: '8px 20px',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  color: 'white'
+                  border: '1px solid #C0A080',
+                  borderRadius: '20px 0 0 20px',
+                  padding: '6px 12px',
+                  backgroundColor: '#F8F0E0',
+                  color: '#8B5A2B',
+                  fontSize: '14px',
+                  outline: 'none',
+                  width: '100%'
                 }}
               />
               <button
                 className="btn"
                 type="submit"
                 style={{
-                  background: 'linear-gradient(45deg, #9370DB, #6A5ACD)',
-                  color: 'white',
-                  border: '2px solid #E6E6FA',
-                  borderRadius: '25px',
-                  padding: '8px 25px',
-                  fontWeight: '600',
-                  transition: 'all 0.3s'
+                  background: '#C0A080',
+                  color: '#F8F0E0',
+                  border: '1px solid #8B5A2B',
+                  borderRadius: '0 20px 20px 0',
+                  padding: '6px 15px',
+                  fontSize: '14px',
+                  fontWeight: '400',
+                  transition: 'all 0.3s',
+                  whiteSpace: 'nowrap'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                  e.currentTarget.style.background = 'linear-gradient(45deg, #6A5ACD, #9370DB)';
+                  e.currentTarget.style.background = '#8B5A2B';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.background = 'linear-gradient(45deg, #9370DB, #6A5ACD)';
+                  e.currentTarget.style.background = '#C0A080';
                 }}
               >
-                Поиск 🔍
+                𓊹
               </button>
             </form>
 
             {/* Кнопка авторизации */}
-            <div className="position-relative">
+            <div className="position-relative" style={{ flexShrink: 0 }}>
               <button
                 className="btn"
                 id="authButton"
                 onClick={this.toggleAuthModal}
                 style={{
-                  background: 'linear-gradient(45deg, #FFD700, #9370DB)',
-                  color: 'white',
-                  border: '2px solid #E6E6FA',
+                  background: '#C0A080',
+                  color: '#F8F0E0',
+                  border: '1px solid #8B5A2B',
                   borderRadius: '50%',
-                  width: '45px',
-                  height: '45px',
+                  width: '35px',
+                  height: '35px',
                   padding: '0',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '20px',
+                  fontSize: '16px',
                   transition: 'all 0.3s',
-                  boxShadow: '0 0 10px rgba(147, 112, 219, 0.5)'
+                  boxShadow: '0 2px 5px rgba(160, 120, 80, 0.1)'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.1)';
-                  e.currentTarget.style.boxShadow = '0 0 20px #FFD700';
+                  e.currentTarget.style.background = '#8B5A2B';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.boxShadow = '0 0 10px rgba(147, 112, 219, 0.5)';
+                  e.currentTarget.style.background = '#C0A080';
                 }}
               >
-                👤
+                𓁐
               </button>
 
-              {/* Модальное окно авторизации */}
               {showAuth && (
                 <div
                   id="authModal"
                   style={{
                     position: 'absolute',
-                    top: '60px',
+                    top: '45px',
                     right: '0',
-                    width: '320px',
-                    backgroundColor: '#2E1B3F',
-                    border: '2px solid #9370DB',
-                    borderRadius: '15px',
-                    padding: '20px',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                    width: '280px',
+                    backgroundColor: '#F8F0E0',
+                    border: '1px solid #C0A080',
+                    borderRadius: '10px',
+                    padding: '15px',
+                    boxShadow: '0 5px 15px rgba(160, 120, 80, 0.1)',
                     zIndex: 1000
                   }}
                 >
-                  {/* Заголовок */}
                   <h3 style={{
-                    color: '#FFD700',
+                    color: '#8B5A2B',
                     textAlign: 'center',
-                    marginBottom: '20px',
-                    fontFamily: "'Poppins', sans-serif",
-                    fontWeight: '600',
-                    borderBottom: '2px solid #9370DB',
-                    paddingBottom: '10px'
+                    marginBottom: '15px',
+                    fontSize: '18px',
+                    borderBottom: '1px solid #C0A080',
+                    paddingBottom: '8px'
                   }}>
-                    🔐 Вход в Салли-Турс
+                    𓋴 Вход
                   </h3>
 
-                  {/* Форма авторизации */}
                   <form onSubmit={(e) => e.preventDefault()}>
-                    {/* Поле для email/логина */}
-                    <div style={{ marginBottom: '15px' }}>
-                      <label style={{
-                        color: '#E6E6FA',
-                        display: 'block',
-                        marginBottom: '5px',
-                        fontSize: '14px'
-                      }}>
-                        📧 Email или логин
-                      </label>
+                    <div style={{ marginBottom: '10px' }}>
                       <input
                         type="text"
+                        placeholder="Email"
                         style={{
                           width: '100%',
-                          padding: '10px 15px',
-                          backgroundColor: 'rgba(255,255,255,0.1)',
-                          border: '2px solid #9370DB',
-                          borderRadius: '10px',
-                          color: 'white',
+                          padding: '8px 12px',
+                          backgroundColor: '#F0E0D0',
+                          border: '1px solid #C0A080',
+                          borderRadius: '8px',
+                          color: '#8B5A2B',
                           fontSize: '14px',
-                          outline: 'none',
-                          transition: 'all 0.3s'
+                          outline: 'none'
                         }}
-                        onFocus={(e) => {
-                          e.currentTarget.style.borderColor = '#FFD700';
-                          e.currentTarget.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.3)';
-                        }}
-                        onBlur={(e) => {
-                          e.currentTarget.style.borderColor = '#9370DB';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                        placeholder="Введите email или логин"
                       />
                     </div>
 
-                    {/* Поле для пароля */}
-                    <div style={{ marginBottom: '20px' }}>
-                      <label style={{
-                        color: '#E6E6FA',
-                        display: 'block',
-                        marginBottom: '5px',
-                        fontSize: '14px'
-                      }}>
-                        🔑 Пароль
-                      </label>
+                    <div style={{ marginBottom: '15px' }}>
                       <input
                         type="password"
+                        placeholder="Пароль"
                         style={{
                           width: '100%',
-                          padding: '10px 15px',
-                          backgroundColor: 'rgba(255,255,255,0.1)',
-                          border: '2px solid #9370DB',
-                          borderRadius: '10px',
-                          color: 'white',
+                          padding: '8px 12px',
+                          backgroundColor: '#F0E0D0',
+                          border: '1px solid #C0A080',
+                          borderRadius: '8px',
+                          color: '#8B5A2B',
                           fontSize: '14px',
-                          outline: 'none',
-                          transition: 'all 0.3s'
+                          outline: 'none'
                         }}
-                        onFocus={(e) => {
-                          e.currentTarget.style.borderColor = '#FFD700';
-                          e.currentTarget.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.3)';
-                        }}
-                        onBlur={(e) => {
-                          e.currentTarget.style.borderColor = '#9370DB';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                        placeholder="Введите пароль"
                       />
                     </div>
 
-                    {/* Кнопки действий */}
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                       <button
                         type="submit"
                         style={{
                           flex: '1',
-                          padding: '10px',
-                          background: 'linear-gradient(45deg, #9370DB, #6A5ACD)',
-                          color: 'white',
-                          border: '2px solid #E6E6FA',
-                          borderRadius: '10px',
-                          fontWeight: '600',
+                          padding: '8px',
+                          background: '#C0A080',
+                          color: '#F8F0E0',
+                          border: '1px solid #8B5A2B',
+                          borderRadius: '8px',
+                          fontSize: '14px',
                           cursor: 'pointer',
                           transition: 'all 0.3s'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'linear-gradient(45deg, #6A5ACD, #9370DB)';
-                          e.currentTarget.style.transform = 'scale(1.02)';
+                          e.currentTarget.style.background = '#8B5A2B';
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'linear-gradient(45deg, #9370DB, #6A5ACD)';
-                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.background = '#C0A080';
                         }}
                       >
                         Войти
@@ -720,88 +576,41 @@ export default class NavBar extends Component<{}, NavBarState> {
                         type="button"
                         style={{
                           flex: '1',
-                          padding: '10px',
+                          padding: '8px',
                           background: 'transparent',
-                          color: '#FFD700',
-                          border: '2px solid #9370DB',
-                          borderRadius: '10px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(147, 112, 219, 0.3)';
-                          e.currentTarget.style.borderColor = '#FFD700';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.borderColor = '#9370DB';
+                          color: '#8B5A2B',
+                          border: '1px solid #C0A080',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          cursor: 'pointer'
                         }}
                       >
                         Регистрация
                       </button>
                     </div>
 
-                    {/* Дополнительные ссылки */}
-                    <div style={{ textAlign: 'center' }}>
-                      <a
-                        href="#"
-                        style={{
-                          color: '#9370DB',
-                          textDecoration: 'none',
-                          fontSize: '13px',
-                          transition: 'color 0.3s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = '#FFD700';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = '#9370DB';
-                        }}
-                      >
-                        Забыли пароль?
-                      </a>
-                    </div>
-
-                    {/* Разделитель */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      margin: '20px 0'
-                    }}>
-                      <div style={{ flex: '1', height: '1px', backgroundColor: '#9370DB' }}></div>
-                      <span style={{ color: '#9370DB', fontSize: '12px' }}>ИЛИ</span>
-                      <div style={{ flex: '1', height: '1px', backgroundColor: '#9370DB' }}></div>
-                    </div>
-
-                    {/* Социальные кнопки */}
-                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                      {/* Кнопка Google */}
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                       <button
                         style={{
-                          width: '40px',
-                          height: '40px',
+                          width: '35px',
+                          height: '35px',
                           borderRadius: '50%',
-                          border: '2px solid #9370DB',
+                          border: '1px solid #C0A080',
                           background: 'transparent',
-                          color: '#E6E6FA',
-                          fontSize: '18px',
+                          color: '#8B5A2B',
+                          fontSize: '16px',
                           cursor: 'pointer',
-                          transition: 'all 0.3s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
+                          transition: 'all 0.3s'
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = '#DB4437';
                           e.currentTarget.style.borderColor = '#DB4437';
-                          e.currentTarget.style.transform = 'scale(1.1)';
+                          e.currentTarget.style.color = 'white';
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.borderColor = '#9370DB';
-                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.borderColor = '#C0A080';
+                          e.currentTarget.style.color = '#8B5A2B';
                         }}
                         onClick={this.toggleGoogleAuth}
                       >
@@ -809,29 +618,15 @@ export default class NavBar extends Component<{}, NavBarState> {
                       </button>
                     </div>
 
-                    {/* Модальное окно для GoogleAuth */}
                     <Modal
                       isOpen={this.state.googleAuthModal}
                       toggle={this.toggleGoogleAuth}
                       centered
-                      style={{
-                        backgroundColor: '#2E1B3F'
-                      }}
                     >
-                      <ModalHeader
-                        toggle={this.toggleGoogleAuth}
-                        style={{
-                          backgroundColor: '#2E1B3F',
-                          color: '#FFD700',
-                          borderBottom: '2px solid #9370DB'
-                        }}
-                      >
-                        🔐 Авторизация через Google
+                      <ModalHeader toggle={this.toggleGoogleAuth}>
+                        Авторизация через Google
                       </ModalHeader>
-                      <ModalBody style={{
-                        backgroundColor: '#2E1B3F',
-                        padding: '20px'
-                      }}>
+                      <ModalBody>
                         <ButtonGoogleAuth />
                       </ModalBody>
                     </Modal>
@@ -841,32 +636,6 @@ export default class NavBar extends Component<{}, NavBarState> {
             </div>
           </div>
         </div>
-
-        {/* Декоративные элементы как пятна на шкуре Салли */}
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          left: '20%',
-          width: '100px',
-          height: '100px',
-          borderRadius: '50%',
-          background: 'rgba(147, 112, 219, 0.2)',
-          filter: 'blur(30px)',
-          pointerEvents: 'none',
-          zIndex: 1
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: '5px',
-          right: '15%',
-          width: '150px',
-          height: '150px',
-          borderRadius: '50%',
-          background: 'rgba(106, 90, 205, 0.2)',
-          filter: 'blur(40px)',
-          pointerEvents: 'none',
-          zIndex: 1
-        }} />
       </nav>
     );
   }
