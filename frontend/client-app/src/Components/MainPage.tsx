@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import maldivImage from '../Images/Maldiv.jpg';
 import italiaImage from '../Images/Italia.jpeg';
 import baliImage from '../Images/Bali.jpg';
-import Footer from './Footer';
-import './MainPage.css'; // Импортируем CSS с анимацией
+import './MainPage.css'; 
 
 const MainPage = () => {
     const navigate = useNavigate();
@@ -323,8 +322,8 @@ const heroSubtitleStyle = {
                             gap: '20px'
                         }}>
                             {[
-                                { name: 'Есения', text: 'Незабываемый отдых!', place: 'Мальдивы' },
-                                { name: 'Валерий', text: 'Всё на высшем уровне!', place: 'Италия' }
+                                { name: 'Есения', text: 'Незабываемый отдых! Помирились с мужем именно благодаря вам!', place: 'Мальдивы' },
+                                { name: 'Валерий', text: 'Всё на высшем уровне! Будто по Спару хожу.', place: 'Италия' }
                             ].map((review, index) => (
                                 <div key={index} className="egypt-card" style={{
                                     padding: '20px',
@@ -427,7 +426,6 @@ const heroSubtitleStyle = {
                 </main>
             </div>
 
-            <Footer />
         </div>
     )
 }
