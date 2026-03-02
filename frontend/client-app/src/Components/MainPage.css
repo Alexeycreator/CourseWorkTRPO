@@ -1,0 +1,144 @@
+
+.egypt-animation-container {
+    position: relative;
+    width: 400px;
+    height: 180px;
+    margin: 0 auto 30px;
+    overflow: hidden;
+}
+
+.egyptian-sprite {
+    position: absolute;
+    bottom: 25px;
+    left: -60px;
+    width: 70px;
+    height: 90px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="30" r="15" fill="%23F5DEB3" stroke="%238B4513" stroke-width="2"/><rect x="40" y="45" width="20" height="30" fill="%23FFFFFF" stroke="%238B4513" stroke-width="2"/><rect x="35" y="45" width="10" height="25" fill="%23F5DEB3"/><rect x="55" y="45" width="10" height="25" fill="%23F5DEB3"/><rect x="43" y="75" width="5" height="15" fill="%238B4513"/><rect x="52" y="75" width="5" height="15" fill="%238B4513"/><circle cx="35" cy="30" r="3" fill="black"/><circle cx="65" cy="30" r="3" fill="black"/><path d="M45 35 L50 40 L55 35" stroke="%238B4513" stroke-width="2" fill="none"/><rect x="25" y="15" width="50" height="10" fill="%23FFD700" opacity="0.6"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    animation: walkToPyramid 3.5s infinite ease-in-out;
+    z-index: 10;
+}
+
+.pyramid {
+    position: absolute;
+    bottom: 25px;
+    right: 20px;
+    width: 120px;  
+    height: 120px;  
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><polygon points="60,5 115,110 5,110" fill="%23D2B48C" stroke="%238B4513" stroke-width="3"/><polygon points="60,30 95,95 25,95" fill="%23F5DEB3" opacity="0.8"/><rect x="55" y="95" width="10" height="15" fill="%238B4513"/><rect x="50" y="80" width="20" height="5" fill="%23FFD700" opacity="0.5"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 5;
+}
+
+.sun {
+    position: absolute;
+    top: 10px;
+    right: 180px;  
+    width: 50px;
+    height: 50px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="%23FFD700" opacity="0.8"/><path d="M50 0 L50 15 M50 85 L50 100 M0 50 L15 50 M85 50 L100 50" stroke="%23FFD700" stroke-width="5" stroke-linecap="round"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    animation: rotate 15s infinite linear;
+    z-index: 15;
+}
+
+.dune {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 30px;
+    background: linear-gradient(180deg, transparent, rgba(210, 180, 140, 0.3));
+    border-radius: 50% 50% 0 0;
+    z-index: 1;
+}
+
+.dune-left {
+    left: 0;
+    width: 60%;
+    height: 40px;
+    background: rgba(200, 170, 130, 0.2);
+    border-radius: 0 50% 0 0;
+}
+
+.dune-right {
+    right: 0;
+    width: 60%;
+    height: 45px;
+    background: rgba(180, 150, 110, 0.2);
+    border-radius: 50% 0 0 0;
+}
+
+@keyframes walkToPyramid {
+    0% {
+        left: -60px;
+        transform: scaleX(1);
+    }
+    40% {
+        left: 35%;
+        transform: scaleX(1);
+    }
+    45% {
+        left: 40%;
+        transform: scaleX(0.95);
+    }
+    50% {
+        left: 45%;
+        transform: scaleX(0.9);
+    }
+    55% {
+        left: 50%;
+        transform: scaleX(0.95);
+    }
+    60% {
+        left: 55%;
+        transform: scaleX(1);
+    }
+    100% {
+        left: 65%;
+        transform: scaleX(1);
+        opacity: 0.9;
+    }
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.hieroglyph-bg {
+    position: absolute;
+    font-size: 28px;
+    opacity: 0.1;
+    pointer-events: none;
+    z-index: 0;
+    transition: all 0.5s ease;
+}
+
+.egypt-card {
+    transition: all 0.3s ease;
+    border: 1px solid #D2B48C;
+    background: rgba(245, 240, 230, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.egypt-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(139, 69, 19, 0.15);
+    border-color: #B76E3C;
+}
+
+@keyframes sandWave {
+    0% { background-position: 0 0; }
+    100% { background-position: 100px 100px; }
+}
+
+.palm-tree {
+    position: absolute;
+    bottom: 20px;
+    font-size: 40px;
+    opacity: 0.15;
+    z-index: 0;
+}

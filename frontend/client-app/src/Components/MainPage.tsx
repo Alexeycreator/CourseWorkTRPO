@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import maldivImage from '../Images/Maldiv.jpg';
 import italiaImage from '../Images/Italia.jpeg';
 import baliImage from '../Images/Bali.jpg';
-import Footer from './Footer'; // Импортируем Footer
+import Footer from './Footer';
+import './MainPage.css'; // Импортируем CSS с анимацией
 
 const MainPage = () => {
     const navigate = useNavigate();
@@ -16,268 +17,203 @@ const MainPage = () => {
         navigate('/hot-tours');
     };
 
-    // Стили для создания эффекта "шелковости/шерсти"
-    const furBackground = {
-        background: 'radial-gradient(circle at 30% 30%, rgba(106, 90, 205, 0.8) 0%, rgba(75, 0, 130, 0.9) 100%)',
+    // Приглушённые цвета
+    const silkDunesBackground = {
+        background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
         position: 'relative' as const,
         overflow: 'hidden'
     };
 
-    const furTexture = {
+    const sandTexture = {
         position: 'absolute' as const,
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E")`,
+        background: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E")`,
         pointerEvents: 'none' as const,
         mixBlendMode: 'overlay' as const
     };
 
-    // Стили для Hero секции (вынесены отдельно)
     const heroSectionStyle = {
-        background: 'linear-gradient(135deg, rgba(147, 112, 219, 0.95) 0%, rgba(106, 90, 205, 0.95) 50%, rgba(72, 61, 139, 0.95) 100%)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        color: 'white',
-        padding: '120px 20px',
-        textAlign: 'center' as const,
-        position: 'relative' as const,
-        borderBottom: '3px solid #9370DB',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.3), inset 0 0 50px rgba(255,215,0,0.2)',
-        overflow: 'hidden' as const,
-        borderRadius: '0 0 50px 50px',
-        margin: '0 20px',
-    };
+    background: 'linear-gradient(135deg, rgba(190, 160, 130, 0.8) 0%, rgba(160, 130, 100, 0.8) 50%, rgba(130, 100, 70, 0.8) 100%)',
+    color: '#F8F3E8',
+    padding: '70px 20px 50px',
+    textAlign: 'center' as const,
+    position: 'relative' as const,
+    borderBottom: '2px solid #B89A7A',
+    boxShadow: '0 4px 15px rgba(120, 90, 60, 0.1)',
+    overflow: 'hidden' as const,
+    borderRadius: '0 0 40px 40px',
+    margin: '0 20px',
+};
 
-    const heroTitleStyle = {
-        fontSize: '64px',
-        marginBottom: '20px',
-        textShadow: '3px 3px 0 #4B0082, 0 0 30px #FFD700',
-        fontWeight: '800',
-        letterSpacing: '2px',
-        background: 'linear-gradient(45deg, #FFFFFF, #E6E6FA, #FFD700)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        animation: 'glow 3s infinite alternate' as const,
-    };
+const heroTitleStyle = {
+    fontSize: '44px',
+    marginBottom: '10px',
+    textShadow: '1px 1px 0 #7A5A3A, 0 0 15px #F8F3E8',
+    fontWeight: '500',
+    letterSpacing: '1px',
+    fontFamily: "'Cormorant Garamond', serif"
+};
 
-    const heroSubtitleStyle = {
-        fontSize: '28px',
-        marginBottom: '40px',
-        textShadow: '2px 2px 0 #4B0082, 0 0 20px #9370DB',
-        fontWeight: '600',
-        color: '#FFFFFF',
-        letterSpacing: '1px',
-    };
+const heroSubtitleStyle = {
+    fontSize: '18px',
+    marginBottom: '25px',
+    textShadow: '1px 1px 0 #7A5A3A',
+    fontWeight: '300',
+    color: '#F8F3E8',
+    letterSpacing: '0.5px',
+};
 
     const heroButtonPrimaryStyle = {
-        padding: '18px 50px',
-        fontSize: '20px',
-        background: 'linear-gradient(45deg, #9370DB, #6A5ACD)',
-        color: 'white',
-        border: '3px solid #FFD700',
-        borderRadius: '30px',
+        padding: '12px 30px',
+        fontSize: '16px',
+        background: '#F5F0E5',
+        color: '#8B5A2B',
+        border: '2px solid #C0A080',
+        borderRadius: '25px',
         cursor: 'pointer',
-        marginRight: '20px',
-        fontWeight: '700',
-        boxShadow: '0 8px 20px rgba(0,0,0,0.4), 0 0 15px #FFD700',
+        marginRight: '15px',
+        fontWeight: '500',
+        boxShadow: '0 4px 10px rgba(140, 110, 80, 0.2)',
         transition: 'all 0.3s',
-        textTransform: 'uppercase' as const,
-        letterSpacing: '1px',
-        position: 'relative' as const,
-        zIndex: 4
+        letterSpacing: '0.5px'
     };
 
     const heroButtonSecondaryStyle = {
-        padding: '18px 50px',
-        fontSize: '20px',
+        padding: '12px 30px',
+        fontSize: '16px',
         background: 'transparent',
-        color: 'white',
-        border: '3px solid #FFD700',
-        borderRadius: '30px',
+        color: '#F5F0E5',
+        border: '2px solid #F5F0E5',
+        borderRadius: '25px',
         cursor: 'pointer',
-        fontWeight: '700',
-        boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
+        fontWeight: '500',
         transition: 'all 0.3s',
-        textTransform: 'uppercase' as const,
-        letterSpacing: '1px',
-        backdropFilter: 'blur(5px)',
-        position: 'relative' as const,
-        zIndex: 4
-    };
-
-    // Стили для чешуек Рэндалла
-    const randallScales = {
-        position: 'absolute' as const,
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='scaleGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%234B0082' stop-opacity='0.4'/%3E%3Cstop offset='50%25' stop-color='%239370DB' stop-opacity='0.6'/%3E%3Cstop offset='100%25' stop-color='%236A5ACD' stop-opacity='0.4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M40 10 L70 30 L70 50 L40 70 L10 50 L10 30 Z' fill='url(%23scaleGrad)' stroke='%23FFD700' stroke-width='1' opacity='0.5'/%3E%3C/svg%3E")`,
-        backgroundSize: '120px 100px',
-        backgroundRepeat: 'repeat',
-        pointerEvents: 'none' as const,
-        mixBlendMode: 'overlay' as const,
-        animation: 'scaleMove 15s infinite linear',
-        borderRadius: 'inherit',
+        letterSpacing: '0.5px'
     };
 
     return (
         <div style={{ 
-            ...furBackground,
+            ...silkDunesBackground,
             minHeight: '100vh',
-            fontFamily: "'Poppins', 'Arial', sans-serif",
+            fontFamily: "'Montserrat', 'Arial', sans-serif",
             display: 'flex',
             flexDirection: 'column' as const
         }}>
-            {/* Анимации */}
-            <style>
-                {`
-                    @keyframes glow {
-                        0% { text-shadow: 3px 3px 0 #4B0082, 0 0 30px #FFD700; }
-                        100% { text-shadow: 3px 3px 0 #4B0082, 0 0 60px #9370DB, 0 0 90px #FFD700; }
-                    }
-                    @keyframes scaleMove {
-                        0% { background-position: 0 0; }
-                        100% { background-position: 200px 200px; }
-                    }
-                `}
-            </style>
+            {/* Фоновые иероглифы */}
+            <div className="hieroglyph-bg" style={{ top: '5%', left: '2%' }}>𓂀</div>
+            <div className="hieroglyph-bg" style={{ top: '15%', right: '3%' }}>𓊹</div>
+            <div className="hieroglyph-bg" style={{ bottom: '10%', left: '5%' }}>𓋴</div>
+            <div className="hieroglyph-bg" style={{ bottom: '20%', right: '8%' }}>𓏛</div>
 
-            {/* Текстура шерсти поверх всего */}
-            <div style={furTexture} />
+            {/* Текстура песка */}
+            <div style={sandTexture} />
             
-            {/* Основной контент (поверх текстуры) */}
+            {/* Основной контент */}
             <div style={{ position: 'relative', zIndex: 2, flex: '1 0 auto' }}>
                 <main>
-                    {/* Hero секция с градиентом как у Салли */}
+                    {/* Hero секция с анимацией */}
                     <section className="hero" style={heroSectionStyle}>
-                        {/* Чешуйки Рэндалла */}
-                        <div style={randallScales} />
-                        
-                        {/* Декоративные элементы как пятна на шкуре Салли */}
-                        <div style={{
-                            position: 'absolute',
-                            top: '10%',
-                            left: '5%',
-                            width: '150px',
-                            height: '150px',
-                            borderRadius: '50%',
-                            background: 'rgba(147, 112, 219, 0.3)',
-                            filter: 'blur(40px)'
-                        }} />
-                        <div style={{
-                            position: 'absolute',
-                            bottom: '10%',
-                            right: '5%',
-                            width: '200px',
-                            height: '200px',
-                            borderRadius: '50%',
-                            background: 'rgba(123, 104, 238, 0.3)',
-                            filter: 'blur(50px)'
-                        }} />
-                        
-                        {/* Дополнительный слой с мерцанием */}
-                        <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            background: 'radial-gradient(circle at 30% 40%, rgba(255,215,0,0.1) 0%, transparent 50%)',
-                            pointerEvents: 'none',
-                        }} />
-                        
-                        <div className="hero-content" style={{ position: 'relative', zIndex: 3 }}>
-                            <h1 style={heroTitleStyle}>
-                                🪀 Корпорация Монстров 🪀
-                            </h1>
-                            <p style={heroSubtitleStyle}>
-                                Салли и Майк приглашают в путешествие!
-                            </p>
-                            <div className="hero-buttons">
-                                <button 
-                                    className="btn-primary" 
-                                    onClick={handleFindDoor}
-                                    style={heroButtonPrimaryStyle}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = 'scale(1.05)';
-                                        e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5), 0 0 25px #FFD700';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = 'scale(1)';
-                                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.4), 0 0 15px #FFD700';
-                                    }}
-                                >
-                                    🚪 Найти дверь
-                                </button>
-                                <button 
-                                    className="btn-secondary" 
-                                    onClick={handleSpecialOffers}
-                                    style={heroButtonSecondaryStyle}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = 'scale(1.05)';
-                                        e.currentTarget.style.background = 'rgba(255,215,0,0.2)';
-                                        e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5), 0 0 20px #FFD700';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = 'scale(1)';
-                                        e.currentTarget.style.background = 'transparent';
-                                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.4)';
-                                    }}
-                                >
-                                    🔥 Спецпредложения
-                                </button>
-                            </div>
-                        </div>
-                    </section>
+    {/* Анимация египтянина и пирамиды */}
+    <div className="egypt-animation-container">
+        <div className="sun"></div>
+        <div className="dune dune-left"></div>
+        <div className="dune dune-right"></div>
+        <div className="egyptian-sprite"></div>
+        <div className="pyramid"></div>
+        
+        {/* Декоративные элементы - пальмы и сфинксы (смайлики) */}
+        <div style={{ position: 'absolute', bottom: '20px', left: '10px', fontSize: '30px', opacity: 0.3 }}>🌴</div>
+        <div style={{ position: 'absolute', bottom: '15px', right: '150px', fontSize: '35px', opacity: 0.25 }}>🏜️</div>
+        <div style={{ position: 'absolute', top: '30px', left: '50px', fontSize: '20px', opacity: 0.2 }}>🐪</div>
+        <div style={{ position: 'absolute', top: '50px', right: '220px', fontSize: '25px', opacity: 0.2 }}>🐫</div>
+    </div>
+    
+    <div className="hero-content">
+        <h1 style={heroTitleStyle}>
+            🐪 Шелковые барханы 🐪
+        </h1>
+        <p style={heroSubtitleStyle}>
+            Откройте тайны древних цивилизаций 🌅
+        </p>
+        <div className="hero-buttons">
+            <button 
+                className="btn-primary" 
+                onClick={handleFindDoor}
+                style={heroButtonPrimaryStyle}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#E5D5C5';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#F5F0E5';
+                }}
+            >
+                👑 Найти тур
+            </button>
+            <button 
+                className="btn-secondary" 
+                onClick={handleSpecialOffers}
+                style={heroButtonSecondaryStyle}
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(245, 240, 229, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                }}
+            >
+                🔥 Горящие предложения
+            </button>
+        </div>
+    </div>
+</section>
 
                     {/* Почему выбирают нас */}
                     <section className="advantages" style={{
-                        padding: '80px 20px',
+                        padding: '60px 20px',
                         maxWidth: '1200px',
-                        margin: '0 auto',
-                        background: 'rgba(255,255,255,0.05)',
-                        borderRadius: '50px',
-                        backdropFilter: 'blur(10px)',
-                        boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-                        marginTop: '40px'
+                        margin: '0 auto'
                     }}>
                         <h2 style={{
                             textAlign: 'center',
-                            fontSize: '42px',
-                            marginBottom: '50px',
-                            color: '#E6E6FA',
-                            textShadow: '2px 2px 0 #4B0082'
+                            fontSize: '36px',
+                            marginBottom: '40px',
+                            color: '#8B5A2B',
+                            fontFamily: "'Cormorant Garamond', serif"
                         }}>
-                            🏆 Почему мы лучшие монстры? 🏆
+                            𓊹 Почему выбирают нас?
                         </h2>
                         <div className="advantages-grid" style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                            gap: '30px'
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '20px'
                         }}>
                             {[
-                                { icon: '🏢', title: 'Корпорация с историей', desc: 'С 2001 года пугаем детей' },
-                                { icon: '🚪', title: 'Миллионы дверей', desc: 'Лучшие направления' },
-                                { icon: '🏆', title: 'Рекордсмены по страху', desc: 'Самые страшные туры' },
-                                { icon: '💚', title: 'Команда профессионалов', desc: 'Салли, Майк и другие' }
+                                { icon: '𓊹', title: '10+ лет', desc: 'Опыт поколений' },
+                                { icon: '𓊖', title: '50+ стран', desc: 'По всему миру' },
+                                { icon: '𓋴', title: '1000+ туров', desc: 'Уникальных' },
+                                { icon: '𓂀', title: '24/7', desc: 'Поддержка' }
                             ].map((item, index) => (
-                                <div key={index} className="advantage" style={{
+                                <div key={index} className="egypt-card" style={{
                                     textAlign: 'center',
-                                    padding: '30px',
-                                    background: 'linear-gradient(135deg, rgba(147,112,219,0.2), rgba(106,90,205,0.3))',
-                                    borderRadius: '20px',
-                                    border: '1px solid #9370DB',
-                                    transition: 'transform 0.3s'
+                                    padding: '25px',
+                                    background: 'rgba(245, 240, 229, 0.5)',
+                                    borderRadius: '15px',
+                                    border: '1px solid #C0A080',
+                                    transition: 'all 0.3s'
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-10px)'}
-                                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                                >
-                                    <span style={{ fontSize: '64px', marginBottom: '20px', display: 'block' }}>{item.icon}</span>
-                                    <h3 style={{ marginBottom: '10px', color: '#E6E6FA' }}>{item.title}</h3>
-                                    <p style={{ color: '#D8BFD8' }}>{item.desc}</p>
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-5px)';
+                                    e.currentTarget.style.background = 'rgba(245, 240, 229, 0.8)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.background = 'rgba(245, 240, 229, 0.5)';
+                                }}>
+                                    <span style={{ fontSize: '48px', marginBottom: '15px', display: 'block' }}>{item.icon}</span>
+                                    <h3 style={{ marginBottom: '5px', color: '#8B5A2B', fontSize: '18px' }}>{item.title}</h3>
+                                    <p style={{ color: '#8B5A2B', fontSize: '14px' }}>{item.desc}</p>
                                 </div>
                             ))}
                         </div>
@@ -285,114 +221,80 @@ const MainPage = () => {
 
                     {/* Спецпредложения месяца */}
                     <section className="special-offers" style={{
-                        padding: '80px 20px',
+                        padding: '60px 20px',
                         maxWidth: '1200px',
                         margin: '0 auto'
                     }}>
                         <h2 style={{
                             textAlign: 'center',
-                            fontSize: '42px',
-                            marginBottom: '20px',
-                            color: '#E6E6FA',
-                            textShadow: '2px 2px 0 #4B0082'
+                            fontSize: '36px',
+                            marginBottom: '30px',
+                            color: '#8B5A2B',
+                            fontFamily: "'Cormorant Garamond', serif"
                         }}>
-                            🚪 Двери в удивительные миры 🚪
+                            𓊖 Популярные направления
                         </h2>
-                        <p style={{
-                            textAlign: 'center',
-                            fontSize: '20px',
-                            color: '#D8BFD8',
-                            marginBottom: '50px'
-                        }}>
-                            Каждая дверь ведет в уникальное приключение!
-                        </p>
                         
                         <div className="offers-grid" style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                            gap: '40px'
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                            gap: '20px'
                         }}>
                             {[
-                                { img: maldivImage, title: 'Мальдивы', desc: 'Райский отдых', price: '180 000 ₽', door: '🚪🔵' },
-                                { img: italiaImage, title: 'Италия', desc: 'Экскурсионный тур', price: '95 000 ₽', door: '🚪🟢' },
-                                { img: baliImage, title: 'Бали', desc: 'Йога-тур', price: '120 000 ₽', door: '🚪🟣' }
+                                { img: maldivImage, title: 'Мальдивы', desc: 'Райский отдых', price: '180 000 ₽' },
+                                { img: italiaImage, title: 'Италия', desc: 'Экскурсионный тур', price: '95 000 ₽' },
+                                { img: baliImage, title: 'Бали', desc: 'Йога-тур', price: '120 000 ₽' }
                             ].map((tour, index) => (
-                                <div key={index} className="offer-card" style={{
-                                    background: 'linear-gradient(145deg, rgba(147,112,219,0.2), rgba(106,90,205,0.4))',
-                                    borderRadius: '20px',
+                                <div key={index} className="egypt-card" style={{
+                                    background: 'rgba(245, 240, 229, 0.7)',
+                                    borderRadius: '15px',
                                     overflow: 'hidden',
-                                    boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                                    transition: 'all 0.3s',
-                                    cursor: 'pointer',
-                                    border: '2px solid #9370DB',
-                                    position: 'relative'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1.05)';
-                                    e.currentTarget.style.boxShadow = '0 20px 40px rgba(147,112,219,0.5)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1)';
-                                    e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+                                    border: '1px solid #C0A080'
                                 }}>
-                                    {/* Номер двери как в Корпорации монстров */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '10px',
-                                        right: '10px',
-                                        background: '#4B0082',
-                                        color: 'white',
-                                        padding: '5px 15px',
-                                        borderRadius: '15px',
-                                        fontSize: '20px',
-                                        fontWeight: 'bold',
-                                        zIndex: 2
-                                    }}>
-                                        {tour.door}
-                                    </div>
-                                    
                                     <img
                                         src={tour.img}
                                         alt={tour.title}
                                         style={{
                                             width: '100%',
-                                            height: '250px',
-                                            objectFit: 'cover',
-                                            borderBottom: '3px solid #9370DB'
+                                            height: '200px',
+                                            objectFit: 'cover'
                                         }}
                                     />
-                                    <div style={{ padding: '25px' }}>
+                                    <div style={{ padding: '20px' }}>
                                         <h3 style={{ 
-                                            margin: '0 0 10px 0', 
-                                            color: '#E6E6FA',
-                                            fontSize: '28px'
+                                            margin: '0 0 5px 0', 
+                                            color: '#8B5A2B',
+                                            fontSize: '20px'
                                         }}>{tour.title}</h3>
-                                        <p style={{ color: '#D8BFD8', margin: '0 0 15px 0' }}>{tour.desc}</p>
+                                        <p style={{ color: '#8B5A2B', margin: '0 0 10px 0', fontSize: '14px' }}>{tour.desc}</p>
                                         <p style={{
-                                            fontSize: '28px',
-                                            fontWeight: 'bold',
-                                            color: '#FFD700',
-                                            margin: '0 0 20px 0',
-                                            textShadow: '1px 1px 0 #4B0082'
+                                            fontSize: '20px',
+                                            fontWeight: '500',
+                                            color: '#B76E3C',
+                                            margin: '0 0 15px 0'
                                         }}>{tour.price}</p>
                                         <button 
                                             onClick={() => navigate('/tour/1')}
                                             style={{
-                                                padding: '12px 25px',
-                                                background: 'linear-gradient(45deg, #9370DB, #6A5ACD)',
-                                                color: 'white',
-                                                border: '2px solid #E6E6FA',
-                                                borderRadius: '25px',
+                                                padding: '8px 20px',
+                                                background: '#C0A080',
+                                                color: '#F5F0E5',
+                                                border: '1px solid #8B5A2B',
+                                                borderRadius: '20px',
                                                 cursor: 'pointer',
                                                 width: '100%',
-                                                fontSize: '18px',
-                                                fontWeight: '600',
-                                                transition: 'transform 0.3s'
+                                                fontSize: '14px',
+                                                fontWeight: '400',
+                                                transition: 'all 0.3s'
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = '#8B5A2B';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = '#C0A080';
+                                            }}
                                         >
-                                            Открыть дверь 🚪
+                                            𓊹 Подробнее
                                         </button>
                                     </div>
                                 </div>
@@ -402,66 +304,63 @@ const MainPage = () => {
 
                     {/* Отзывы */}
                     <section className="reviews" style={{
-                        padding: '80px 20px',
+                        padding: '60px 20px',
                         maxWidth: '1200px',
-                        margin: '0 auto',
-                        background: 'rgba(147,112,219,0.1)',
-                        borderRadius: '50px',
-                        backdropFilter: 'blur(10px)'
+                        margin: '0 auto'
                     }}>
                         <h2 style={{
                             textAlign: 'center',
-                            fontSize: '42px',
-                            marginBottom: '50px',
-                            color: '#E6E6FA',
-                            textShadow: '2px 2px 0 #4B0082'
+                            fontSize: '36px',
+                            marginBottom: '40px',
+                            color: '#8B5A2B',
+                            fontFamily: "'Cormorant Garamond', serif"
                         }}>
-                            😱 Отзывы наших "жертв" 😱
+                            𓋴 Отзывы путешественников
                         </h2>
                         <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-                            gap: '30px'
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                            gap: '20px'
                         }}>
                             {[
-                                { name: 'Есения', text: 'Самый лучший отдых! Даже страшно не было!', place: 'Турция', avatar: '👧' },
-                                { name: 'Валерий', text: 'Очень страшно, хоть и весело! По пути в Спар заскочу!', place: 'Египет', avatar: '👦' }
+                                { name: 'Есения', text: 'Незабываемый отдых!', place: 'Мальдивы' },
+                                { name: 'Валерий', text: 'Всё на высшем уровне!', place: 'Италия' }
                             ].map((review, index) => (
-                                <div key={index} style={{
-                                    padding: '30px',
-                                    background: 'linear-gradient(135deg, rgba(147,112,219,0.3), rgba(106,90,205,0.3))',
-                                    borderRadius: '20px',
-                                    border: '2px solid #9370DB',
+                                <div key={index} className="egypt-card" style={{
+                                    padding: '20px',
+                                    background: 'rgba(245, 240, 229, 0.7)',
+                                    borderRadius: '15px',
+                                    border: '1px solid #C0A080',
                                     position: 'relative'
                                 }}>
                                     <div style={{
                                         position: 'absolute',
-                                        top: '-15px',
-                                        left: '30px',
-                                        fontSize: '40px',
-                                        background: '#4B0082',
+                                        top: '-10px',
+                                        left: '20px',
+                                        fontSize: '30px',
+                                        background: '#F5F0E5',
                                         borderRadius: '50%',
-                                        width: '60px',
-                                        height: '60px',
+                                        width: '40px',
+                                        height: '40px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        border: '3px solid #9370DB'
+                                        border: '2px solid #C0A080'
                                     }}>
-                                        {review.avatar}
+                                        {index === 0 ? '𓁐' : '𓁤'}
                                     </div>
                                     <p style={{ 
-                                        fontSize: '18px', 
+                                        fontSize: '14px', 
                                         fontStyle: 'italic', 
-                                        margin: '30px 0 20px 0',
-                                        color: 'white'
+                                        margin: '20px 0 10px 0',
+                                        color: '#8B5A2B'
                                     }}>
                                         "{review.text}"
                                     </p>
                                     <p style={{ 
-                                        fontWeight: 'bold', 
-                                        color: '#FFD700',
-                                        fontSize: '18px'
+                                        fontWeight: '500', 
+                                        color: '#B76E3C',
+                                        fontSize: '14px'
                                     }}>
                                         — {review.name}, {review.place}
                                     </p>
@@ -470,78 +369,57 @@ const MainPage = () => {
                         </div>
                     </section>
 
-                    {/* Подписка на новости */}
+                    {/* Подписка */}
                     <section className="newsletter" style={{
-                        padding: '80px 20px',
+                        padding: '60px 20px',
                         margin: '40px 0',
-                        background: 'linear-gradient(135deg, #4B0082, #6A5ACD)',
-                        color: 'white',
-                        textAlign: 'center',
-                        position: 'relative',
-                        overflow: 'hidden'
+                        background: 'linear-gradient(135deg, #C0A080, #8B5A2B)',
+                        color: '#F5F0E5',
+                        textAlign: 'center'
                     }}>
-                        {/* Декоративные элементы как конфетти */}
-                        {[...Array(20)].map((_, i) => (
-                            <div key={i} style={{
-                                position: 'absolute',
-                                left: `${Math.random() * 100}%`,
-                                top: `${Math.random() * 100}%`,
-                                fontSize: `${20 + Math.random() * 30}px`,
-                                opacity: 0.1,
-                                transform: 'rotate(' + Math.random() * 360 + 'deg)',
-                                color: '#FFD700'
-                            }}>
-                                {['🚪', '👻', '💚', '🪀'][Math.floor(Math.random() * 4)]}
-                            </div>
-                        ))}
-                        
-                        <div style={{ maxWidth: '600px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+                        <div style={{ maxWidth: '500px', margin: '0 auto' }}>
                             <h2 style={{
-                                fontSize: '42px',
-                                marginBottom: '20px',
-                                textShadow: '2px 2px 0 #4B0082'
+                                fontSize: '32px',
+                                marginBottom: '15px'
                             }}>
-                                📬 Подпишитесь на рассылку страха
+                                𓂀 Рассылка
                             </h2>
                             <p style={{
-                                fontSize: '20px',
-                                marginBottom: '30px',
-                                color: '#D8BFD8'
+                                fontSize: '16px',
+                                marginBottom: '20px'
                             }}>
-                                Получайте горящие двери первыми! 🔥
+                                Горящие предложения первыми
                             </p>
                             <form style={{
                                 display: 'flex',
                                 gap: '10px',
-                                justifyContent: 'center',
-                                flexWrap: 'wrap' as const
+                                justifyContent: 'center'
                             }}>
                                 <input
                                     type="email"
                                     placeholder="Ваш email"
                                     style={{
-                                        padding: '15px',
-                                        fontSize: '16px',
-                                        border: '3px solid #9370DB',
-                                        borderRadius: '30px',
-                                        width: '300px',
-                                        outline: 'none'
+                                        padding: '10px 15px',
+                                        fontSize: '14px',
+                                        border: '2px solid #F5F0E5',
+                                        borderRadius: '25px',
+                                        width: '250px',
+                                        outline: 'none',
+                                        backgroundColor: 'rgba(245, 240, 229, 0.2)',
+                                        color: '#F5F0E5'
                                     }}
                                 />
                                 <button type="submit" style={{
-                                    padding: '15px 40px',
-                                    fontSize: '18px',
-                                    background: 'linear-gradient(45deg, #9370DB, #FFD700)',
-                                    color: '#4B0082',
+                                    padding: '10px 25px',
+                                    fontSize: '14px',
+                                    background: '#F5F0E5',
+                                    color: '#8B5A2B',
                                     border: 'none',
-                                    borderRadius: '30px',
+                                    borderRadius: '25px',
                                     cursor: 'pointer',
-                                    fontWeight: 'bold',
-                                    transition: 'transform 0.3s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                                    Подписаться 🚪
+                                    fontWeight: '500'
+                                }}>
+                                    𓊹 Подписаться
                                 </button>
                             </form>
                         </div>
