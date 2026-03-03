@@ -33,7 +33,7 @@ public sealed class ClientsController(ServerDbContext dbContext) : ControllerBas
     }
 
     [HttpPost]
-    public async Task<ActionResult<AddressesModel>> CreateClient(ClientsModel client)
+    public async Task<ActionResult<ClientsModel>> CreateClient(ClientsModel client)
     {
         var errorMessage = new List<string>();
         if (string.IsNullOrWhiteSpace(client.SurName))

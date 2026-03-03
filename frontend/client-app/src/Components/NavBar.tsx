@@ -1,27 +1,133 @@
-import React, { Component } from "react";
+import React, { Component, useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import ButtonGoogleAuth from "./BtnGoogleAuth";
 import { Modal, ModalHeader, ModalBody } from 'reactstrap';
+import { getCurrencyRates } from "../Services/CurrencyRatesApi";
 
 interface NavBarState {
   showAuth: boolean;
   googleAuthModal: boolean;
   showCurrencyMenu: boolean;
   selectedCurrency: string;
+  currencyOptions: string[];
+  ratesData: Array<{
+    letterCode: string;
+    rate: number;
+  }>;
+  loading: boolean;
+  error: string | null;
 }
 
 export default class NavBar extends Component<{}, NavBarState> {
-  currencies = [
-    { code: 'RUB', symbol: '₽', label: 'RUB' },
-    { code: 'USD', symbol: '$', label: 'USD' },
-    { code: 'EUR', symbol: '€', label: 'EUR' }
-  ];
-
   state: NavBarState = {
     showAuth: false,
     googleAuthModal: false,
     showCurrencyMenu: false,
-    selectedCurrency: 'RUB'
+    selectedCurrency: 'RUB', // если надо поменять изначальную валюту, то надо ввести ее letterCode
+    currencyOptions: [],
+    ratesData: [],
+    loading: true,
+    error: null
+  };
+
+  componentDidMount() {
+    this.fetchCurrency();
+    this.fetchRatesData();
+    document.addEventListener('mousedown', this.handleClickOutside);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('mousedown', this.handleClickOutside);
+  }
+
+  toggleCurrencyMenu = () => {
+    this.setState(prevState => ({
+      showCurrencyMenu: !prevState.showCurrencyMenu
+    }));
+  };
+
+  getCurrencySymbol = (code: string) => {
+    switch (code) {
+      case 'RUB': return '₽';
+      case 'USD': return '$';
+      case 'EUR': return '€';
+      default: return '₽';
+    }
+  };
+
+  fetchCurrency = async () => {
+    try {
+      this.setState({ loading: true, error: null });
+
+      const currencies = await getCurrencyRates();
+
+      const selectedCurrencies = ['USD', 'EUR', 'RUB'];
+
+      // Получаем уникальные коды валют (убираем дубликаты)
+      const uniqueCurrencies = Array.from(new Set(currencies.map(c => c.letterCode).filter(c => selectedCurrencies.includes(c))));
+      // Сортируем по алфавиту (опционально)
+      const sortedCurrencies = uniqueCurrencies.sort();
+
+      this.setState({
+        currencyOptions: sortedCurrencies,
+        loading: false
+      });
+
+      console.log("Загруженный список валют:", sortedCurrencies);
+    }
+    catch (err) {
+      console.error("Ошибка загрузки списка валют:", err);
+      this.setState({
+        error: "Не удалось загрузить список валют",
+        loading: false
+      });
+    }
+  }
+
+  fetchRatesData = async () => {
+    try {
+      this.setState({ loading: true, error: null });
+      const currencies = await getCurrencyRates();
+
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const year = today.getFullYear();
+      const formattedToday = `${day}.${month}.${year}`;
+
+      // Фильтруем только за сегодня
+      const todayRates = currencies.filter(r => r.dateReceipt === formattedToday);
+
+      // Сохраняем все данные
+      this.setState({
+        //currencyOptions: uniqueCurrencies,
+        ratesData: todayRates.map(r => ({
+          letterCode: r.letterCode,
+          rate: r.rate
+        })),
+        loading: false
+      });
+
+    } catch (err) {
+      this.setState({
+        error: "Не удалось загрузить данные",
+        loading: false
+      });
+    }
+  };
+
+  selectCurrency = (code: string) => {
+    this.setState({
+      selectedCurrency: code,
+      showCurrencyMenu: false
+    });
+  };
+
+  // Метод для получения курса выбранной валюты
+  getSelectedRate = (): number | null => {
+    const { selectedCurrency, ratesData } = this.state;
+    const found = ratesData.find(r => r.letterCode === selectedCurrency);
+    return found ? found.rate : null;
   };
 
   toggleAuthModal = () => {
@@ -36,30 +142,20 @@ export default class NavBar extends Component<{}, NavBarState> {
     }));
   };
 
-  toggleCurrencyMenu = () => {
-    this.setState(prevState => ({
-      showCurrencyMenu: !prevState.showCurrencyMenu
-    }));
-  };
+  private menuRef = React.createRef<HTMLDivElement>();
 
-  selectCurrency = (code: string) => {
-    this.setState({
-      selectedCurrency: code,
-      showCurrencyMenu: false
-    });
-  };
-
-  getCurrencySymbol = (code: string) => {
-    switch(code) {
-      case 'RUB': return '₽';
-      case 'USD': return '$';
-      case 'EUR': return '€';
-      default: return '₽';
+  handleClickOutside = (event: MouseEvent) => {
+    if (this.menuRef.current && !this.menuRef.current.contains(event.target as Node)) {
+      this.setState({ showCurrencyMenu: false });
     }
   };
 
   render() {
-    const { showAuth, showCurrencyMenu, selectedCurrency } = this.state;
+    const {
+      showAuth,
+      showCurrencyMenu,
+      selectedCurrency,
+    } = this.state;
 
     return (
       <nav className="navbar navbar-expand-lg" style={{
@@ -67,7 +163,12 @@ export default class NavBar extends Component<{}, NavBarState> {
         borderBottom: '2px solid #C0A080',
         boxShadow: '0 2px 10px rgba(160, 120, 80, 0.1)',
         padding: '8px 0',
-        position: 'relative'
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        width: '100%',
       }}>
         <div className="container-fluid" style={{ padding: '0 20px' }}>
           {/* Логотип */}
@@ -325,8 +426,35 @@ export default class NavBar extends Component<{}, NavBarState> {
               </li>
             </ul>
 
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginRight: '15px',
+              background: 'rgba(200, 160, 120, 0.15)',
+              padding: '4px 15px',
+              borderRadius: '20px',
+              border: '1px solid #C0A080',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#8B5A2B'
+            }}>
+              {this.state.loading ? (
+                <span>Загрузка курса...</span>
+              ) : this.state.error ? (
+                <span style={{ color: 'red' }}>Ошибка</span>
+              ) : (
+                <>
+                  <span style={{ fontWeight: '700' }}>
+                    {this.getSelectedRate()?.toFixed(2) ?? '—'}
+                  </span>
+                  <span style={{ marginRight: '5px' }}>{this.getCurrencySymbol(this.state.selectedCurrency)}</span>
+                </>
+              )}
+            </div>
             {/* Селектор валюты */}
-            <div style={{ position: 'relative', marginRight: '10px', flexShrink: 0 }}>
+            <div
+              ref={this.menuRef}
+              style={{ position: 'relative', marginRight: '10px', flexShrink: 0 }}>
               <button
                 onClick={this.toggleCurrencyMenu}
                 style={{
@@ -351,9 +479,8 @@ export default class NavBar extends Component<{}, NavBarState> {
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <span>{this.getCurrencySymbol(selectedCurrency)}</span>
                 <span>{selectedCurrency}</span>
-                <span style={{ 
+                <span style={{
                   fontSize: '10px',
                   transform: showCurrencyMenu ? 'rotate(180deg)' : 'none',
                   transition: 'transform 0.3s'
@@ -371,44 +498,90 @@ export default class NavBar extends Component<{}, NavBarState> {
                   backgroundColor: '#F8F0E0',
                   border: '1px solid #C0A080',
                   borderRadius: '10px',
-                  minWidth: '150px',
+                  minWidth: '180px',
+                  maxHeight: '300px',        // Ограничиваем высоту
+                  overflowY: 'auto',          // Добавляем прокрутку
                   zIndex: 1000,
-                  overflow: 'hidden',
-                  boxShadow: '0 5px 15px rgba(160, 120, 80, 0.1)'
+                  boxShadow: '0 5px 15px rgba(160, 120, 80, 0.1)',
+                  scrollbarWidth: 'thin',     // Для Firefox
+                  scrollbarColor: '#C0A080 #F8F0E0' // Для Firefox
                 }}>
-                  {this.currencies.map((currency) => (
-                    <button
-                      key={currency.code}
-                      onClick={() => this.selectCurrency(currency.code)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 15px',
-                        border: 'none',
-                        borderBottom: '1px solid #C0A080',
-                        backgroundColor: selectedCurrency === currency.code ? 'rgba(200, 160, 120, 0.15)' : 'transparent',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        fontSize: '14px',
-                        color: '#8B5A2B',
-                        transition: 'all 0.3s',
-                        fontWeight: selectedCurrency === currency.code ? 500 : 400
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(200, 160, 120, 0.25)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = selectedCurrency === currency.code ? 'rgba(200, 160, 120, 0.15)' : 'transparent';
-                      }}
-                    >
-                      <span style={{ width: '25px' }}>{currency.symbol}</span>
-                      <span style={{ flex: 1, textAlign: 'left' }}>{currency.label}</span>
-                      {selectedCurrency === currency.code && (
-                        <span>✓</span>
-                      )}
-                    </button>
-                  ))}
+                  {/* Кастомный скроллбар для WebKit браузеров */}
+                  <style>
+                    {`
+          div::-webkit-scrollbar {
+            width: 6px;
+          }
+          div::-webkit-scrollbar-track {
+            background: #F8F0E0;
+            border-radius: 0 10px 10px 0;
+          }
+          div::-webkit-scrollbar-thumb {
+            background: #C0A080;
+            border-radius: 3px;
+          }
+          div::-webkit-scrollbar-thumb:hover {
+            background: #A08060;
+          }
+        `}
+                  </style>
+
+                  {this.state.loading ? (
+                    <div style={{ padding: '15px', textAlign: 'center', color: '#8B5A2B' }}>
+                      Загрузка...
+                    </div>
+                  ) : this.state.error ? (
+                    <div style={{ padding: '15px', textAlign: 'center', color: 'red' }}>
+                      {this.state.error}
+                    </div>
+                  ) : (
+                    this.state.currencyOptions.map((currencyCode) => (
+                      <button
+                        key={currencyCode}
+                        onClick={() => this.selectCurrency(currencyCode)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 15px',
+                          border: 'none',
+                          borderBottom: '1px solid #C0A080',
+                          backgroundColor: selectedCurrency === currencyCode ? 'rgba(200, 160, 120, 0.15)' : 'transparent',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          fontSize: '14px',
+                          color: '#8B5A2B',
+                          transition: 'all 0.2s',
+                          fontWeight: selectedCurrency === currencyCode ? 500 : 400,
+                          textAlign: 'left'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(200, 160, 120, 0.25)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = selectedCurrency === currencyCode ? 'rgba(200, 160, 120, 0.15)' : 'transparent';
+                        }}
+                      >
+                        <span style={{
+                          width: '30px',
+                          fontSize: '16px',
+                          display: 'inline-block',
+                          textAlign: 'center'
+                        }}>
+                          {this.getCurrencySymbol(currencyCode)}
+                        </span>
+                        <span style={{
+                          flex: 1,
+                          fontWeight: 'inherit'
+                        }}>
+                          {currencyCode}
+                        </span>
+                        {selectedCurrency === currencyCode && (
+                          <span style={{ color: '#8B5A2B', fontWeight: 'bold' }}>✓</span>
+                        )}
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>

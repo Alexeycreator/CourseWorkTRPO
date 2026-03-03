@@ -88,6 +88,16 @@ public sealed class CurrencyRateParser
                                     DateReceipt = dateCurrencyRate
                                 });
                             }
+
+                            currencies.Add(new CurrencyRatesModel()
+                            {
+                                DigitalCode = 643,
+                                LetterCode = "RUB",
+                                Units = 1,
+                                Currency = "Российский рубль",
+                                Rate = 1,
+                                DateReceipt = dateCurrencyRate
+                            });
                         }
                         catch (FormatException ex)
                         {
