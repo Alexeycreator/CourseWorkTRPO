@@ -1,6 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { getCurrencyRates } from '../Services/CurrencyRatesApi';
 
 const Footer = () => {
+
+    const [currencyRatesOptions, setCurrencyRatesOptions] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const today = new Date();
+    const day = String(today.getDate()).padStart(2, '0');
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // +1 потому что месяцы с 0
+    const year = today.getFullYear();
+
+    const formattedToday = `${day}.${month}.${year}`; // преобразованный формат под приходящий с БД "03.03.2026"
+
+    useEffect(() => {
+        const fetchCities = async () => {
+            try {
+                setLoading(true);
+                const rates = await getCurrencyRates();
+
+                const todayRates = rates
+                    .filter(r => { return r.dateReceipt === formattedToday; })
+                    .filter(r => { return r.letterCode === "USD" || r.letterCode === "EUR" })
+                    .map(r => `${r.letterCode}: ${r.rate.toFixed(2)}`);
+                console.log(todayRates);
+
+                setCurrencyRatesOptions(todayRates);
+                setError(null);
+            } catch (err) {
+                console.error("Ошибка загрузки курсов валют:", err);
+                setError("Не удалось загрузить список курсов валют");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCities();
+    }, []);
+
     return (
         <footer style={{
             background: 'linear-gradient(0deg, #8B5A2B, #C0A080)',
@@ -26,7 +63,7 @@ const Footer = () => {
             }}>
                 𓂀 Шелковые барханы 𓂀
             </div>
-            
+
             <div style={{
                 maxWidth: '1200px',
                 margin: '0 auto',
@@ -54,8 +91,14 @@ const Footer = () => {
                         <span>𓂀</span>
                     </div>
                 </div>
+                <div>
+                    <h4 style={{ color: '#F5F0E5', marginBottom: '10px', fontSize: '16px' }}>Курсы валют на {formattedToday}</h4>
+                    <div>
+                        {currencyRatesOptions.map((rate, index) => (<option key={index} value={rate}>{rate}</option>))}
+                    </div>
+                </div>
             </div>
-            
+
             <div style={{
                 textAlign: 'center',
                 marginTop: '20px',
