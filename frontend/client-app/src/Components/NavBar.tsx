@@ -33,6 +33,11 @@ export default class NavBar extends Component<{}, NavBarState> {
   componentDidMount() {
     this.fetchCurrency();
     this.fetchRatesData();
+    document.addEventListener('mousedown', this.handleClickOutside);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('mousedown', this.handleClickOutside);
   }
 
   toggleCurrencyMenu = () => {
@@ -137,15 +142,19 @@ export default class NavBar extends Component<{}, NavBarState> {
     }));
   };
 
+  private menuRef = React.createRef<HTMLDivElement>();
+
+  handleClickOutside = (event: MouseEvent) => {
+    if (this.menuRef.current && !this.menuRef.current.contains(event.target as Node)) {
+      this.setState({ showCurrencyMenu: false });
+    }
+  };
+
   render() {
     const {
       showAuth,
-      googleAuthModal,
       showCurrencyMenu,
       selectedCurrency,
-      currencyOptions,
-      loading,
-      error
     } = this.state;
 
     return (
@@ -443,7 +452,9 @@ export default class NavBar extends Component<{}, NavBarState> {
               )}
             </div>
             {/* Селектор валюты */}
-            <div style={{ position: 'relative', marginRight: '10px', flexShrink: 0 }}>
+            <div
+              ref={this.menuRef}
+              style={{ position: 'relative', marginRight: '10px', flexShrink: 0 }}>
               <button
                 onClick={this.toggleCurrencyMenu}
                 style={{
