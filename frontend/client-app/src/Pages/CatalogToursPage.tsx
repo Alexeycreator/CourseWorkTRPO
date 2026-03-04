@@ -3,8 +3,6 @@ import { getAddresses } from "../Services/AddressApi";
 import maldivImage from '../Images/Maldiv.jpg';
 import italiaImage from '../Images/Italia.jpeg';
 import baliImage from '../Images/Bali.jpg';
-
-// Дополнительные изображения для новых туров (используем те же, но для демонстрации)
 import egyptImage from '../Images/egypt.jpg'; 
 import turkeyImage from '../Images/turkey.jpg';
 import greeceImage from '../Images/greece.jpg';

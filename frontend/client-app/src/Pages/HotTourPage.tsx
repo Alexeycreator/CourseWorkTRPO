@@ -2,6 +2,14 @@ import React, { useState } from "react";
 import maldivImage from '../Images/Maldiv.jpg';
 import italiaImage from '../Images/Italia.jpeg';
 import baliImage from '../Images/Bali.jpg';
+import egyptImage from '../Images/egypt.jpg'; 
+import turkeyImage from '../Images/turkey.jpg';
+import greeceImage from '../Images/greece.jpg';
+import thailandImage from '../Images/thailand.jpg';
+import uaeImage from '../Images/uae.jpg';
+import japanImage from '../Images/japan.jpg';
+import franceImage from '../Images/france.jpg';
+
 
 // Дополнительные изображения для новых туров (используем заглушки, если нет файлов)
 const placeholderImage = "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300";
@@ -60,7 +68,7 @@ const HotTourPage = () => {
       oldPrice: 110000,
       newPrice: 85000,
       discount: 23,
-      image: placeholderImage,
+      image: egyptImage,
       rating: 4.6,
       type: "Пляжный",
       description: "Тайны пирамид и отдых на Красном море"
@@ -78,7 +86,7 @@ const HotTourPage = () => {
       oldPrice: 90000,
       newPrice: 65000,
       discount: 28,
-      image: placeholderImage,
+      image: turkeyImage,
       rating: 4.5,
       type: "Пляжный",
       description: "Всё включено для всей семьи"
@@ -96,7 +104,7 @@ const HotTourPage = () => {
       oldPrice: 170000,
       newPrice: 135000,
       discount: 21,
-      image: placeholderImage,
+      image: thailandImage,
       rating: 4.7,
       type: "Экзотический",
       description: "Экзотика и джунгли"
@@ -114,7 +122,7 @@ const HotTourPage = () => {
       oldPrice: 190000,
       newPrice: 155000,
       discount: 18,
-      image: placeholderImage,
+      image: uaeImage,
       rating: 4.9,
       type: "Шопинг",
       description: "Роскошь и небоскрёбы"
@@ -132,7 +140,7 @@ const HotTourPage = () => {
       oldPrice: 145000,
       newPrice: 115000,
       discount: 21,
-      image: placeholderImage,
+      image: greeceImage,
       rating: 4.8,
       type: "Экскурсионный",
       description: "Острова и античная культура"
