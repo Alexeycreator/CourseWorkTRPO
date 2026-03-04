@@ -12,6 +12,7 @@ import thailandImage from '../Images/thailand.jpg';
 import uaeImage from '../Images/uae.jpg';
 import japanImage from '../Images/japan.jpg';
 import franceImage from '../Images/france.jpg';
+import { getTours, Tour } from "../Services/ToursApi";
 
 const CatalogToursPage = () => {
   const [departure, setDeparture] = useState("");
@@ -25,8 +26,14 @@ const CatalogToursPage = () => {
 
   // состояния городов
   const [cityOptions, setCityOptions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingCity, setLoadingCity] = useState(true);
+  const [errorCity, setErrorCity] = useState<string | null>(null);
+
+  // состояния туров
+  const [toursOptions, setToursOptions] = useState<string[]>([]);
+  const [toursData, setToursData] = useState<Tour[]>([]);
+  const [loadingTour, setLoadingTour] = useState(true);
+  const [errorTour, setErrorTour] = useState<string | null>(null);
 
   const [isGuestSelectorOpen, setIsGuestSelectorOpen] = useState(false);
   const [isDateSelectorOpen, setIsDateSelectorOpen] = useState(false);
@@ -208,10 +215,11 @@ const CatalogToursPage = () => {
     );
   });
 
+  // для выбора городов
   useEffect(() => {
     const fetchCities = async () => {
       try {
-        setLoading(true);
+        setLoadingCity(true);
         const addresses = await getAddresses();
 
         const cities = addresses
@@ -222,16 +230,42 @@ const CatalogToursPage = () => {
           .sort();
 
         setCityOptions(cities);
-        setError(null);
+        setErrorCity(null);
       } catch (err) {
         console.error("Ошибка загрузки городов:", err);
-        setError("Не удалось загрузить список городов");
+        setErrorCity("Не удалось загрузить список городов");
       } finally {
-        setLoading(false);
+        setLoadingCity(false);
       }
     };
 
     fetchCities();
+  }, []);
+
+  // для отображения туров
+  useEffect(() => {
+    const fetchTours = async () => {
+      try {
+        setLoadingTour(true);
+        const tours = await getTours();
+
+        const tour = tours.map(t => t.name).sort();
+
+        console.log("Загруженные туры: ", tours);
+        //setToursOptions(tour)
+        setToursData(tours)
+        setErrorTour(null);
+      }
+      catch (err) {
+        console.error("Ошибка загрузки туров: ", err);
+        setErrorTour("Не удалось загрузить туры");
+      }
+      finally {
+        setLoadingTour(false);
+      }
+    };
+
+    fetchTours();
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
@@ -313,7 +347,6 @@ const CatalogToursPage = () => {
     e.preventDefault();
     const formData = { departure, destination, startDate, endDate, adults, children, nights };
     console.log("Данные для тура:", formData);
-    alert("Запрос на формирование тура отправлен (смотрите консоль)");
   };
 
   const getGuestsDisplayText = () => {
@@ -513,7 +546,7 @@ const CatalogToursPage = () => {
                 />
               </div> */}
             </div>
-            
+
             {/* Кнопка */}
             <div style={{
               minWidth: "140px",
@@ -586,6 +619,11 @@ const CatalogToursPage = () => {
         </div>
 
         {/* Сетка туров */}
+        <div>
+          <div>
+            {toursData.map((tour) => (<option key={tour.id} value={tour.id}>{tour.name}{tour.details}</option>))}
+          </div>
+        </div>
         <div className="row g-4">
           {filteredTours.map((tour) => (
             <div key={tour.id} className="col-12 col-md-6 col-lg-4">
@@ -645,16 +683,21 @@ const CatalogToursPage = () => {
                   </div>
                 )}
 
-                <img
-                  src={tour.image}
-                  alt={tour.title}
-                  style={{
-                    width: '100%',
-                    height: '200px',
-                    objectFit: 'cover',
-                    borderBottom: '2px solid #D2B48C'
-                  }}
-                />
+                {toursData.map((tour) => (
+                  <div key={tour.id}>
+                    <img
+                      src={`/${tour.imageTour}`}
+                      alt={tour.name}
+                      style={{
+                        width: '100%',
+                        height: '200px',
+                        objectFit: 'cover',
+                        borderBottom: '2px solid #D2B48C'
+                      }} />
+                  </div>
+                ))}
+
+
 
                 <div className="card-body" style={{ padding: '20px' }}>
                   <div className="d-flex justify-content-between align-items-start mb-2">
