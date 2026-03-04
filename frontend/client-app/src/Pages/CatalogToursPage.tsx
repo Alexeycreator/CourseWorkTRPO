@@ -1,4 +1,5 @@
 import React, { useState, FormEvent, useRef, useEffect } from "react";
+import { Link } from 'react-router-dom'; // Добавляем импорт Link
 import { getAddresses } from "../Services/AddressApi";
 import maldivImage from '../Images/Maldiv.jpg';
 import italiaImage from '../Images/Italia.jpeg';
@@ -86,7 +87,6 @@ const CatalogToursPage = () => {
       type: "Оздоровительный",
       hot: true
     },
-    // Дополнительные 7 туров
     {
       id: 4,
       title: "Египет",
@@ -700,27 +700,29 @@ const CatalogToursPage = () => {
                   </div>
 
                   <div className="d-flex gap-2 mt-3">
-                    <button
-                      onClick={() => window.location.href = `/tour/${tour.id}`}
-                      style={{
-                        flex: 1,
-                        background: '#C0A080',
-                        color: '#FFF8F0',
-                        border: '2px solid #8B5A2B',
-                        borderRadius: '25px',
-                        padding: '8px',
-                        fontSize: '14px',
-                        transition: 'all 0.3s'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#8B5A2B';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#C0A080';
-                      }}
-                    >
-                      𓊹 Подробнее
-                    </button>
+                    <Link to={`/tour/${tour.id}`} style={{ flex: 1, textDecoration: 'none' }}>
+                      <button
+                        style={{
+                          width: '100%',
+                          background: '#C0A080',
+                          color: '#FFF8F0',
+                          border: '2px solid #8B5A2B',
+                          borderRadius: '25px',
+                          padding: '8px',
+                          fontSize: '14px',
+                          transition: 'all 0.3s',
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#8B5A2B';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#C0A080';
+                        }}
+                      >
+                        𓊹 Подробнее
+                      </button>
+                    </Link>
                     <button
                       style={{
                         background: 'transparent',
@@ -729,7 +731,8 @@ const CatalogToursPage = () => {
                         borderRadius: '25px',
                         padding: '8px 15px',
                         fontSize: '14px',
-                        transition: 'all 0.3s'
+                        transition: 'all 0.3s',
+                        cursor: 'pointer'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'rgba(192, 160, 128, 0.1)';

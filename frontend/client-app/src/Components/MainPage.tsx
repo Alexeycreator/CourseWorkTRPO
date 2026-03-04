@@ -221,86 +221,86 @@ const MainPage = () => {
 
                     {/* Спецпредложения месяца */}
                     <section className="special-offers" style={{
-                        padding: '60px 20px',
-                        maxWidth: '1200px',
-                        margin: '0 auto'
-                    }}>
-                        <h2 style={{
-                            textAlign: 'center',
-                            fontSize: '36px',
-                            marginBottom: '30px',
-                            color: '#8B5A2B',
-                            fontFamily: "'Cormorant Garamond', serif"
-                        }}>
-                            𓊖 Популярные направления
-                        </h2>
+    padding: '60px 20px',
+    maxWidth: '1200px',
+    margin: '0 auto'
+}}>
+    <h2 style={{
+        textAlign: 'center',
+        fontSize: '36px',
+        marginBottom: '30px',
+        color: '#8B5A2B',
+        fontFamily: "'Cormorant Garamond', serif"
+    }}>
+        𓊖 Популярные направления
+    </h2>
 
-                        <div className="offers-grid" style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                            gap: '20px'
-                        }}>
-                            {[
-                                { img: maldivImage, title: 'Мальдивы', desc: 'Райский отдых', price: '180 000 ₽' },
-                                { img: italiaImage, title: 'Италия', desc: 'Экскурсионный тур', price: '95 000 ₽' },
-                                { img: baliImage, title: 'Бали', desc: 'Йога-тур', price: '120 000 ₽' }
-                            ].map((tour, index) => (
-                                <div key={index} className="egypt-card" style={{
-                                    background: 'rgba(245, 240, 229, 0.7)',
-                                    borderRadius: '15px',
-                                    overflow: 'hidden',
-                                    border: '1px solid #C0A080'
-                                }}>
-                                    <img
-                                        src={tour.img}
-                                        alt={tour.title}
-                                        style={{
-                                            width: '100%',
-                                            height: '200px',
-                                            objectFit: 'cover'
-                                        }}
-                                    />
-                                    <div style={{ padding: '20px' }}>
-                                        <h3 style={{
-                                            margin: '0 0 5px 0',
-                                            color: '#8B5A2B',
-                                            fontSize: '20px'
-                                        }}>{tour.title}</h3>
-                                        <p style={{ color: '#8B5A2B', margin: '0 0 10px 0', fontSize: '14px' }}>{tour.desc}</p>
-                                        <p style={{
-                                            fontSize: '20px',
-                                            fontWeight: '500',
-                                            color: '#B76E3C',
-                                            margin: '0 0 15px 0'
-                                        }}>{tour.price}</p>
-                                        <button
-                                            onClick={() => navigate('/tour/1')}
-                                            style={{
-                                                padding: '8px 20px',
-                                                background: '#C0A080',
-                                                color: '#F5F0E5',
-                                                border: '1px solid #8B5A2B',
-                                                borderRadius: '20px',
-                                                cursor: 'pointer',
-                                                width: '100%',
-                                                fontSize: '14px',
-                                                fontWeight: '400',
-                                                transition: 'all 0.3s'
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.background = '#8B5A2B';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = '#C0A080';
-                                            }}
-                                        >
-                                            𓊹 Подробнее
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
+    <div className="offers-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '20px'
+    }}>
+        {[
+            { id: 1, img: maldivImage, title: 'Мальдивы', desc: 'Райский отдых', price: '180 000 ₽' },
+            { id: 2, img: italiaImage, title: 'Италия', desc: 'Экскурсионный тур', price: '95 000 ₽' },
+            { id: 3, img: baliImage, title: 'Бали', desc: 'Йога-тур', price: '120 000 ₽' }
+        ].map((tour) => (
+            <div key={tour.id} className="egypt-card" style={{
+                background: 'rgba(245, 240, 229, 0.7)',
+                borderRadius: '15px',
+                overflow: 'hidden',
+                border: '1px solid #C0A080'
+            }}>
+                <img
+                    src={tour.img}
+                    alt={tour.title}
+                    style={{
+                        width: '100%',
+                        height: '200px',
+                        objectFit: 'cover'
+                    }}
+                />
+                <div style={{ padding: '20px' }}>
+                    <h3 style={{
+                        margin: '0 0 5px 0',
+                        color: '#8B5A2B',
+                        fontSize: '20px'
+                    }}>{tour.title}</h3>
+                    <p style={{ color: '#8B5A2B', margin: '0 0 10px 0', fontSize: '14px' }}>{tour.desc}</p>
+                    <p style={{
+                        fontSize: '20px',
+                        fontWeight: '500',
+                        color: '#B76E3C',
+                        margin: '0 0 15px 0'
+                    }}>{tour.price}</p>
+                    <button
+                        onClick={() => navigate(`/tour/${tour.id}`)}
+                        style={{
+                            padding: '8px 20px',
+                            background: '#C0A080',
+                            color: '#F5F0E5',
+                            border: '1px solid #8B5A2B',
+                            borderRadius: '20px',
+                            cursor: 'pointer',
+                            width: '100%',
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            transition: 'all 0.3s'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#8B5A2B';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#C0A080';
+                        }}
+                    >
+                        𓊹 Подробнее
+                    </button>
+                </div>
+            </div>
+        ))}
+    </div>
+</section>
 
                     {/* Отзывы */}
                     <section className="reviews" style={{

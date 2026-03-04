@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from 'react-router-dom';
 import maldivImage from '../Images/Maldiv.jpg';
 import italiaImage from '../Images/Italia.jpeg';
 import baliImage from '../Images/Bali.jpg';
@@ -10,17 +11,13 @@ import uaeImage from '../Images/uae.jpg';
 import japanImage from '../Images/japan.jpg';
 import franceImage from '../Images/france.jpg';
 
-
-// Дополнительные изображения для новых туров (используем заглушки, если нет файлов)
-const placeholderImage = "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300";
-
 const HotTourPage = () => {
   const [sortBy, setSortBy] = useState('default');
 
-  // Массив с данными о горящих турах (все, у которых hot = true)
+  // Массив с данными о горящих турах с ПРАВИЛЬНЫМИ ID (1, 3, 4, 5, 7, 8 - горящие)
   const hotTours = [
     {
-      id: 1,
+      id: 1, // Мальдивы - горящий
       country: "Мальдивы",
       city: "Мале",
       area: "Северный Мале",
@@ -38,7 +35,7 @@ const HotTourPage = () => {
       description: "Райский отдых на белоснежных пляжах"
     },
     {
-      id: 2,
+      id: 3, // Бали - горящий
       country: "Индонезия",
       city: "Денпасар",
       area: "Убуд",
@@ -56,7 +53,7 @@ const HotTourPage = () => {
       description: "Йога-тур и духовные практики"
     },
     {
-      id: 3,
+      id: 4, // Египет - горящий
       country: "Египет",
       city: "Каир",
       area: "Гиза",
@@ -74,7 +71,7 @@ const HotTourPage = () => {
       description: "Тайны пирамид и отдых на Красном море"
     },
     {
-      id: 4,
+      id: 5, // Турция - горящий
       country: "Турция",
       city: "Анталья",
       area: "Кемер",
@@ -92,7 +89,7 @@ const HotTourPage = () => {
       description: "Всё включено для всей семьи"
     },
     {
-      id: 5,
+      id: 7, // Таиланд - горящий
       country: "Таиланд",
       city: "Бангкок",
       area: "Пхукет",
@@ -110,7 +107,7 @@ const HotTourPage = () => {
       description: "Экзотика и джунгли"
     },
     {
-      id: 6,
+      id: 8, // ОАЭ - горящий
       country: "ОАЭ",
       city: "Дубай",
       area: "Jumeirah",
@@ -128,22 +125,22 @@ const HotTourPage = () => {
       description: "Роскошь и небоскрёбы"
     },
     {
-      id: 7,
-      country: "Греция",
-      city: "Афины",
-      area: "Санторини",
-      hotelName: "Canaves Oia Suites",
+      id: 2, // Италия - НЕ горящий (оставляем для разнообразия? или убрать?)
+      country: "Италия",
+      city: "Рим",
+      area: "Центр",
+      hotelName: "Hotel Bristol Rome",
       departureCity: "Москвы",
-      date: "28/03/2026",
-      nights: 7,
+      date: "20/03/2026",
+      nights: 5,
       mealType: "Завтраки",
-      oldPrice: 145000,
-      newPrice: 115000,
+      oldPrice: 120000,
+      newPrice: 95000,
       discount: 21,
-      image: greeceImage,
-      rating: 4.8,
+      image: italiaImage,
+      rating: 4.7,
       type: "Экскурсионный",
-      description: "Острова и античная культура"
+      description: "Экскурсионный тур по историческим местам"
     }
   ];
 
@@ -259,7 +256,6 @@ const HotTourPage = () => {
                 borderRadius: '20px',
                 overflow: 'hidden',
                 transition: 'all 0.3s',
-                cursor: 'pointer',
                 position: 'relative',
                 height: '480px',
                 display: 'flex',
@@ -321,18 +317,21 @@ const HotTourPage = () => {
                 position: 'relative',
                 borderBottom: '2px solid #D2B48C'
               }}>
-                <img
-                  src={tour.image}
-                  alt={tour.hotelName}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transition: 'transform 0.5s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                />
+                <Link to={`/tour/${tour.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+                  <img
+                    src={tour.image}
+                    alt={tour.hotelName}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transition: 'transform 0.5s',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  />
+                </Link>
                 
                 {/* Рейтинг на изображении */}
                 <div style={{
@@ -381,7 +380,9 @@ const HotTourPage = () => {
                   color: '#8B5A2B',
                   fontFamily: "'Cormorant Garamond', serif"
                 }}>
-                  {tour.hotelName}
+                  <Link to={`/tour/${tour.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                    {tour.hotelName}
+                  </Link>
                 </h3>
 
                 {/* Описание */}
@@ -447,30 +448,31 @@ const HotTourPage = () => {
                 </div>
 
                 {/* Кнопка */}
-                <button
-                  onClick={() => alert(`Вы выбрали тур в ${tour.hotelName}!`)}
-                  style={{
-                    marginTop: '15px',
-                    background: '#C0A080',
-                    color: '#FFF8F0',
-                    border: '2px solid #8B5A2B',
-                    borderRadius: '30px',
-                    padding: '12px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    width: '100%'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#8B5A2B';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#C0A080';
-                  }}
-                >
-                  𓊹 Выбрать тур
-                </button>
+                <Link to={`/tour/${tour.id}`} style={{ textDecoration: 'none' }}>
+                  <button
+                    style={{
+                      marginTop: '15px',
+                      background: '#C0A080',
+                      color: '#FFF8F0',
+                      border: '2px solid #8B5A2B',
+                      borderRadius: '30px',
+                      padding: '12px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s',
+                      width: '100%'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#8B5A2B';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#C0A080';
+                    }}
+                  >
+                    𓊹 Подробнее
+                  </button>
+                </Link>
               </div>
             </div>
           ))}
@@ -580,7 +582,7 @@ const HotTourPage = () => {
           borderRadius: '20px'
         }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '32px', color: '#8B5A2B' }}>7</div>
+            <div style={{ fontSize: '32px', color: '#8B5A2B' }}>{hotTours.length}</div>
             <div style={{ color: '#B76E3C', fontSize: '14px' }}>Горящих туров</div>
           </div>
           <div style={{ textAlign: 'center' }}>
