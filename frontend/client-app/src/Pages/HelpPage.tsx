@@ -118,7 +118,7 @@ const HelpPage = () => {
                 marginTop: '15px',
                 fontSize: '16px'
               }}>
-                Оператор онлайн с 9:00 до 22:00 по московскому времени
+                Оператор онлайн с 7:00 до 23:00 по московскому времени
               </p>
             </div>
           </section>
@@ -340,20 +340,6 @@ const HelpPage = () => {
               justifyContent: 'center',
               flexWrap: 'wrap'
             }}>
-              <input
-                type="email"
-                placeholder="Ваш email"
-                style={{
-                  padding: '12px 25px',
-                  fontSize: '16px',
-                  border: '2px solid #FFF8F0',
-                  borderRadius: '30px',
-                  width: '280px',
-                  outline: 'none',
-                  backgroundColor: 'rgba(255, 248, 240, 0.2)',
-                  color: '#FFF8F0'
-                }}
-              />
               <button
                 onClick={() => window.location.href = 'https://t.me/valera_V14'}
                 style={{
@@ -378,14 +364,31 @@ const HelpPage = () => {
               >
                 Написать в Telegram
               </button>
+              <button
+                onClick={() => window.location.href = 'https://t.me/valera_V14'}
+                style={{
+                  padding: '12px 35px',
+                  fontSize: '16px',
+                  background: '#B76E3C',
+                  color: '#FFF8F0',
+                  border: '2px solid #FFF8F0',
+                  borderRadius: '30px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#8B5A2B';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#B76E3C';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                Написать на почту
+              </button>
             </div>
-            <p style={{
-              fontSize: '14px',
-              marginTop: '15px',
-              opacity: 0.8
-            }}>
-              Или напишите нам на почту: help@silkdunes.ru
-            </p>
           </div>
         </section>
 
@@ -402,7 +405,7 @@ const HelpPage = () => {
         }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '24px', color: '#8B5A2B' }}>📞</div>
-            <div style={{ color: '#8B5A2B', fontWeight: '500' }}>+7 (999) 123-45-67</div>
+            <div style={{ color: '#8B5A2B', fontWeight: '500' }}>+7 (901) 339-95-22</div>
             <div style={{ color: '#B76E3C', fontSize: '12px' }}>Круглосуточно</div>
           </div>
           <div style={{ textAlign: 'center' }}>

@@ -9,6 +9,7 @@ import { HotTourPage } from './Pages/HotTourPage';
 import { InformationPage } from './Pages/InformationPage';
 import { NotFoundPage } from './Pages/NotFoundPage';
 import { TourPage } from './Pages/TourPage';
+import PrivacyTermsPage from './Pages/PrivacyTermsPage';
 
 function App() {
     return (
@@ -44,6 +45,8 @@ function App() {
                     
                     {/* Детальная страница тура с параметром */}
                     <Route path='/tour/:id' element={<TourPage />} />
+
+                    <Route path='/legal' element={<PrivacyTermsPage />} />
                     
                     {/* Страница 404 - должна быть последней */}
                     <Route path='*' element={<NotFoundPage />} />

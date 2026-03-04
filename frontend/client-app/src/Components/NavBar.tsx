@@ -586,7 +586,7 @@ export default class NavBar extends Component<{}, NavBarState> {
               )}
             </div>
 
-            {/* Форма поиска - исправлено позиционирование */}
+            {/* Форма поиска */}
             <form className="d-flex" style={{ marginRight: '10px', maxWidth: '250px' }}>
               <input
                 className="form-control"
