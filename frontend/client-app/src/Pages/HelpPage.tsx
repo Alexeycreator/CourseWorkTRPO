@@ -365,29 +365,30 @@ const HelpPage = () => {
                 Написать в Telegram
               </button>
               <button
-                onClick={() => window.location.href = 'https://t.me/valera_V14'}
-                style={{
-                  padding: '12px 35px',
-                  fontSize: '16px',
-                  background: '#B76E3C',
-                  color: '#FFF8F0',
-                  border: '2px solid #FFF8F0',
-                  borderRadius: '30px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#8B5A2B';
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#B76E3C';
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
-              >
-                Написать на почту
-              </button>
+  onClick={() => window.open('https://mail.google.com/mail/?view=cm&fs=1&to=vm96276915@gmail.com', '_blank')}
+  style={{
+    padding: '12px 35px',
+    fontSize: '16px',
+    background: '#B76E3C',
+    color: '#FFF8F0',
+    border: '2px solid #FFF8F0',
+    borderRadius: '30px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    transition: 'all 0.3s'
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = '#8B5A2B';
+    e.currentTarget.style.transform = 'scale(1.05)';
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = '#B76E3C';
+    e.currentTarget.style.transform = 'scale(1)';
+  }}
+>
+  📧 Написать на почту
+</button>
+              
             </div>
           </div>
         </section>
@@ -406,11 +407,11 @@ const HelpPage = () => {
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '24px', color: '#8B5A2B' }}>📞</div>
             <div style={{ color: '#8B5A2B', fontWeight: '500' }}>+7 (901) 339-95-22</div>
-            <div style={{ color: '#B76E3C', fontSize: '12px' }}>Круглосуточно</div>
+            <div style={{ color: '#B76E3C', fontSize: '12px' }}>Пн-Пт: 7:00 - 23:00</div>
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '24px', color: '#8B5A2B' }}>📧</div>
-            <div style={{ color: '#8B5A2B', fontWeight: '500' }}>help@silkdunes.ru</div>
+            <div style={{ color: '#8B5A2B', fontWeight: '500' }}>vm96276915@gmail.com</div>
             <div style={{ color: '#B76E3C', fontSize: '12px' }}>Ответ за 2 часа</div>
           </div>
           <div style={{ textAlign: 'center' }}>

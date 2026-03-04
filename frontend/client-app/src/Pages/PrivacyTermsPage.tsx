@@ -370,10 +370,13 @@ const PrivacyTermsPage = () => {
                 justifyContent: 'center'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>📧</span> privacy@silkdunes.ru
+                  <span>📧</span> vm96276915@gmail.com
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>📞</span> +7 (901) 339-95-22
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>⏰</span> Пн-Пт 7:00-23:00
                 </div>
               </div>
             </section>
@@ -625,7 +628,7 @@ const PrivacyTermsPage = () => {
                 justifyContent: 'center'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>📧</span> support@silkdunes.ru
+                  <span>📧</span> vm96276915@gmail.com 
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>📞</span> +7 (901) 339-95-22

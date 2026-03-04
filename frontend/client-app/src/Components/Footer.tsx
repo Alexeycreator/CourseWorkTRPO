@@ -179,7 +179,7 @@ const Footer = () => {
                     </h4>
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                         <li style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-                            <span>📧</span> info@silkdunes.ru
+                            <span>📧</span> vm96276915@gmail.com
                         </li>
                         <li style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
                             <span>📱</span> +7 (901) 339-95-22
