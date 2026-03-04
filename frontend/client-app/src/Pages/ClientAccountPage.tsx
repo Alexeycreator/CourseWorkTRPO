@@ -109,7 +109,8 @@ const ClientAccountPage = () => {
       minHeight: '100vh',
       padding: '40px 20px',
       fontFamily: "'Montserrat', 'Arial', sans-serif",
-      position: 'relative'
+      position: 'relative',
+      paddingTop: '70px'
     }}>
       {/* Фоновые декоративные элементы */}
       <div style={{ position: 'fixed', top: '5%', left: '2%', fontSize: '60px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>

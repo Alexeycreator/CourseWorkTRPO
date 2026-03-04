@@ -168,6 +168,7 @@ export default class NavBar extends Component<{}, NavBarState> {
         right: 0,
         zIndex: 1000,
         width: '100%',
+        height: '70px'
       }}>
         <div className="container-fluid" style={{ padding: '0 20px' }}>
           {/* Логотип */}

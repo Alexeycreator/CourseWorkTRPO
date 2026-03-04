@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import maldivImage from '../Images/Maldiv.jpg';
 import italiaImage from '../Images/Italia.jpeg';
 import baliImage from '../Images/Bali.jpg';
-import './MainPage.css'; 
+import './MainPage.css';
 
 const MainPage = () => {
     const navigate = useNavigate();
@@ -35,35 +35,35 @@ const MainPage = () => {
     };
 
     const heroSectionStyle = {
-    background: 'linear-gradient(135deg, rgba(190, 160, 130, 0.8) 0%, rgba(160, 130, 100, 0.8) 50%, rgba(130, 100, 70, 0.8) 100%)',
-    color: '#F8F3E8',
-    padding: '70px 20px 50px',
-    textAlign: 'center' as const,
-    position: 'relative' as const,
-    borderBottom: '2px solid #B89A7A',
-    boxShadow: '0 4px 15px rgba(120, 90, 60, 0.1)',
-    overflow: 'hidden' as const,
-    borderRadius: '0 0 40px 40px',
-    margin: '0 20px',
-};
+        background: 'linear-gradient(135deg, rgba(190, 160, 130, 0.8) 0%, rgba(160, 130, 100, 0.8) 50%, rgba(130, 100, 70, 0.8) 100%)',
+        color: '#F8F3E8',
+        padding: '70px 20px 50px',
+        textAlign: 'center' as const,
+        position: 'relative' as const,
+        borderBottom: '2px solid #B89A7A',
+        boxShadow: '0 4px 15px rgba(120, 90, 60, 0.1)',
+        overflow: 'hidden' as const,
+        borderRadius: '0 0 40px 40px',
+        margin: '0 20px',
+    };
 
-const heroTitleStyle = {
-    fontSize: '44px',
-    marginBottom: '10px',
-    textShadow: '1px 1px 0 #7A5A3A, 0 0 15px #F8F3E8',
-    fontWeight: '500',
-    letterSpacing: '1px',
-    fontFamily: "'Cormorant Garamond', serif"
-};
+    const heroTitleStyle = {
+        fontSize: '44px',
+        marginBottom: '10px',
+        textShadow: '1px 1px 0 #7A5A3A, 0 0 15px #F8F3E8',
+        fontWeight: '500',
+        letterSpacing: '1px',
+        fontFamily: "'Cormorant Garamond', serif"
+    };
 
-const heroSubtitleStyle = {
-    fontSize: '18px',
-    marginBottom: '25px',
-    textShadow: '1px 1px 0 #7A5A3A',
-    fontWeight: '300',
-    color: '#F8F3E8',
-    letterSpacing: '0.5px',
-};
+    const heroSubtitleStyle = {
+        fontSize: '18px',
+        marginBottom: '25px',
+        textShadow: '1px 1px 0 #7A5A3A',
+        fontWeight: '300',
+        color: '#F8F3E8',
+        letterSpacing: '0.5px',
+    };
 
     const heroButtonPrimaryStyle = {
         padding: '12px 30px',
@@ -94,12 +94,13 @@ const heroSubtitleStyle = {
     };
 
     return (
-        <div style={{ 
+        <div style={{
             ...silkDunesBackground,
             minHeight: '100vh',
             fontFamily: "'Montserrat', 'Arial', sans-serif",
             display: 'flex',
-            flexDirection: 'column' as const
+            flexDirection: 'column' as const,
+            paddingTop: '70px'
         }}>
             {/* Фоновые иероглифы */}
             <div className="hieroglyph-bg" style={{ top: '5%', left: '2%' }}>𓂀</div>
@@ -109,64 +110,64 @@ const heroSubtitleStyle = {
 
             {/* Текстура песка */}
             <div style={sandTexture} />
-            
+
             {/* Основной контент */}
             <div style={{ position: 'relative', zIndex: 2, flex: '1 0 auto' }}>
                 <main>
                     {/* Hero секция с анимацией */}
                     <section className="hero" style={heroSectionStyle}>
-    {/* Анимация египтянина и пирамиды */}
-    <div className="egypt-animation-container">
-        <div className="sun"></div>
-        <div className="dune dune-left"></div>
-        <div className="dune dune-right"></div>
-        <div className="egyptian-sprite"></div>
-        <div className="pyramid"></div>
-        
-        {/* Декоративные элементы - пальмы и сфинксы (смайлики) */}
-        <div style={{ position: 'absolute', bottom: '20px', left: '10px', fontSize: '30px', opacity: 0.3 }}>🌴</div>
-        <div style={{ position: 'absolute', bottom: '15px', right: '150px', fontSize: '35px', opacity: 0.25 }}>🏜️</div>
-        <div style={{ position: 'absolute', top: '30px', left: '50px', fontSize: '20px', opacity: 0.2 }}>🐪</div>
-        <div style={{ position: 'absolute', top: '50px', right: '220px', fontSize: '25px', opacity: 0.2 }}>🐫</div>
-    </div>
-    
-    <div className="hero-content">
-        <h1 style={heroTitleStyle}>
-            🐪 Шелковые барханы 🐪
-        </h1>
-        <p style={heroSubtitleStyle}>
-            Откройте тайны древних цивилизаций 🌅
-        </p>
-        <div className="hero-buttons">
-            <button 
-                className="btn-primary" 
-                onClick={handleFindDoor}
-                style={heroButtonPrimaryStyle}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#E5D5C5';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#F5F0E5';
-                }}
-            >
-                👑 Найти тур
-            </button>
-            <button 
-                className="btn-secondary" 
-                onClick={handleSpecialOffers}
-                style={heroButtonSecondaryStyle}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(245, 240, 229, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                }}
-            >
-                🔥 Горящие предложения
-            </button>
-        </div>
-    </div>
-</section>
+                        {/* Анимация египтянина и пирамиды */}
+                        <div className="egypt-animation-container">
+                            <div className="sun"></div>
+                            <div className="dune dune-left"></div>
+                            <div className="dune dune-right"></div>
+                            <div className="egyptian-sprite"></div>
+                            <div className="pyramid"></div>
+
+                            {/* Декоративные элементы - пальмы и сфинксы (смайлики) */}
+                            <div style={{ position: 'absolute', bottom: '20px', left: '10px', fontSize: '30px', opacity: 0.3 }}>🌴</div>
+                            <div style={{ position: 'absolute', bottom: '15px', right: '150px', fontSize: '35px', opacity: 0.25 }}>🏜️</div>
+                            <div style={{ position: 'absolute', top: '30px', left: '50px', fontSize: '20px', opacity: 0.2 }}>🐪</div>
+                            <div style={{ position: 'absolute', top: '50px', right: '220px', fontSize: '25px', opacity: 0.2 }}>🐫</div>
+                        </div>
+
+                        <div className="hero-content">
+                            <h1 style={heroTitleStyle}>
+                                🐪 Шелковые барханы 🐪
+                            </h1>
+                            <p style={heroSubtitleStyle}>
+                                Откройте тайны древних цивилизаций 🌅
+                            </p>
+                            <div className="hero-buttons">
+                                <button
+                                    className="btn-primary"
+                                    onClick={handleFindDoor}
+                                    style={heroButtonPrimaryStyle}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = '#E5D5C5';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = '#F5F0E5';
+                                    }}
+                                >
+                                    👑 Найти тур
+                                </button>
+                                <button
+                                    className="btn-secondary"
+                                    onClick={handleSpecialOffers}
+                                    style={heroButtonSecondaryStyle}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'rgba(245, 240, 229, 0.2)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'transparent';
+                                    }}
+                                >
+                                    🔥 Горящие предложения
+                                </button>
+                            </div>
+                        </div>
+                    </section>
 
                     {/* Почему выбирают нас */}
                     <section className="advantages" style={{
@@ -202,14 +203,14 @@ const heroSubtitleStyle = {
                                     border: '1px solid #C0A080',
                                     transition: 'all 0.3s'
                                 }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-5px)';
-                                    e.currentTarget.style.background = 'rgba(245, 240, 229, 0.8)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.background = 'rgba(245, 240, 229, 0.5)';
-                                }}>
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-5px)';
+                                        e.currentTarget.style.background = 'rgba(245, 240, 229, 0.8)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.background = 'rgba(245, 240, 229, 0.5)';
+                                    }}>
                                     <span style={{ fontSize: '48px', marginBottom: '15px', display: 'block' }}>{item.icon}</span>
                                     <h3 style={{ marginBottom: '5px', color: '#8B5A2B', fontSize: '18px' }}>{item.title}</h3>
                                     <p style={{ color: '#8B5A2B', fontSize: '14px' }}>{item.desc}</p>
@@ -233,7 +234,7 @@ const heroSubtitleStyle = {
                         }}>
                             𓊖 Популярные направления
                         </h2>
-                        
+
                         <div className="offers-grid" style={{
                             display: 'grid',
                             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
@@ -260,8 +261,8 @@ const heroSubtitleStyle = {
                                         }}
                                     />
                                     <div style={{ padding: '20px' }}>
-                                        <h3 style={{ 
-                                            margin: '0 0 5px 0', 
+                                        <h3 style={{
+                                            margin: '0 0 5px 0',
                                             color: '#8B5A2B',
                                             fontSize: '20px'
                                         }}>{tour.title}</h3>
@@ -272,7 +273,7 @@ const heroSubtitleStyle = {
                                             color: '#B76E3C',
                                             margin: '0 0 15px 0'
                                         }}>{tour.price}</p>
-                                        <button 
+                                        <button
                                             onClick={() => navigate('/tour/1')}
                                             style={{
                                                 padding: '8px 20px',
@@ -348,16 +349,16 @@ const heroSubtitleStyle = {
                                     }}>
                                         {index === 0 ? '𓁐' : '𓁤'}
                                     </div>
-                                    <p style={{ 
-                                        fontSize: '14px', 
-                                        fontStyle: 'italic', 
+                                    <p style={{
+                                        fontSize: '14px',
+                                        fontStyle: 'italic',
                                         margin: '20px 0 10px 0',
                                         color: '#8B5A2B'
                                     }}>
                                         "{review.text}"
                                     </p>
-                                    <p style={{ 
-                                        fontWeight: '500', 
+                                    <p style={{
+                                        fontWeight: '500',
                                         color: '#B76E3C',
                                         fontSize: '14px'
                                     }}>

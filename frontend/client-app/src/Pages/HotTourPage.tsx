@@ -162,7 +162,8 @@ const HotTourPage = () => {
     <div style={{
       background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
       minHeight: '100vh',
-      padding: '20px'
+      padding: '20px',
+      paddingTop: '70px'
     }}>
       {/* Фоновые иероглифы */}
       <div style={{ position: 'fixed', top: '10%', left: '2%', fontSize: '40px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>
