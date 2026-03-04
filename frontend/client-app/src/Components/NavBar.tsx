@@ -100,7 +100,6 @@ export default class NavBar extends Component<{}, NavBarState> {
 
       // Сохраняем все данные
       this.setState({
-        //currencyOptions: uniqueCurrencies,
         ratesData: todayRates.map(r => ({
           letterCode: r.letterCode,
           rate: r.rate
@@ -169,6 +168,7 @@ export default class NavBar extends Component<{}, NavBarState> {
         right: 0,
         zIndex: 1000,
         width: '100%',
+        height: '70px'
       }}>
         <div className="container-fluid" style={{ padding: '0 20px' }}>
           {/* Логотип */}
@@ -426,7 +426,7 @@ export default class NavBar extends Component<{}, NavBarState> {
               </li>
             </ul>
 
-            <div style={{
+            {/* <div style={{
               display: 'flex',
               alignItems: 'center',
               marginRight: '15px',
@@ -450,7 +450,7 @@ export default class NavBar extends Component<{}, NavBarState> {
                   <span style={{ marginRight: '5px' }}>{this.getCurrencySymbol(this.state.selectedCurrency)}</span>
                 </>
               )}
-            </div>
+            </div> */}
             {/* Селектор валюты */}
             <div
               ref={this.menuRef}

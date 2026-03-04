@@ -23,6 +23,7 @@ const CatalogToursPage = () => {
   const [nights, setNights] = useState(7);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // состояния городов
   const [cityOptions, setCityOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,14 +213,14 @@ const CatalogToursPage = () => {
       try {
         setLoading(true);
         const addresses = await getAddresses();
-        
+
         const cities = addresses
           .map(addr => addr.city)
-          .filter((city, index, self) => 
+          .filter((city, index, self) =>
             city && self.indexOf(city) === index
           )
           .sort();
-        
+
         setCityOptions(cities);
         setError(null);
       } catch (err) {
@@ -367,7 +368,8 @@ const CatalogToursPage = () => {
     <div style={{
       background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
       minHeight: '100vh',
-      padding: '20px'
+      padding: '20px',
+      paddingTop: '70px'
     }}>
       {/* Фоновые иероглифы */}
       <div style={{ position: 'fixed', top: '10%', left: '2%', fontSize: '40px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>
