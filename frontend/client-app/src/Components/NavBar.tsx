@@ -26,6 +26,10 @@ interface RegistrationFormData {
   agreeToPersonalData: boolean;
 }
 
+interface NavBarProps {
+  onCurrencyChange?: (letterCode: string, rate: number) => void; // функция, которая будет вызвана при выборе валюты
+}
+
 interface NavBarState {
   showAuth: boolean;
   googleAuthModal: boolean;
@@ -47,7 +51,7 @@ interface NavBarState {
   errors: Record<string, string>;
 }
 
-export default class NavBar extends Component<{}, NavBarState> {
+export default class NavBar extends Component<NavBarProps, NavBarState> {
   state: NavBarState = {
     showAuth: false,
     googleAuthModal: false,
@@ -100,7 +104,6 @@ export default class NavBar extends Component<{}, NavBarState> {
     document.removeEventListener('mousedown', this.handleClickOutside);
   }
 
-  
   toggleCurrencyMenu = () => {
     this.setState(prevState => ({
       showCurrencyMenu: !prevState.showCurrencyMenu
@@ -176,11 +179,45 @@ export default class NavBar extends Component<{}, NavBarState> {
     }
   };
 
-  selectCurrency = (code: string) => {
+  getRateForCurrency = (letterCode: string): number | null => {
+    const { ratesData } = this.state;
+    const rateItem = ratesData.find(r => r.letterCode === letterCode);
+    return rateItem ? rateItem.rate : null;
+  };
+
+  selectCurrency = (currencyCode: string) => {
+    // Получаем курс для выбранной валюты
+    const rate = this.getRateForCurrency(currencyCode);
+
+    // Обновляем локальное состояние
     this.setState({
-      selectedCurrency: code,
+      selectedCurrency: currencyCode,
       showCurrencyMenu: false
     });
+
+    // Если есть колбэк и курс найден, отправляем данные на сервер
+    if (this.props.onCurrencyChange && rate) {
+      this.props.onCurrencyChange(currencyCode, rate);
+    } else if (this.props.onCurrencyChange) {
+      // Если курс не найден, но колбэк есть, отправляем запрос на сервер
+      this.fetchAndSendRate(currencyCode);
+    }
+
+    console.log(`Выбрана валюта: ${currencyCode}, курс: ${rate}`);
+  };
+
+  fetchAndSendRate = async (currencyCode: string) => {
+    try {
+      // Здесь можно сделать дополнительный запрос к серверу для получения актуального курса
+      const response = await fetch(`/api/currency/rate?code=${currencyCode}`);
+      const data = await response.json();
+
+      if (this.props.onCurrencyChange) {
+        this.props.onCurrencyChange(currencyCode, data.rate);
+      }
+    } catch (error) {
+      console.error('Ошибка получения курса валюты:', error);
+    }
   };
 
   // Метод для получения курса выбранной валюты
@@ -303,7 +340,6 @@ export default class NavBar extends Component<{}, NavBarState> {
       });
     }
   };
-
 
   private menuRef = React.createRef<HTMLDivElement>();
   private authRef = React.createRef<HTMLDivElement>();

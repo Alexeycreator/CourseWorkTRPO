@@ -17,6 +17,11 @@ public sealed class ToursModel
     [Required] [MaxLength(100)] public string EndDot { get; set; }
     [Required] [MaxLength(4000)] public string Details { get; set; }
     [Required] [MaxLength(1000)] public string ImageTour { get; private set; }
+
+    [Required]
+    [Column(TypeName = "decimal(18, 2)")]
+    public double Price { get; private set; }
+
     public bool IsReadOnly { get; set; } = false;
 
     [Column("Tickets_Id")]

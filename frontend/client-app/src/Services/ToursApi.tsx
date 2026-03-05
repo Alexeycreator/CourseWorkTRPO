@@ -18,6 +18,7 @@ export interface Tour {
     endDot: string;
     details: string;
     imageTour: string;
+    price: number;
     tickets_Id?: number | null;
     transfers_Id?: number | null;
     ticket?: Ticket | null;

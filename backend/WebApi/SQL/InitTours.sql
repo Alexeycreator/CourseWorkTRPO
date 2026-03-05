@@ -1,11 +1,11 @@
-INSERT INTO Tours (Name, StartDot, EndDot, Details, Tickets_Id, Transfers_Id, ImageTour)
+INSERT INTO Tours (Name, StartDot, EndDot, Details, Tickets_Id, Transfers_Id, ImageTour, Price)
 VALUES ('Московские каникулы', '2025-03-15', '2025-03-22',
-        'Экскурсии по Москве, посещение Кремля, Третьяковской галереи', 1, 1, 'Image/Tours/moscow_tour.jpg'),
+        'Экскурсии по Москве, посещение Кремля, Третьяковской галереи', 1, 1, 'Image/Tours/moscow_tour.jpg', 32500),
        ('Питер классический', '2025-03-20', '2025-03-25', 'Эрмитаж, Петергоф, Царское село', 2, 2,
-        'Image/Tours/spb_tour.jpg'),
+        'Image/Tours/spb_tour.jpg', 89000),
        ('Казань за неделю', '2025-03-10', '2025-03-20', 'Кремль, Мечеть Кул-Шариф, Старо-Татарская слобода', 3, 3,
-        'Image/Tours/kazan_tour.jpg'),
+        'Image/Tours/kazan_tour.jpg', 60000),
        ('Сочи - лето круглый год', '2025-04-01', '2025-04-15', 'Красная поляна, Олимпийский парк, пляжный отдых', 4,
-        4, 'Image/Tours/sochi_tour.jpg'),
+        4, 'Image/Tours/sochi_tour.jpg', 120000),
        ('Екатеринбург деловой', '2025-03-25', '2025-03-28', 'Деловая программа + экскурсии по городу', 5, 5,
-        'Image/Tours/ekb_tour.jpg');
+        'Image/Tours/ekb_tour.jpg', 25000);
