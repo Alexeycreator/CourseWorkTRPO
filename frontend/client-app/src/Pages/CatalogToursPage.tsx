@@ -363,7 +363,8 @@ const CatalogToursPage = () => {
                     cursor: 'pointer',
                     border: '2px solid #D2B48C',
                     backgroundColor: '#FFF8F0',
-                    color: '#8B5A2B'
+                    color: '#8B5A2B',
+                    pointerEvents: 'none'
                   }}
                 >
                   <span>{getDatesDisplayText()}</span>
@@ -386,7 +387,8 @@ const CatalogToursPage = () => {
                     cursor: 'pointer',
                     border: '2px solid #D2B48C',
                     backgroundColor: '#FFF8F0',
-                    color: '#8B5A2B'
+                    color: '#8B5A2B',
+                    pointerEvents: 'none'
                   }}
                 >
                   <span>{getGuestsDisplayText()}</span>
@@ -395,7 +397,7 @@ const CatalogToursPage = () => {
               </div>
 
               {/* Ночей */}
-              <div style={{ minWidth: "50px", width: '5px' }} className="flex-grow-1">
+              <div style={{ minWidth: "25px", maxWidth: '75px'}} className="flex-grow-1">
                 <small style={{ color: '#8B5A2B', marginBottom: '5px', display: 'block' }}>Ночей</small>
                 <input
                   type="number"
