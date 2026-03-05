@@ -2,8 +2,7 @@ import React, { useState, FormEvent, useRef, useEffect } from "react";
 import { Link } from 'react-router-dom'; // Добавляем импорт Link
 import { getAddresses } from "../Services/AddressApi";
 import { getTours, Tour } from "../Services/ToursApi";
-import { getCurrencyRates } from "../Services/CurrencyRatesApi";
-import { convertToObject } from "typescript";
+import NavBar from "../Components/NavBar";
 
 const CatalogToursPage = () => {
   const [departure, setDeparture] = useState("");
@@ -24,15 +23,14 @@ const CatalogToursPage = () => {
   const [errorCity, setErrorCity] = useState<string | null>(null);
 
   // состояния туров
-  const [toursOptions, setToursOptions] = useState<string[]>([]);
   const [toursData, setToursData] = useState<Tour[]>([]);
   const [loadingTour, setLoadingTour] = useState(true);
   const [errorTour, setErrorTour] = useState<string | null>(null);
 
   // состояния курсов валют
-  const [currencyRatesOptions, setCurrencyRatesOptions] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState('RUB');
+  const [currentRate, setCurrentRate] = useState(1);
+  const [signCurrency, setSignCurrency] = useState('₽');
 
   const [isGuestSelectorOpen, setIsGuestSelectorOpen] = useState(false);
   const [isDateSelectorOpen, setIsDateSelectorOpen] = useState(false);
@@ -68,11 +66,8 @@ const CatalogToursPage = () => {
   };
 
   // функция расчета цены в зависимости от курса
-  const calculatePrice = (tourPrice: number, currencyRate: number[]): string => {
-    // const tPrice = toursData.map(t=>t.price);
-    // const crPrice = currencyRatesOptions.map(cr=>cr);
-
-    const totalPrice = tourPrice / currencyRate[0];
+  const calculatePrice = (tourPrice: number, currencyRate: number): string => {
+    const totalPrice = tourPrice / currencyRate;
 
     return Intl.NumberFormat('ru-RU', {
       minimumFractionDigits: 2,
@@ -80,83 +75,69 @@ const CatalogToursPage = () => {
     }).format(totalPrice);
   }
 
+  const handleCurrencyChange = async (currency: string, rate: number) => {
+    console.log(`Валюта изменена на: ${currency}, курс: ${rate}`);
+    switch (currency) {
+      case "RUB": setSignCurrency('₽');
+        break;
+      case "USD": setSignCurrency('$');
+        break;
+      case "EUR": setSignCurrency('€');
+        break;
+    }
+    setSelectedCurrency(currency);
+    setCurrentRate(rate);
+  };
+
+  const fetchCities = async () => {
+    try {
+      setLoadingCity(true);
+      const addresses = await getAddresses();
+
+      const cities = addresses
+        .map(addr => addr.city)
+        .filter((city, index, self) =>
+          city && self.indexOf(city) === index
+        )
+        .sort();
+
+      setCityOptions(cities);
+      setErrorCity(null);
+    } catch (err) {
+      console.error("Ошибка загрузки городов:", err);
+      setErrorCity("Не удалось загрузить список городов");
+    } finally {
+      setLoadingCity(false);
+    }
+  };
+
+  const fetchTours = async () => {
+    try {
+      setLoadingTour(true);
+      const tours = await getTours();
+
+      console.log("Загруженные туры: ", tours);
+      setToursData(tours)
+      setErrorTour(null);
+    }
+    catch (err) {
+      console.error("Ошибка загрузки туров: ", err);
+      setErrorTour("Не удалось загрузить туры");
+    }
+    finally {
+      setLoadingTour(false);
+    }
+  };
+
   // для выбора городов
   useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        setLoadingCity(true);
-        const addresses = await getAddresses();
-
-        const cities = addresses
-          .map(addr => addr.city)
-          .filter((city, index, self) =>
-            city && self.indexOf(city) === index
-          )
-          .sort();
-
-        setCityOptions(cities);
-        setErrorCity(null);
-      } catch (err) {
-        console.error("Ошибка загрузки городов:", err);
-        setErrorCity("Не удалось загрузить список городов");
-      } finally {
-        setLoadingCity(false);
-      }
-    };
-
     fetchCities();
   }, []);
 
   // для отображения туров
   useEffect(() => {
-    const fetchTours = async () => {
-      try {
-        setLoadingTour(true);
-        const tours = await getTours();
-
-        //const tour = tours.map(t => t.name).sort();
-
-        console.log("Загруженные туры: ", tours);
-        //setToursOptions(tour)
-        setToursData(tours)
-        setErrorTour(null);
-      }
-      catch (err) {
-        console.error("Ошибка загрузки туров: ", err);
-        setErrorTour("Не удалось загрузить туры");
-      }
-      finally {
-        setLoadingTour(false);
-      }
-    };
-
     fetchTours();
   }, []);
-
-  // для курсов валют
-  useEffect(() => {
-    const fetchRates = async () => {
-      try {
-        setLoading(true);
-        const rates = await getCurrencyRates();
-
-        const todayRates = rates
-          .filter(r => r.dateReceipt === formattedToday)
-          .filter(r => r.letterCode === "USD" || r.letterCode === "EUR" || r.letterCode === "RUB")
-          .map(r => r.rate);
-
-        setCurrencyRatesOptions(todayRates);
-        setError(null);
-      } catch (err) {
-        console.error("Ошибка загрузки курсов валют:", err);
-        setError("Не удалось загрузить курсы валют");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRates();
-  }, [formattedToday]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -281,10 +262,6 @@ const CatalogToursPage = () => {
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU').format(price);
-  };
-
   return (
     <div style={{
       background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
@@ -292,6 +269,9 @@ const CatalogToursPage = () => {
       padding: '20px',
       paddingTop: '70px'
     }}>
+      {/* Для получения курсов в зависимости от выбора в селекторе */}
+      <NavBar onCurrencyChange={handleCurrencyChange} />
+
       {/* Фоновые иероглифы */}
       <div style={{ position: 'fixed', top: '10%', left: '2%', fontSize: '40px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>
       <div style={{ position: 'fixed', bottom: '10%', right: '3%', fontSize: '50px', opacity: 0.05, pointerEvents: 'none' }}>𓊹</div>
@@ -619,8 +599,7 @@ const CatalogToursPage = () => {
                         fontSize: '24px',
                         fontWeight: '600',
                       }}>
-                        {(formatPrice(tour.price))}
-                        {/* {(formatPrice(tour.price))} ({calculatePrice(tour.price, currencyRatesOptions.map(cr => cr))}) */}
+                        {calculatePrice(tour.price, currentRate)} {signCurrency}
                       </span>
                     </div>
                     <span style={{ color: '#B76E3C', fontSize: '14px' }}>
