@@ -28,7 +28,8 @@ function App() {
                     <Route path='/information' element={<InformationPage />} />
                     <Route path='/help' element={<HelpPage />} />
                     <Route path='/account' element={<ClientAccountPage />} />
-                    <Route path='/catalog/tour/:id' element={<TourPage />} /> {/* Динамический маршрут */}
+                    <Route path='/catalog/tour/:id' element={<TourPage />} />
+                    <Route path='/hot-tours/tour/:id' element={<TourPage />} /> {/* Динамический маршрут */}
                     <Route path='/legal' element={<PrivacyTermsPage />} />
                     <Route path='*' element={<NotFoundPage />} />
                 </Routes>
