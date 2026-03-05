@@ -12,6 +12,7 @@ import thailandImage from '../Images/thailand.jpg';
 import uaeImage from '../Images/uae.jpg';
 import japanImage from '../Images/japan.jpg';
 import franceImage from '../Images/france.jpg';
+import { getTourById, Tour } from '../Services/ToursApi';
 
 // Интерфейс для данных тура
 interface TourData {
@@ -50,6 +51,41 @@ const TourPage = () => {
     const location = useLocation();
     const source = location.pathname.split('/')[1];
     console.log('Переход из:', source);
+
+    const [selectedTour, setSelectedTour] = useState<Tour | null>();
+    const [loadingTour, setLoadingTour] = useState(true);
+    const [errorTour, setErrorTour] = useState<string | null>(null);
+
+    const fetchTour = async () => {
+        try {
+            setLoading(true);
+            if (id) {
+                const tourData = await getTourById(Number(id));
+                setSelectedTour(tourData);
+            }
+        } catch (err: any) {
+            console.error('Ошибка загрузки тура:', err);
+
+            if (err.code === 'ERR_BAD_REQUEST') {
+                // Axios ошибка с ответом от сервера
+                if (err.response?.status === 404) {
+                    const serverMessage = err.response.data?.message || 'Тур не найден';
+                    setErrorTour(serverMessage); // Будет "Данный тур не существует"
+                    navigate('/404', { replace: true });
+                } else {
+                    setErrorTour(err.response?.data?.message || 'Ошибка загрузки данных');
+                }
+            } else {
+                setErrorTour('Ошибка соединения с сервером');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTour();
+    }, [id])
 
     // База данных всех туров с подробными описаниями
     const toursDatabase: Record<string, TourData> = {
