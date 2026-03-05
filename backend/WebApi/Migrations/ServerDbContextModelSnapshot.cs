@@ -502,6 +502,9 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18, 2)");
+
                     b.Property<string>("StartDot")
                         .IsRequired()
                         .HasMaxLength(100)
