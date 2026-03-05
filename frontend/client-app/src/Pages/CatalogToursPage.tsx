@@ -610,7 +610,7 @@ const CatalogToursPage = () => {
                   </div>
 
                   <div className="d-flex gap-2 mt-3">
-                    <Link to={`/tour/${tour.id}`} style={{ flex: 1, textDecoration: 'none' }}>
+                    <Link to={`/catalog/tour/${tour.id}`} style={{ flex: 1, textDecoration: 'none' }}>
                       <button
                         style={{
                           width: '100%',

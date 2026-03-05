@@ -448,7 +448,7 @@ const HotTourPage = () => {
                 </div>
 
                 {/* Кнопка */}
-                <Link to={`/tour/${tour.id}`} style={{ textDecoration: 'none' }}>
+                <Link to={`/hot-tours/tour/${tour.id}`} style={{ textDecoration: 'none' }}>
                   <button
                     style={{
                       marginTop: '15px',

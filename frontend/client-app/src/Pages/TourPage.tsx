@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
 // Импортируем изображения для всех туров
 import maldivImage from '../Images/Maldiv.jpg';
@@ -47,6 +47,9 @@ const TourPage = () => {
     const [activeImage, setActiveImage] = useState(0);
     const [selectedDate, setSelectedDate] = useState('');
     const [tourists, setTourists] = useState(2);
+    const location = useLocation();
+    const source = location.pathname.split('/')[1];
+    console.log('Переход из:', source);
 
     // База данных всех туров с подробными описаниями
     const toursDatabase: Record<string, TourData> = {
@@ -471,7 +474,7 @@ const TourPage = () => {
 
     useEffect(() => {
         setLoading(true);
-        
+
         // Имитация загрузки данных
         setTimeout(() => {
             if (id && toursDatabase[id]) {
@@ -898,12 +901,12 @@ const TourPage = () => {
                             cursor: 'pointer',
                             transition: 'all 0.3s'
                         }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(192, 160, 128, 0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                        }}>
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(192, 160, 128, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                            }}>
                             ← Вернуться в каталог
                         </button>
                     </Link>
