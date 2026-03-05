@@ -1,17 +1,9 @@
 import React, { useState, FormEvent, useRef, useEffect } from "react";
 import { Link } from 'react-router-dom'; // Добавляем импорт Link
 import { getAddresses } from "../Services/AddressApi";
-import maldivImage from '../Images/Maldiv.jpg';
-import italiaImage from '../Images/Italia.jpeg';
-import baliImage from '../Images/Bali.jpg';
-import egyptImage from '../Images/egypt.jpg';
-import turkeyImage from '../Images/turkey.jpg';
-import greeceImage from '../Images/greece.jpg';
-import thailandImage from '../Images/thailand.jpg';
-import uaeImage from '../Images/uae.jpg';
-import japanImage from '../Images/japan.jpg';
-import franceImage from '../Images/france.jpg';
 import { getTours, Tour } from "../Services/ToursApi";
+import { getCurrencyRates } from "../Services/CurrencyRatesApi";
+import { convertToObject } from "typescript";
 
 const CatalogToursPage = () => {
   const [departure, setDeparture] = useState("");
@@ -23,6 +15,9 @@ const CatalogToursPage = () => {
   const [nights, setNights] = useState(7);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // api сервера
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
+
   // состояния городов
   const [cityOptions, setCityOptions] = useState<string[]>([]);
   const [loadingCity, setLoadingCity] = useState(true);
@@ -33,6 +28,11 @@ const CatalogToursPage = () => {
   const [toursData, setToursData] = useState<Tour[]>([]);
   const [loadingTour, setLoadingTour] = useState(true);
   const [errorTour, setErrorTour] = useState<string | null>(null);
+
+  // состояния курсов валют
+  const [currencyRatesOptions, setCurrencyRatesOptions] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [isGuestSelectorOpen, setIsGuestSelectorOpen] = useState(false);
   const [isDateSelectorOpen, setIsDateSelectorOpen] = useState(false);
@@ -46,172 +46,39 @@ const CatalogToursPage = () => {
   const dateDisplayRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Данные о турах
-  const allTours = [
-    // Наши 3 основных тура
-    {
-      id: 1,
-      title: "Мальдивы",
-      description: "Райский отдых на белоснежных пляжах",
-      price: 180000,
-      oldPrice: 220000,
-      image: maldivImage,
-      rating: 4.8,
-      reviews: 124,
-      nights: 7,
-      country: "Мальдивы",
-      city: "Мале",
-      type: "Пляжный",
-      hot: true
-    },
-    {
-      id: 2,
-      title: "Италия",
-      description: "Экскурсионный тур по историческим местам",
-      price: 95000,
-      oldPrice: 120000,
-      image: italiaImage,
-      rating: 4.7,
-      reviews: 98,
-      nights: 5,
-      country: "Италия",
-      city: "Рим",
-      type: "Экскурсионный",
-      hot: false
-    },
-    {
-      id: 3,
-      title: "Бали",
-      description: "Йога-тур и духовные практики",
-      price: 120000,
-      oldPrice: 150000,
-      image: baliImage,
-      rating: 4.9,
-      reviews: 156,
-      nights: 10,
-      country: "Индонезия",
-      city: "Денпасар",
-      type: "Оздоровительный",
-      hot: true
-    },
-    {
-      id: 4,
-      title: "Египет",
-      description: "Тайны пирамид и отдых на Красном море",
-      price: 85000,
-      oldPrice: 110000,
-      image: egyptImage,
-      rating: 4.6,
-      reviews: 203,
-      nights: 8,
-      country: "Египет",
-      city: "Каир",
-      type: "Пляжный",
-      hot: true
-    },
-    {
-      id: 5,
-      title: "Турция",
-      description: "Всё включено для всей семьи",
-      price: 65000,
-      oldPrice: 90000,
-      image: turkeyImage,
-      rating: 4.5,
-      reviews: 312,
-      nights: 7,
-      country: "Турция",
-      city: "Анталья",
-      type: "Пляжный",
-      hot: true
-    },
-    {
-      id: 6,
-      title: "Греция",
-      description: "Острова и античная культура",
-      price: 115000,
-      oldPrice: 145000,
-      image: greeceImage,
-      rating: 4.8,
-      reviews: 167,
-      nights: 7,
-      country: "Греция",
-      city: "Афины",
-      type: "Экскурсионный",
-      hot: false
-    },
-    {
-      id: 7,
-      title: "Таиланд",
-      description: "Экзотика и джунгли",
-      price: 135000,
-      oldPrice: 170000,
-      image: thailandImage,
-      rating: 4.7,
-      reviews: 189,
-      nights: 10,
-      country: "Таиланд",
-      city: "Бангкок",
-      type: "Экзотический",
-      hot: true
-    },
-    {
-      id: 8,
-      title: "ОАЭ",
-      description: "Роскошь и небоскрёбы",
-      price: 155000,
-      oldPrice: 190000,
-      image: uaeImage,
-      rating: 4.9,
-      reviews: 145,
-      nights: 6,
-      country: "ОАЭ",
-      city: "Дубай",
-      type: "Шопинг",
-      hot: true
-    },
-    {
-      id: 9,
-      title: "Япония",
-      description: "Цветущая сакура и традиции",
-      price: 210000,
-      oldPrice: 250000,
-      image: japanImage,
-      rating: 4.9,
-      reviews: 92,
-      nights: 8,
-      country: "Япония",
-      city: "Токио",
-      type: "Экскурсионный",
-      hot: false
-    },
-    {
-      id: 10,
-      title: "Франция",
-      description: "Романтика Парижа и замки Луары",
-      price: 175000,
-      oldPrice: 215000,
-      image: franceImage,
-      rating: 4.8,
-      reviews: 178,
-      nights: 6,
-      country: "Франция",
-      city: "Париж",
-      type: "Романтический",
-      hot: false
-    }
-  ];
+  // для формирования даты
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const year = today.getFullYear();
+  const formattedToday = `${day}.${month}.${year}`;
 
-  // Фильтрация туров по поисковому запросу
-  const filteredTours = allTours.filter(tour => {
-    const query = searchQuery.toLowerCase();
-    return (
-      tour.title.toLowerCase().includes(query) ||
-      tour.description.toLowerCase().includes(query) ||
-      tour.country.toLowerCase().includes(query) ||
-      tour.city.toLowerCase().includes(query) ||
-      tour.type.toLowerCase().includes(query)
-    );
-  });
+  // Функция для расчета количества дней
+  const calculateNights = (startDate: string, endDate: string): number => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Разница в миллисекундах
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+
+    // Конвертируем в дни (1 день = 24 * 60 * 60 * 1000 мс)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays;
+  };
+
+  // функция расчета цены в зависимости от курса
+  const calculatePrice = (tourPrice: number, currencyRate: number[]): string => {
+    // const tPrice = toursData.map(t=>t.price);
+    // const crPrice = currencyRatesOptions.map(cr=>cr);
+
+    const totalPrice = tourPrice / currencyRate[0];
+
+    return Intl.NumberFormat('ru-RU', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(totalPrice);
+  }
 
   // для выбора городов
   useEffect(() => {
@@ -247,7 +114,7 @@ const CatalogToursPage = () => {
         setLoadingTour(true);
         const tours = await getTours();
 
-        const tour = tours.map(t => t.name).sort();
+        //const tour = tours.map(t => t.name).sort();
 
         console.log("Загруженные туры: ", tours);
         //setToursOptions(tour)
@@ -266,7 +133,30 @@ const CatalogToursPage = () => {
     fetchTours();
   }, []);
 
-  const today = new Date().toISOString().split('T')[0];
+  // для курсов валют
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        setLoading(true);
+        const rates = await getCurrencyRates();
+
+        const todayRates = rates
+          .filter(r => r.dateReceipt === formattedToday)
+          .filter(r => r.letterCode === "USD" || r.letterCode === "EUR" || r.letterCode === "RUB")
+          .map(r => r.rate);
+
+        setCurrencyRatesOptions(todayRates);
+        setError(null);
+      } catch (err) {
+        console.error("Ошибка загрузки курсов валют:", err);
+        setError("Не удалось загрузить курсы валют");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRates();
+  }, [formattedToday]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -392,7 +282,7 @@ const CatalogToursPage = () => {
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU').format(price) + ' ₽';
+    return new Intl.NumberFormat('ru-RU').format(price);
   };
 
   return (
@@ -611,18 +501,13 @@ const CatalogToursPage = () => {
         {/* Результаты поиска */}
         <div className="mb-3">
           <p style={{ color: '#8B5A2B' }}>
-            Найдено туров: {filteredTours.length}
+            Найдено туров: {toursData.length}
           </p>
         </div>
 
         {/* Сетка туров */}
-        <div>
-          <div>
-            {toursData.map((tour) => (<option key={tour.id} value={tour.id}>{tour.name}{tour.details}</option>))}
-          </div>
-        </div>
         <div className="row g-4">
-          {filteredTours.map((tour) => (
+          {toursData.map((tour) => (
             <div key={tour.id} className="col-12 col-md-6 col-lg-4">
               <div
                 className="card h-100"
@@ -645,7 +530,7 @@ const CatalogToursPage = () => {
                 }}
               >
                 {/* Бейдж "Горящий тур" */}
-                {tour.hot && (
+                {/* {tour.hot && (
                   <div style={{
                     position: 'absolute',
                     top: '10px',
@@ -660,10 +545,10 @@ const CatalogToursPage = () => {
                   }}>
                     🔥 Горящий
                   </div>
-                )}
+                )} */}
 
                 {/* Бейдж со скидкой */}
-                {tour.oldPrice && (
+                {/* {tour.oldPrice && (
                   <div style={{
                     position: 'absolute',
                     top: '10px',
@@ -678,21 +563,17 @@ const CatalogToursPage = () => {
                   }}>
                     -{Math.round((1 - tour.price / tour.oldPrice) * 100)}%
                   </div>
-                )}
+                )} */}
 
-                {toursData.map((tour) => (
-                  <div key={tour.id}>
-                    <img
-                      src={`/${tour.imageTour}`}
-                      alt={tour.name}
-                      style={{
-                        width: '100%',
-                        height: '200px',
-                        objectFit: 'cover',
-                        borderBottom: '2px solid #D2B48C'
-                      }} />
-                  </div>
-                ))}
+                <img
+                  src={`${API_URL}/${tour.imageTour}`}
+                  alt={tour.name}
+                  style={{
+                    width: '100%',
+                    height: '200px',
+                    objectFit: 'cover',
+                    borderBottom: '2px solid #D2B48C'
+                  }} />
 
                 <div className="card-body" style={{ padding: '20px' }}>
                   <div className="d-flex justify-content-between align-items-start mb-2">
@@ -702,28 +583,28 @@ const CatalogToursPage = () => {
                       fontSize: '22px',
                       fontFamily: "'Cormorant Garamond', serif"
                     }}>
-                      {tour.title}
+                      {tour.name}
                     </h3>
-                    <div style={{ color: '#B76E3C' }}>
+                    {/* <div style={{ color: '#B76E3C' }}>
                       <span>⭐</span> {tour.rating}
-                    </div>
+                    </div> */}
                   </div>
 
                   <p style={{ color: '#8B5A2B', fontSize: '14px', marginBottom: '10px' }}>
-                    {tour.description}
+                    {tour.details}
                   </p>
 
                   <div className="d-flex gap-2 mb-2" style={{ color: '#8B5A2B', fontSize: '13px' }}>
-                    <span>📍 {tour.country}</span>
+                    {/* <span>📍 {tour.country}</span>
                     <span>•</span>
                     <span>🏙️ {tour.city}</span>
                     <span>•</span>
-                    <span>🗺️ {tour.type}</span>
+                    <span>🗺️ {tour.type}</span> */}
                   </div>
 
                   <div className="d-flex justify-content-between align-items-center mt-3">
                     <div>
-                      {tour.oldPrice && (
+                      {/* {tour.oldPrice && (
                         <span style={{
                           color: '#B76E3C',
                           fontSize: '14px',
@@ -732,17 +613,18 @@ const CatalogToursPage = () => {
                         }}>
                           {formatPrice(tour.oldPrice)}
                         </span>
-                      )}
+                      )} */}
                       <span style={{
                         color: '#8B5A2B',
                         fontSize: '24px',
-                        fontWeight: '600'
+                        fontWeight: '600',
                       }}>
-                        {formatPrice(tour.price)}
+                        {(formatPrice(tour.price))}
+                        {/* {(formatPrice(tour.price))} ({calculatePrice(tour.price, currencyRatesOptions.map(cr => cr))}) */}
                       </span>
                     </div>
                     <span style={{ color: '#B76E3C', fontSize: '14px' }}>
-                      {tour.nights} ночей
+                      {calculateNights(tour.startDot, tour.endDot)} ночей
                     </span>
                   </div>
 
@@ -798,7 +680,7 @@ const CatalogToursPage = () => {
         </div>
 
         {/* Если ничего не найдено */}
-        {filteredTours.length === 0 && (
+        {toursData.length === 0 && (
           <div style={{
             textAlign: 'center',
             padding: '60px 20px',
@@ -948,7 +830,7 @@ const CatalogToursPage = () => {
                   className="form-control rounded-pill"
                   value={startDate}
                   onChange={handleStartDateChange}
-                  min={today}
+                  min={formattedToday}
                   style={{
                     border: '2px solid #D2B48C',
                     backgroundColor: '#FFF8F0',
@@ -963,7 +845,7 @@ const CatalogToursPage = () => {
                   className="form-control rounded-pill"
                   value={endDate}
                   onChange={handleEndDateChange}
-                  min={startDate || today}
+                  min={startDate || formattedToday}
                   style={{
                     border: '2px solid #D2B48C',
                     backgroundColor: '#FFF8F0',
