@@ -44,7 +44,6 @@ namespace WebApi.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("House")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -61,14 +60,19 @@ namespace WebApi.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Street")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("Tours_Id")
+                        .HasColumnType("int")
+                        .HasColumnName("Tours_Id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Passport_Id")
                         .HasDatabaseName("IX_Addresses_PassportId");
+
+                    b.HasIndex("Tours_Id");
 
                     b.HasIndex("Country", "City", "Region", "Street", "House")
                         .HasDatabaseName("IX_Addresses_Full");
@@ -479,6 +483,11 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
                     b.Property<string>("Details")
                         .IsRequired()
                         .HasMaxLength(4000)
@@ -489,10 +498,18 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("HotTour")
+                        .HasColumnType("bit");
+
                     b.Property<string>("ImageTour")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Included")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<bool>("IsReadOnly")
                         .HasColumnType("bit");
@@ -504,6 +521,16 @@ namespace WebApi.Migrations
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<string>("Program")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Separately")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("StartDot")
                         .IsRequired()
@@ -517,6 +544,11 @@ namespace WebApi.Migrations
                     b.Property<int?>("Transfers_Id")
                         .HasColumnType("int")
                         .HasColumnName("Transfers_Id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -546,6 +578,16 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Arrival")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Departure")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Details")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -558,18 +600,10 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Route")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
                         .HasDatabaseName("IX_Transfers_Name");
-
-                    b.HasIndex("Route")
-                        .HasDatabaseName("IX_Transfers_Route");
 
                     b.ToTable("Transfers");
                 });
@@ -581,7 +615,14 @@ namespace WebApi.Migrations
                         .HasForeignKey("Passport_Id")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("WebApi.Models.ModelsDataBase.ToursModel", "Tours")
+                        .WithMany("Addresses")
+                        .HasForeignKey("Tours_Id")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Passport");
+
+                    b.Navigation("Tours");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.ClientsModel", b =>
@@ -705,6 +746,11 @@ namespace WebApi.Migrations
                     b.Navigation("CurrencyRatesTickets");
 
                     b.Navigation("Employees");
+                });
+
+            modelBuilder.Entity("WebApi.Models.ModelsDataBase.ToursModel", b =>
+                {
+                    b.Navigation("Addresses");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.TransfersModel", b =>
