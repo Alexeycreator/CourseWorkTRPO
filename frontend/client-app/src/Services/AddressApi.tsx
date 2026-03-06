@@ -41,10 +41,11 @@ export const createAddress = async (addressData: {
     country: string;
     region: string;
     city: string;
-    street: string;
-    house: string;
+    street?: string | null;
+    house?: string | null;
     apartment?: number | null;
     passport_Id?: number | null;
+    tours_Id?: number | null;
 }): Promise<Address> => {
     const response = await api.post<Address>('/Addresses', addressData);
     return response.data;

@@ -19,6 +19,12 @@ export interface Tour {
     details: string;
     imageTour: string;
     price: number;
+    description: string;
+    separately: string;
+    included: string;
+    program: string;
+    hotTour: boolean;
+    type: string;
     tickets_Id?: number | null;
     transfers_Id?: number | null;
     ticket?: Ticket | null;

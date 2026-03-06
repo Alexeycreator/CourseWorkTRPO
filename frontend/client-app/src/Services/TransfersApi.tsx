@@ -13,7 +13,8 @@ const api = axios.create({
 export interface Transfer {
     id: number;
     name: string;
-    route: string;
+    arrival: string;
+    departure: string;
     details: string | null;
     tours?: Tour[] | null;
 }
