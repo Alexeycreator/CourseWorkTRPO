@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebApi.Methods.DataBase;
 
@@ -11,9 +12,11 @@ using WebApi.Methods.DataBase;
 namespace WebApi.Migrations
 {
     [DbContext(typeof(ServerDbContext))]
-    partial class ServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260305193429_UpdateTableTransfers_RemoveAddColumn")]
+    partial class UpdateTableTransfers_RemoveAddColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -544,11 +547,6 @@ namespace WebApi.Migrations
                     b.Property<int?>("Transfers_Id")
                         .HasColumnType("int")
                         .HasColumnName("Transfers_Id");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 

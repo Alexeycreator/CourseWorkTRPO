@@ -17,6 +17,12 @@ public sealed class ToursModel
     [Required] [MaxLength(100)] public string EndDot { get; set; }
     [Required] [MaxLength(4000)] public string Details { get; set; }
     [Required] [MaxLength(1000)] public string ImageTour { get; private set; }
+    [Required] [MaxLength(4000)] public string Description { get; set; }
+    [Required] [MaxLength(2000)] public string Separately { get; set; } = "Не предусмотрено";
+    [Required] [MaxLength(2000)] public string Included { get; set; } = "Не предусмотрено";
+    [Required] [MaxLength(2000)] public string Program { get; set; } = "Не предусмотрено";
+    [Required] [MaxLength(100)] public string Type { get; set; } = "Экскурсионный";
+    [Required] public bool HotTour { get; set; } = false;
 
     [Required]
     [Column(TypeName = "decimal(18, 2)")]
@@ -39,4 +45,6 @@ public sealed class ToursModel
     [DeleteBehavior(DeleteBehavior.SetNull)]
     [JsonIgnore]
     public TransfersModel? Transfer { get; set; }
+
+    [JsonIgnore] public ICollection<AddressesModel>? Addresses { get; set; }
 }

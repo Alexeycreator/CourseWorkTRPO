@@ -32,8 +32,28 @@ export const getAddresses = async (): Promise<Address[]> => {
 
 // Получить адрес по ID
 export const getAddressById = async (id: number): Promise<Address> => {
-    const response = await api.get<Address>(`/Addresses/${id}`);
-    return response.data;
+    try {
+        const response = await api.get<Address>(`/Addresses/${id}`);
+        return response.data;
+    } catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+
+            // eslint-disable-next-line no-throw-literal
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            // eslint-disable-next-line no-throw-literal
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            // eslint-disable-next-line no-throw-literal
+            throw { message: error.message, isSetupError: true };
+        }
+    }
 };
 
 // Создать адрес
@@ -41,10 +61,11 @@ export const createAddress = async (addressData: {
     country: string;
     region: string;
     city: string;
-    street: string;
-    house: string;
+    street?: string | null;
+    house?: string | null;
     apartment?: number | null;
     passport_Id?: number | null;
+    tours_Id?: number | null;
 }): Promise<Address> => {
     const response = await api.post<Address>('/Addresses', addressData);
     return response.data;

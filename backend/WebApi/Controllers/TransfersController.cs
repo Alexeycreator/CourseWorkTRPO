@@ -41,10 +41,10 @@ public sealed class TransfersController(ServerDbContext dbContext) : ControllerB
             errorMessage.Add($"Название маршрута обязательно для заполнения");
         }
 
-        if (string.IsNullOrWhiteSpace(transfer.Route))
-        {
-            errorMessage.Add($"Путь маршрута обязателен для заполнения");
-        }
+        // if (string.IsNullOrWhiteSpace(transfer.Route))
+        // {
+        //     errorMessage.Add($"Путь маршрута обязателен для заполнения");
+        // }
 
         if (errorMessage.Any())
         {
@@ -58,7 +58,8 @@ public sealed class TransfersController(ServerDbContext dbContext) : ControllerB
         }
 
         var existsTransfer =
-            await dbContext.Transfers.AnyAsync(tr => tr.Name == transfer.Name && tr.Route == transfer.Route);
+            await dbContext.Transfers.AnyAsync(tr => tr.Name == transfer.Name);
+                                                     //&& tr.Route == transfer.Route);
 
         if (existsTransfer)
         {
@@ -69,7 +70,7 @@ public sealed class TransfersController(ServerDbContext dbContext) : ControllerB
                 ExistingClient = new
                 {
                     transfer.Name,
-                    transfer.Route
+                    //transfer.Route
                 },
                 Timestamp = DateTime.UtcNow
             });

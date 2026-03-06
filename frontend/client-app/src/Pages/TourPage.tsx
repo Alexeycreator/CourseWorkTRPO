@@ -12,6 +12,11 @@ import thailandImage from '../Images/thailand.jpg';
 import uaeImage from '../Images/uae.jpg';
 import japanImage from '../Images/japan.jpg';
 import franceImage from '../Images/france.jpg';
+import { getTourById, Tour } from '../Services/ToursApi';
+import { getTicketById, Ticket } from '../Services/TicketsApi';
+import { getTransferById, Transfer } from '../Services/TransfersApi';
+import NavBar from '../Components/NavBar';
+import { Address, getAddressById } from '../Services/AddressApi';
 
 // Интерфейс для данных тура
 interface TourData {
@@ -41,6 +46,7 @@ interface TourData {
 
 const TourPage = () => {
     const { id } = useParams<{ id: string }>();
+    const API_URL = process.env.REACT_APP_API_URL;
     const navigate = useNavigate();
     const [tour, setTour] = useState<TourData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -50,6 +56,98 @@ const TourPage = () => {
     const location = useLocation();
     const source = location.pathname.split('/')[1];
     console.log('Переход из:', source);
+
+    const [selectedTour, setSelectedTour] = useState<Tour | null>();
+    const [selectedTourTickect, setSelectedTourTicket] = useState<Ticket | null>();
+    const [selectedTourTransfer, setSelectedTourTransfer] = useState<Transfer | null>();
+    const [loadingTour, setLoadingTour] = useState(true);
+    const [errorTour, setErrorTour] = useState<string | null>(null);
+
+    // состояние адресов
+    const [addressTour, setAddressTour] = useState<Address | null>();
+
+    // состояния курсов валют
+    const [selectedCurrency, setSelectedCurrency] = useState('RUB');
+    const [currentRate, setCurrentRate] = useState(1);
+    const [signCurrency, setSignCurrency] = useState('₽');
+
+    const fetchTour = async () => {
+        try {
+            setLoading(true);
+            if (id) {
+                const tourData = await getTourById(Number(id));
+                const ticketData = await getTicketById(Number(tourData.tickets_Id));
+                const transferData = await getTransferById(Number(tourData.transfers_Id));
+                const addressData = await getAddressById(tourData.id)
+                setSelectedTour(tourData);
+                setAddressTour(addressData);
+                setSelectedTourTransfer(transferData);
+                console.log("Tour: ", tourData);
+                console.log("TourTicket: ", ticketData);
+                console.log("TourTransfer: ", transferData);
+                console.log("TourAddress: ", addressData);
+            }
+        } catch (err: any) {
+            console.error('Ошибка загрузки тура:', err);
+
+            if (err.code === 'ERR_BAD_REQUEST') {
+                // Axios ошибка с ответом от сервера
+                if (err.response?.status === 404) {
+                    const serverMessage = err.response.data?.message || 'Тур не найден';
+                    setErrorTour(serverMessage); // Будет "Данный тур не существует"
+                    navigate('/404', { replace: true });
+                } else {
+                    setErrorTour(err.response?.data?.message || 'Ошибка загрузки данных');
+                }
+            } else {
+                setErrorTour('Ошибка соединения с сервером');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTour();
+    }, [id]);
+
+    // Функция для расчета количества дней
+    const calculateNights = (startDate: string, endDate: string): number => {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        // Разница в миллисекундах
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+
+        // Конвертируем в дни (1 день = 24 * 60 * 60 * 1000 мс)
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays;
+    };
+
+    // функция расчета цены в зависимости от курса
+    const calculatePrice = (tourPrice: number, currencyRate: number): string => {
+        const totalPrice = tourPrice / currencyRate;
+
+        return Intl.NumberFormat('ru-RU', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(totalPrice);
+    }
+
+    const handleCurrencyChange = async (currency: string, rate: number) => {
+        console.log(`Валюта изменена на: ${currency}, курс: ${rate}`);
+        switch (currency) {
+            case "RUB": setSignCurrency('₽');
+                break;
+            case "USD": setSignCurrency('$');
+                break;
+            case "EUR": setSignCurrency('€');
+                break;
+        }
+        setSelectedCurrency(currency);
+        setCurrentRate(rate);
+    };
 
     // База данных всех туров с подробными описаниями
     const toursDatabase: Record<string, TourData> = {
@@ -487,10 +585,7 @@ const TourPage = () => {
         }, 300);
     }, [id, navigate]);
 
-    const formatPrice = (price: number) => {
-        return price.toLocaleString('ru-RU') + ' ₽';
-    };
-
+    // сделать не через alert, а всплывающим окном
     const handleBooking = () => {
         alert(`Спасибо за интерес к туру "${tour?.title}"! Мы свяжемся с вами в ближайшее время.`);
     };
@@ -530,6 +625,9 @@ const TourPage = () => {
             margin: '0 auto',
             padding: '40px 20px'
         }}>
+            {/* Для получения курсов в зависимости от выбора в селекторе */}
+            <NavBar onCurrencyChange={handleCurrencyChange} />
+
             {/* Хлебные крошки */}
             <div style={{
                 display: 'flex',
@@ -571,17 +669,17 @@ const TourPage = () => {
                             color: '#8B5A2B',
                             marginBottom: '5px'
                         }}>
-                            {tour.title}
+                            {selectedTour?.name}
                         </h1>
                         <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <span style={{ color: '#B76E3C' }}>📍 {tour.country}, {tour.city}{tour.area ? `, ${tour.area}` : ''}</span>
+                            <span style={{ color: '#B76E3C' }}>📍 {addressTour?.country}, {addressTour?.region}, {addressTour?.city}</span>
+                            {/* <span style={{ color: '#B76E3C' }}>•</span>
+                            <span style={{ color: '#B76E3C' }}>⭐ {tour.rating} ({tour.reviews} отзывов)</span> */}
                             <span style={{ color: '#B76E3C' }}>•</span>
-                            <span style={{ color: '#B76E3C' }}>⭐ {tour.rating} ({tour.reviews} отзывов)</span>
-                            <span style={{ color: '#B76E3C' }}>•</span>
-                            <span style={{ color: '#B76E3C' }}>🏷️ {tour.type}</span>
+                            <span style={{ color: '#B76E3C' }}>🏷️ {selectedTour?.type}</span>
                         </div>
                     </div>
-                    {tour.hot && (
+                    {/* {tour.hot && (
                         <div style={{
                             background: '#B76E3C',
                             color: '#FFF8F0',
@@ -592,7 +690,7 @@ const TourPage = () => {
                         }}>
                             🔥 Горящий тур
                         </div>
-                    )}
+                    )} */}
                 </div>
 
                 {/* Изображение */}
@@ -601,15 +699,17 @@ const TourPage = () => {
                         width: '100%',
                         height: '400px',
                         borderRadius: '20px',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        position: 'relative'
                     }}>
                         <img
-                            src={tour.image}
-                            alt={tour.title}
+                            src={`${API_URL}/${selectedTour?.imageTour}`}
+                            alt={selectedTour?.name}
                             style={{
                                 width: '100%',
                                 height: '100%',
-                                objectFit: 'cover'
+                                objectFit: 'contain',
+                                objectPosition: 'center',
                             }}
                         />
                     </div>
@@ -635,11 +735,11 @@ const TourPage = () => {
                                 📝 Описание тура
                             </h2>
                             <p style={{ fontSize: '16px', lineHeight: '1.8', color: '#5A3E2B' }}>
-                                {tour.longDescription || tour.description}
+                                {selectedTour?.description || selectedTour?.details}
                             </p>
                         </section>
 
-                        {tour.included && (
+                        {selectedTour?.included && (
                             <section style={{ marginBottom: '30px' }}>
                                 <h2 style={{
                                     fontSize: '24px',
@@ -652,14 +752,19 @@ const TourPage = () => {
                                     ✅ В стоимость включено
                                 </h2>
                                 <ul style={{ color: '#5A3E2B', lineHeight: '1.8' }}>
-                                    {tour.included.map((item, index) => (
-                                        <li key={index} style={{ marginBottom: '8px' }}>✓ {item}</li>
-                                    ))}
+                                    {selectedTour?.included
+                                        ?.split('.')
+                                        .filter(item => item.trim() !== '')
+                                        .map((item, index) => (
+                                            <li key={index} style={{ marginBottom: '8px' }}>
+                                                ✓ {item.trim()}.
+                                            </li>
+                                        ))}
                                 </ul>
                             </section>
                         )}
 
-                        {tour.notIncluded && (
+                        {selectedTour?.separately && (
                             <section style={{ marginBottom: '30px' }}>
                                 <h2 style={{
                                     fontSize: '24px',
@@ -672,14 +777,19 @@ const TourPage = () => {
                                     ❌ Дополнительно оплачивается
                                 </h2>
                                 <ul style={{ color: '#5A3E2B', lineHeight: '1.8' }}>
-                                    {tour.notIncluded.map((item, index) => (
-                                        <li key={index} style={{ marginBottom: '8px' }}>✗ {item}</li>
-                                    ))}
+                                    {selectedTour?.separately
+                                        ?.split('.')
+                                        .filter(item => item.trim() !== '')
+                                        .map((item, index) => (
+                                            <li key={index} style={{ marginBottom: '8px' }}>
+                                                ✗ {item.trim()}.
+                                            </li>
+                                        ))}
                                 </ul>
                             </section>
                         )}
 
-                        {tour.program && (
+                        {selectedTour?.program && (
                             <section>
                                 <h2 style={{
                                     fontSize: '24px',
@@ -692,9 +802,14 @@ const TourPage = () => {
                                     📅 Программа тура
                                 </h2>
                                 <ul style={{ color: '#5A3E2B', lineHeight: '1.8' }}>
-                                    {tour.program.map((day, index) => (
-                                        <li key={index} style={{ marginBottom: '8px' }}>• {day}</li>
-                                    ))}
+                                    {selectedTour?.program
+                                        ?.split(';')
+                                        .filter(item => item.trim() !== '')
+                                        .map((item, index) => (
+                                            <li key={index} style={{ marginBottom: '8px' }}>
+                                                {item.trim()}
+                                            </li>
+                                        ))}
                                 </ul>
                             </section>
                         )}
@@ -729,7 +844,7 @@ const TourPage = () => {
                                         textDecoration: 'line-through',
                                         marginRight: '10px'
                                     }}>
-                                        {formatPrice(tour.oldPrice)}
+                                        {/* {formatPrice(tour.oldPrice)} */}
                                     </span>
                                 )}
                                 <span style={{
@@ -737,10 +852,10 @@ const TourPage = () => {
                                     fontWeight: '700',
                                     color: '#8B5A2B'
                                 }}>
-                                    {formatPrice(tour.price)}
+                                    {calculatePrice(Number(selectedTour?.price), currentRate)} {signCurrency}
                                 </span>
                                 <div style={{ color: '#B76E3C', fontSize: '14px', marginTop: '5px' }}>
-                                    за {tour.nights} ночей
+                                    за {calculateNights(String(selectedTour?.startDot), String(selectedTour?.endDot))} ночей
                                 </div>
                             </div>
 
@@ -775,7 +890,7 @@ const TourPage = () => {
                             </div>
 
                             {/* Количество туристов */}
-                            <div style={{ marginBottom: '20px' }}>
+                            {/* <div style={{ marginBottom: '20px' }}>
                                 <label style={{
                                     display: 'block',
                                     color: '#8B5A2B',
@@ -817,7 +932,7 @@ const TourPage = () => {
                                         +
                                     </button>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Информация о туре */}
                             <div style={{
@@ -829,23 +944,23 @@ const TourPage = () => {
                                 {tour.departureCity && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ color: '#8B5A2B' }}>✈️ Вылет из:</span>
-                                        <span style={{ color: '#B76E3C' }}>{tour.departureCity}</span>
+                                        <span style={{ color: '#B76E3C' }}>{selectedTourTransfer?.arrival}</span>
                                     </div>
                                 )}
                                 {tour.hotelName && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ color: '#8B5A2B' }}>🏨 Отель:</span>
-                                        <span style={{ color: '#B76E3C' }}>{tour.hotelName}</span>
+                                        <span style={{ color: '#B76E3C' }}>{selectedTourTransfer?.departure}</span>
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                     <span style={{ color: '#8B5A2B' }}>🌙 Ночей:</span>
-                                    <span style={{ color: '#B76E3C' }}>{tour.nights}</span>
+                                    <span style={{ color: '#B76E3C' }}>{calculateNights(String(selectedTour?.startDot), String(selectedTour?.endDot))}</span>
                                 </div>
                                 {tour.mealType && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#8B5A2B' }}>🍽️ Питание:</span>
-                                        <span style={{ color: '#B76E3C' }}>{tour.mealType}</span>
+                                        <span style={{ color: '#B76E3C' }}>В разработке</span>
                                     </div>
                                 )}
                             </div>
@@ -863,7 +978,8 @@ const TourPage = () => {
                                     fontSize: '18px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
-                                    transition: 'all 0.3s'
+                                    transition: 'all 0.3s',
+                                    pointerEvents: 'none'
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'scale(1.02)';

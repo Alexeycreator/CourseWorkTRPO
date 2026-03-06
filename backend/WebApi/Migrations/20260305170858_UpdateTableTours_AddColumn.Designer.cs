@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebApi.Methods.DataBase;
 
@@ -11,9 +12,11 @@ using WebApi.Methods.DataBase;
 namespace WebApi.Migrations
 {
     [DbContext(typeof(ServerDbContext))]
-    partial class ServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260305170858_UpdateTableTours_AddColumn")]
+    partial class UpdateTableTours_AddColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,6 +47,7 @@ namespace WebApi.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("House")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -60,19 +64,14 @@ namespace WebApi.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Street")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("Tours_Id")
-                        .HasColumnType("int")
-                        .HasColumnName("Tours_Id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Passport_Id")
                         .HasDatabaseName("IX_Addresses_PassportId");
-
-                    b.HasIndex("Tours_Id");
 
                     b.HasIndex("Country", "City", "Region", "Street", "House")
                         .HasDatabaseName("IX_Addresses_Full");
@@ -498,9 +497,6 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<bool>("HotTour")
-                        .HasColumnType("bit");
-
                     b.Property<string>("ImageTour")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -545,11 +541,6 @@ namespace WebApi.Migrations
                         .HasColumnType("int")
                         .HasColumnName("Transfers_Id");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
@@ -578,16 +569,6 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Arrival")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Departure")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<string>("Details")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -600,10 +581,18 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Route")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
                         .HasDatabaseName("IX_Transfers_Name");
+
+                    b.HasIndex("Route")
+                        .HasDatabaseName("IX_Transfers_Route");
 
                     b.ToTable("Transfers");
                 });
@@ -615,14 +604,7 @@ namespace WebApi.Migrations
                         .HasForeignKey("Passport_Id")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("WebApi.Models.ModelsDataBase.ToursModel", "Tours")
-                        .WithMany("Addresses")
-                        .HasForeignKey("Tours_Id")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Passport");
-
-                    b.Navigation("Tours");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.ClientsModel", b =>
@@ -746,11 +728,6 @@ namespace WebApi.Migrations
                     b.Navigation("CurrencyRatesTickets");
 
                     b.Navigation("Employees");
-                });
-
-            modelBuilder.Entity("WebApi.Models.ModelsDataBase.ToursModel", b =>
-                {
-                    b.Navigation("Addresses");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.TransfersModel", b =>

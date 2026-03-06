@@ -97,8 +97,8 @@ public sealed class ServerDbContext(DbContextOptions<ServerDbContext> options) :
 
         builder.Entity<TransfersModel>().HasIndex(tf => tf.Name)
             .HasDatabaseName("IX_Transfers_Name");
-        builder.Entity<TransfersModel>().HasIndex(tf => tf.Route)
-            .HasDatabaseName("IX_Transfers_Route");
+        // builder.Entity<TransfersModel>().HasIndex(tf => tf.Route)
+        //     .HasDatabaseName("IX_Transfers_Route");
 
         builder.Entity<CurrencyRatesModel>().HasIndex(cr => cr.LetterCode)
             .HasDatabaseName("IX_CurrencyRates_LetterCode");
