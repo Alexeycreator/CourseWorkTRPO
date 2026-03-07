@@ -35,6 +35,8 @@ public sealed class ClientsModel
     [DataType(DataType.Password)]
     public string Password { get; set; }
 
+    [MaxLength(2000)] public string PasswordHash { get; set; }
+
     public bool IsReadOnly { get; set; } = false;
 
     [Column("Passport_Id")]
@@ -46,4 +48,11 @@ public sealed class ClientsModel
     public PassportsModel? Passport { get; set; }
 
     [JsonIgnore] public ICollection<TicketsModel>? Tickets { get; set; }
+
+    // НОВЫЕ ПОЛЯ ДЛЯ JWT ТОКЕНОВ
+    [MaxLength(500)] public string? RefreshToken { get; set; } // Для refresh token
+    public DateTime? RefreshTokenExpiryTime { get; set; } // Время истечения refresh token
+    public DateTime? LastLoginAt { get; set; } // Время последнего входа
+    public int LoginAttempts { get; set; } = 0; // Количество попыток входа
+    public DateTime? LockoutEnd { get; set; } // Блокировка до (для защиты от брутфорса)
 }
