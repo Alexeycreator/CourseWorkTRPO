@@ -261,8 +261,6 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       // Если курс не найден, но колбэк есть, отправляем запрос на сервер
       this.fetchAndSendRate(currencyCode);
     }
-
-    console.log(`Выбрана валюта: ${currencyCode}, курс: ${rate}`);
   };
 
   fetchAndSendRate = async (currencyCode: string) => {
@@ -327,6 +325,10 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     return Object.keys(errors).length === 0;
   };
 
+  notifyAuthChange = (user: UserData | null) => {
+    window.dispatchEvent(new CustomEvent('authChange', { detail: { user } }));
+  };
+
   handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -347,6 +349,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
         authError: null,
         authFieldErrors: {}
       });
+
+      this.notifyAuthChange(response.user);
 
     } catch (error: any) {
       if (error.response?.status === 401) {
@@ -374,6 +378,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
   handleLogout = () => {
     authApi.logout();
     this.setState({ user: null });
+    this.notifyAuthChange(null);
   };
 
   // ========== РЕГИСТРАЦИЯ ==========
