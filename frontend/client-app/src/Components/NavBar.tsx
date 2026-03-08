@@ -69,6 +69,8 @@ interface NavBarState {
 
   showPassword: boolean;
   errors: Record<string, string>;
+
+  showUserMenu: boolean;
 }
 
 export default class NavBar extends Component<NavBarProps, NavBarState> {
@@ -77,6 +79,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
   private authRef = createRef<HTMLDivElement>();
   private registrationRef = createRef<HTMLDivElement>();
   private menuRef = React.createRef<HTMLDivElement>();
+  private userMenuRef = createRef<HTMLDivElement>();
 
   // Начальное состояние формы регистрации
   private readonly initialRegistrationForm: RegistrationFormData = {
@@ -132,6 +135,15 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     loading: true,
     error: null,
     errors: {}, // <-
+    showUserMenu: false,
+  };
+
+  toggleUserMenu = () => {
+    this.setState(prev => ({ showUserMenu: !prev.showUserMenu }));
+  };
+
+  closeUserMenu = () => {
+    this.setState({ showUserMenu: false });
   };
 
   days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
@@ -406,6 +418,9 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
         registrationForm: { ...this.initialRegistrationForm },
         registrationStep: 1
       });
+    }
+    if (this.userMenuRef.current && !this.userMenuRef.current.contains(event.target as Node)) {
+      this.setState({ showUserMenu: false });
     }
   };
 
@@ -877,31 +892,33 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         𓋴 Помощь
                       </Link>
                     </li>
-                    <li>
-                      <Link
-                        className="dropdown-item"
-                        to="/account"
-                        style={{
-                          color: '#8B5A2B',
-                          padding: '8px 15px',
-                          borderRadius: '8px',
-                          transition: 'all 0.3s',
-                          textDecoration: 'none',
-                          display: 'block',
-                          fontSize: '14px'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#C0A080';
-                          e.currentTarget.style.color = '#F8F0E0';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = '#8B5A2B';
-                        }}
-                      >
-                        𓁐 Личный кабинет
-                      </Link>
-                    </li>
+                    {user && (
+                      <li>
+                        <Link
+                          className="dropdown-item"
+                          to="/account"
+                          style={{
+                            color: '#8B5A2B',
+                            padding: '8px 15px',
+                            borderRadius: '8px',
+                            transition: 'all 0.3s',
+                            textDecoration: 'none',
+                            display: 'block',
+                            fontSize: '14px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#C0A080';
+                            e.currentTarget.style.color = '#F8F0E0';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = '#8B5A2B';
+                          }}
+                        >
+                          𓁐 Личный кабинет
+                        </Link>
+                      </li>
+                    )}
                   </ul>
                 </li>
               </ul>
