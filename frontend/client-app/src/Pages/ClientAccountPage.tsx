@@ -1,4 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useAuth } from "../Contexts/AuthContext";
+import { getClientPassport, getClients } from "../Services/IndexAuth";
+import { getAddressByPassportId, getClientsByPassportId, getPassportById, Passport, updatePassport } from "../Services/PassportApi";
+import { Client, getClientById, updateClient } from "../Services/ClientApi";
+import { Address, getAddressById, getAddresses } from "../Services/AddressApi";
 
 interface Tour {
   id: number;
@@ -19,94 +24,62 @@ interface Tour {
 const ClientAccountPage = () => {
   // Состояние для активной вкладки
   const [activeTab, setActiveTab] = useState<'profile' | 'bookings'>('profile');
-  
-  // Пример данных клиента
-  const [clientData, setClientData] = useState({
-    // Личные данные
-    firstName: 'Иван',
-    lastName: 'Петров',
-    email: 'ivan.petrov@mail.ru',
-    phone: '+7 (999) 123-45-67',
-    gender: 'male',
-    birthDay: '15',
-    birthMonth: '5',
-    birthYear: '1990',
-    
-    // Паспортные данные
-    passportSeries: '4510',
-    passportNumber: '123456',
-    passportIssued: 'ОВД "Тверской" г. Москвы',
-    passportDate: '2010-05-20',
-    passportCode: '770-001',
-    
-    // Адрес регистрации
-    city: 'Москва',
-    address: 'ул. Пушкина, д. 10, кв. 42',
-    
-    // Настройки
-    agreeToNews: true,
-    agreeToPersonalData: true
-  });
-
-  // Пример данных о забронированных турах клиента
-  const [bookedTours] = useState<Tour[]>([
-    {
-      id: 1,
-      title: "Мальдивы",
-      description: "Райский отдых на белоснежных пляжах",
-      price: 180000,
-      oldPrice: 220000,
-      image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      rating: 4.8,
-      reviews: 124,
-      nights: 7,
-      country: "Мальдивы",
-      city: "Мале",
-      type: "Пляжный",
-      hot: true
-    },
-    {
-      id: 2,
-      title: "Италия",
-      description: "Экскурсионный тур по историческим местам",
-      price: 95000,
-      oldPrice: 120000,
-      image: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      rating: 4.7,
-      reviews: 98,
-      nights: 5,
-      country: "Италия",
-      city: "Рим",
-      type: "Экскурсионный",
-      hot: false
-    },
-    {
-      id: 3,
-      title: "Бали",
-      description: "Йога-тур и духовные практики",
-      price: 120000,
-      oldPrice: 150000,
-      image: "https://images.unsplash.com/photo-1537996192471-5ba5aab9e0b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      rating: 4.9,
-      reviews: 156,
-      nights: 10,
-      country: "Индонезия",
-      city: "Денпасар",
-      type: "Оздоровительный",
-      hot: true
-    }
-  ]);
-
+  const { user, isAuthenticated } = useAuth();
+  const [userData, setUserData] = useState<Client | null>(null);
+  const [passportData, setPassportData] = useState<Passport | null>(null);
+  const [addressData, setAddressData] = useState<Address | null>(null);
+  const [editedData, setEditedData] = useState<any>(null); // для редактирования
   const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState({ ...clientData });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+
+  const fetchUser = async () => {
+    if (!user?.id) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const loadUser = await getClientById(Number(user.id));
+      setUserData(loadUser);
+      console.log("Загружены данные пользователя: ", loadUser);
+
+      if (loadUser.passport_Id) {
+        const loadUserPassport = await getPassportById(loadUser.passport_Id);
+        setPassportData(loadUserPassport);
+        console.log("Загружены данные паспорта пользователя: ", loadUserPassport);
+
+        const loadUserPassportAddress = await getAddressByPassportId(loadUserPassport.id);
+        setAddressData(loadUserPassportAddress);
+        console.log("Загружены данные регистрации пользователя: ", loadUserPassportAddress);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (userData && passportData) {
+      setEditedData({
+        ...userData,
+        ...passportData,
+        address: addressData
+      });
+    }
+  }, [userData, passportData, addressData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    
-    setEditedData(prev => ({
+
+    setEditedData((prev: any) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
@@ -123,42 +96,77 @@ const ClientAccountPage = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!editedData.firstName) newErrors.firstName = 'Имя обязательно';
-    if (!editedData.lastName) newErrors.lastName = 'Фамилия обязательна';
-    if (!editedData.email) newErrors.email = 'Email обязателен';
-    else if (!/\S+@\S+\.\S+/.test(editedData.email)) newErrors.email = 'Email некорректен';
-    
-    if (!editedData.phone) newErrors.phone = 'Телефон обязателен';
-    
-    if (!editedData.passportSeries) newErrors.passportSeries = 'Серия паспорта обязательна';
-    if (!editedData.passportNumber) newErrors.passportNumber = 'Номер паспорта обязателен';
-    if (!editedData.passportIssued) newErrors.passportIssued = 'Кем выдан обязательно';
-    if (!editedData.passportDate) newErrors.passportDate = 'Дата выдачи обязательна';
-    
-    if (!editedData.city) newErrors.city = 'Город обязателен';
-    if (!editedData.address) newErrors.address = 'Адрес обязателен';
+    if (!editedData?.firstName) newErrors.firstName = 'Имя обязательно';
+    if (!editedData?.surName) newErrors.lastName = 'Фамилия обязательна';
+    if (!editedData?.email) {
+      newErrors.email = 'Email обязателен';
+    } else if (!/\S+@\S+\.\S+/.test(editedData.email)) {
+      newErrors.email = 'Email некорректен';
+    }
+    if (!editedData?.phoneNumber) newErrors.phone = 'Телефон обязателен';
 
-    if (!editedData.agreeToPersonalData) {
-      newErrors.agreeToPersonalData = 'Необходимо согласие на обработку данных';
+    // Проверка паспортных данных
+    if (editedData?.seria) {
+      if (!editedData.seria) newErrors.passportSeries = 'Серия паспорта обязательна';
+      if (!editedData.number) newErrors.passportNumber = 'Номер паспорта обязателен';
+    }
+
+    // Проверка адреса
+    if (editedData?.address) {
+      if (!editedData.address.city) newErrors.city = 'Город обязателен';
+      if (!editedData.address.street) newErrors.street = 'Улица обязательна';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
-    if (validateForm()) {
-      setClientData(editedData);
-      setIsEditing(false);
-      alert('Данные успешно сохранены!');
+  const handleSave = async () => {
+    if (validateForm() && editedData) {
+      try {
+        console.log("Отправляемые данные:", editedData); // ПОСМОТРИТЕ ЧТО ТУТ
+
+        const updatedClient = await updateClient(editedData.id, {
+          surName: editedData.surName,
+          firstName: editedData.firstName,
+          middleName: editedData.middleName || '',
+          phoneNumber: editedData.phoneNumber,
+          email: editedData.email,
+          login: editedData.login,
+          password: editedData.password, // Есть ли это поле?
+          passport_Id: editedData.passport_Id || editedData.id // Проверьте ID паспорта
+        });
+
+        console.log("Ответ сервера:", updatedClient);
+        alert('Данные успешно сохранены!');
+      } catch (error) {
+        console.error("Полная ошибка:", error);
+        // if (error.response) {
+        //   console.log("Статус:", error.response.status);
+        //   console.log("Данные ошибки:", error.response.data); // ВАЖНО!
+        //   console.log("Заголовки:", error.response.headers);
+        // }
+      }
     }
   };
 
   const handleCancel = () => {
-    setEditedData(clientData);
+    setEditedData({
+      ...userData,
+      ...passportData,
+      address: addressData
+    });
     setIsEditing(false);
     setErrors({});
   };
+
+  if (loading) {
+    return <div>Загрузка...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <div>Пожалуйста, войдите в систему</div>;
+  }
 
   const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
   const months = [
@@ -167,17 +175,17 @@ const ClientAccountPage = () => {
   ];
   const years = Array.from({ length: 100 }, (_, i) => (new Date().getFullYear() - i).toString());
 
-  const getGenderText = (gender: string) => {
-    return gender === 'male' ? 'Мужской' : 'Женский';
-  };
+  // const getGenderText = (gender: string) => {
+  //   return gender === 'male' ? 'Мужской' : 'Женский';
+  // };
 
-  const getFullBirthDate = () => {
-    if (clientData.birthDay && clientData.birthMonth && clientData.birthYear) {
-      const monthIndex = parseInt(clientData.birthMonth) - 1;
-      return `${clientData.birthDay} ${months[monthIndex]} ${clientData.birthYear}`;
-    }
-    return 'Не указано';
-  };
+  // const getFullBirthDate = () => {
+  //   if (clientData.birthDay && clientData.birthMonth && clientData.birthYear) {
+  //     const monthIndex = parseInt(clientData.birthMonth) - 1;
+  //     return `${clientData.birthDay} ${months[monthIndex]} ${clientData.birthYear}`;
+  //   }
+  //   return 'Не указано';
+  // };
 
   // Функция для форматирования цены
   const formatPrice = (price: number) => {
@@ -197,8 +205,8 @@ const ClientAccountPage = () => {
       <div style={{ position: 'fixed', top: '5%', left: '2%', fontSize: '60px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>
       <div style={{ position: 'fixed', bottom: '10%', right: '3%', fontSize: '80px', opacity: 0.05, pointerEvents: 'none' }}>𓊹</div>
       <div style={{ position: 'fixed', top: '20%', right: '8%', fontSize: '50px', opacity: 0.05, pointerEvents: 'none' }}>𓋴</div>
-      
-      <div style={{
+
+      {isAuthenticated ? (<div style={{
         maxWidth: '1200px',
         margin: '0 auto',
         position: 'relative',
@@ -225,7 +233,7 @@ const ClientAccountPage = () => {
             marginTop: '15px',
             fontSize: '16px'
           }}>
-            {isEditing ? 'Редактирование профиля' : 'Здравствуйте, ' + clientData.firstName + '!'}
+            {isEditing ? 'Редактирование профиля' : 'Здравствуйте, ' + user?.firstName + '!'}
           </p>
         </div>
 
@@ -253,13 +261,13 @@ const ClientAccountPage = () => {
               paddingBottom: '10px',
               borderBottom: '2px solid #D2B48C'
             }}>
-              👤 {clientData.firstName} {clientData.lastName}
+              👤 {user?.firstName} {user?.surName}
             </h2>
-            
+
             <nav style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               {[
                 { id: 'profile' as const, label: '📋 Мои данные' },
-                { id: 'bookings' as const, label: '🗺️ Мои туры', badge: bookedTours.length.toString() },
+                //{ id: 'bookings' as const, label: '🗺️ Мои туры', badge: bookedTours.length.toString() },
                 { id: 'logout' as const, label: '🚪 Выход' }
               ].map(item => (
                 <button
@@ -302,7 +310,7 @@ const ClientAccountPage = () => {
                   }}
                 >
                   <span>{item.label}</span>
-                  {item.badge && (
+                  {/* {item.badge && (
                     <span style={{
                       background: '#FFF8F0',
                       color: '#B76E3C',
@@ -313,7 +321,7 @@ const ClientAccountPage = () => {
                     }}>
                       {item.badge}
                     </span>
-                  )}
+                  )} */}
                 </button>
               ))}
             </nav>
@@ -417,12 +425,12 @@ const ClientAccountPage = () => {
                         <input
                           type="text"
                           name="lastName"
-                          value={editedData.lastName}
+                          value={editedData.surName}
                           onChange={handleChange}
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.lastName ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.surName ? '#dc3545' : '#D2B48C'}`,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -430,8 +438,8 @@ const ClientAccountPage = () => {
                             outline: 'none'
                           }}
                         />
-                        {errors.lastName && (
-                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.lastName}</div>
+                        {errors.surName && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.surName}</div>
                         )}
                       </div>
 
@@ -467,12 +475,12 @@ const ClientAccountPage = () => {
                         <input
                           type="tel"
                           name="phone"
-                          value={editedData.phone}
+                          value={editedData.phoneNumber}
                           onChange={handleChange}
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.phone ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.phoneNumber ? '#dc3545' : '#D2B48C'}`,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -480,8 +488,8 @@ const ClientAccountPage = () => {
                             outline: 'none'
                           }}
                         />
-                        {errors.phone && (
-                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.phone}</div>
+                        {errors.phoneNumber && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.phoneNumber}</div>
                         )}
                       </div>
 
@@ -596,23 +604,27 @@ const ClientAccountPage = () => {
                         alignItems: 'center'
                       }}>
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Имя:</div>
-                        <div style={{ color: '#5D3A1A', fontSize: '16px' }}>{clientData.firstName} {clientData.lastName}</div>
-                        
+                        <div style={{ color: '#5D3A1A', fontSize: '16px' }}>{user?.firstName}</div>
+                        <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Фамилия:</div>
+                        <div style={{ color: '#5D3A1A', fontSize: '16px' }}>{user?.surName}</div>
+                        <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Отчество:</div>
+                        <div style={{ color: '#5D3A1A', fontSize: '16px' }}>{user?.middleName}</div>
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Email:</div>
-                        <div style={{ color: '#5D3A1A' }}>{clientData.email}</div>
-                        
+                        <div style={{ color: '#5D3A1A' }}>{user?.email}</div>
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Телефон:</div>
-                        <div style={{ color: '#5D3A1A' }}>{clientData.phone}</div>
-                        
+                        <div style={{ color: '#5D3A1A' }}>{user?.phoneNumber}</div>
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Пол:</div>
-                        <div style={{ color: '#5D3A1A' }}>{getGenderText(clientData.gender)}</div>
-                        
+                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Дата рождения:</div>
-                        <div style={{ color: '#5D3A1A' }}>{getFullBirthDate()}</div>
-                        
+                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Возраст:</div>
                         <div style={{ color: '#5D3A1A' }}>
-                          {new Date().getFullYear() - parseInt(clientData.birthYear)} лет
+                          В разработке
                         </div>
                       </div>
                     </div>
@@ -645,13 +657,13 @@ const ClientAccountPage = () => {
                         <input
                           type="text"
                           name="passportSeries"
-                          value={editedData.passportSeries}
+                          value={editedData.seria}
                           onChange={handleChange}
                           maxLength={4}
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.passportSeries ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.seria ? '#dc3545' : '#D2B48C'}`,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -659,8 +671,8 @@ const ClientAccountPage = () => {
                             outline: 'none'
                           }}
                         />
-                        {errors.passportSeries && (
-                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportSeries}</div>
+                        {errors.seria && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.seria}</div>
                         )}
                       </div>
 
@@ -671,13 +683,13 @@ const ClientAccountPage = () => {
                         <input
                           type="text"
                           name="passportNumber"
-                          value={editedData.passportNumber}
+                          value={editedData.number}
                           onChange={handleChange}
                           maxLength={6}
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.passportNumber ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.number ? '#dc3545' : '#D2B48C'}`,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -685,8 +697,8 @@ const ClientAccountPage = () => {
                             outline: 'none'
                           }}
                         />
-                        {errors.passportNumber && (
-                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportNumber}</div>
+                        {errors.number && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.number}</div>
                         )}
                       </div>
 
@@ -776,18 +788,21 @@ const ClientAccountPage = () => {
                         alignItems: 'center'
                       }}>
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Серия и номер:</div>
-                        <div style={{ color: '#5D3A1A' }}>{clientData.passportSeries} {clientData.passportNumber}</div>
-                        
+                        <div style={{ color: '#5D3A1A' }}>{passportData?.seria} {passportData?.number}</div>
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Кем выдан:</div>
-                        <div style={{ color: '#5D3A1A' }}>{clientData.passportIssued}</div>
-                        
+                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Дата выдачи:</div>
                         <div style={{ color: '#5D3A1A' }}>
-                          {new Date(clientData.passportDate).toLocaleDateString('ru-RU')}
+                          В разработке
                         </div>
-                        
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Код подразделения:</div>
-                        <div style={{ color: '#5D3A1A' }}>{clientData.passportCode || '—'}</div>
+                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+
+                        <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Тип паспорта:</div>
+                        <div style={{ color: '#5D3A1A' }}>{passportData?.type}</div>
                       </div>
                     </div>
                   )}
@@ -819,7 +834,7 @@ const ClientAccountPage = () => {
                         <input
                           type="text"
                           name="city"
-                          value={editedData.city}
+                          value={editedData.address.city}
                           onChange={handleChange}
                           style={{
                             width: '100%',
@@ -844,7 +859,7 @@ const ClientAccountPage = () => {
                         <input
                           type="text"
                           name="address"
-                          value={editedData.address}
+                          value={`ул. ${editedData.address.street}, д. ${editedData.address?.house}, кв. ${editedData.address?.apartment}`}
                           onChange={handleChange}
                           style={{
                             width: '100%',
@@ -875,11 +890,14 @@ const ClientAccountPage = () => {
                         gap: '15px',
                         alignItems: 'center'
                       }}>
+                        <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Страна:</div>
+                        <div style={{ color: '#5D3A1A' }}>{addressData?.country}</div>
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Город:</div>
-                        <div style={{ color: '#5D3A1A' }}>{clientData.city}</div>
-                        
+                        <div style={{ color: '#5D3A1A' }}>{addressData?.city}</div>
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Адрес:</div>
-                        <div style={{ color: '#5D3A1A' }}>{clientData.address}</div>
+                        <div style={{ color: '#5D3A1A' }}>ул. {addressData?.street}, д. {addressData?.house}, кв. {addressData?.apartment}</div>
                       </div>
                     </div>
                   )}
@@ -932,10 +950,12 @@ const ClientAccountPage = () => {
                         alignItems: 'center'
                       }}>
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Новости:</div>
-                        <div style={{ color: '#5D3A1A' }}>{clientData.agreeToNews ? '✓ Согласен' : '✗ Не согласен'}</div>
-                        
+                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+                        {/* <div style={{ color: '#5D3A1A' }}>{clientData.agreeToNews ? '✓ Согласен' : '✗ Не согласен'}</div> */}
+
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Персональные данные:</div>
-                        <div style={{ color: '#5D3A1A' }}>{clientData.agreeToPersonalData ? '✓ Согласен' : '✗ Не согласен'}</div>
+                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+                        {/* <div style={{ color: '#5D3A1A' }}>{clientData.agreeToPersonalData ? '✓ Согласен' : '✗ Не согласен'}</div> */}
                       </div>
                     )}
                   </div>
@@ -1010,179 +1030,34 @@ const ClientAccountPage = () => {
                   🗺️ Ваши забронированные туры
                 </h3>
 
-                {bookedTours.length === 0 ? (
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '60px 20px',
-                    color: '#8B5A2B'
-                  }}>
-                    <div style={{ fontSize: '60px', marginBottom: '20px' }}>🏝️</div>
-                    <h4>У вас пока нет забронированных туров</h4>
-                    <p style={{ marginTop: '10px' }}>
-                      Перейдите в каталог, чтобы выбрать путешествие
-                    </p>
-                  </div>
-                ) : (
-                  <div className="row g-4">
-                    {bookedTours.map((tour) => (
-                      <div key={tour.id} className="col-12 col-md-6 col-lg-4">
-                        <div
-                          className="card h-100"
-                          style={{
-                            background: 'rgba(255, 248, 240, 0.9)',
-                            border: '2px solid #D2B48C',
-                            borderRadius: '20px',
-                            overflow: 'hidden',
-                            transition: 'all 0.3s',
-                            position: 'relative',
-                            cursor: 'pointer'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-5px)';
-                            e.currentTarget.style.boxShadow = '0 15px 30px rgba(139, 69, 19, 0.15)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                          }}
-                        >
-                          {/* Бейдж "Горящий тур" */}
-                          {tour.hot && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '10px',
-                              left: '10px',
-                              background: '#B76E3C',
-                              color: '#FFF8F0',
-                              padding: '5px 15px',
-                              borderRadius: '25px',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                              zIndex: 2
-                            }}>
-                              🔥 Горящий
-                            </div>
-                          )}
-
-                          {/* Бейдж со скидкой */}
-                          {tour.oldPrice && (
-                            <div style={{
-                              position: 'absolute',
-                              top: '10px',
-                              right: '10px',
-                              background: '#8B5A2B',
-                              color: '#FFD700',
-                              padding: '5px 15px',
-                              borderRadius: '25px',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                              zIndex: 2
-                            }}>
-                              -{Math.round((1 - tour.price / tour.oldPrice) * 100)}%
-                            </div>
-                          )}
-
-                          <img
-                            src={tour.image}
-                            alt={tour.title}
-                            style={{
-                              width: '100%',
-                              height: '200px',
-                              objectFit: 'cover',
-                              borderBottom: '2px solid #D2B48C'
-                            }}
-                          />
-
-                          <div className="card-body" style={{ padding: '20px' }}>
-                            <div className="d-flex justify-content-between align-items-start mb-2">
-                              <h3 style={{
-                                margin: 0,
-                                color: '#8B5A2B',
-                                fontSize: '22px',
-                                fontFamily: "'Cormorant Garamond', serif"
-                              }}>
-                                {tour.title}
-                              </h3>
-                              <div style={{ color: '#B76E3C' }}>
-                                <span>⭐</span> {tour.rating}
-                              </div>
-                            </div>
-
-                            <p style={{ color: '#8B5A2B', fontSize: '14px', marginBottom: '10px' }}>
-                              {tour.description}
-                            </p>
-
-                            <div className="d-flex gap-2 mb-2" style={{ color: '#8B5A2B', fontSize: '13px' }}>
-                              <span>📍 {tour.country}</span>
-                              <span>•</span>
-                              <span>🏙️ {tour.city}</span>
-                              <span>•</span>
-                              <span>🗺️ {tour.type}</span>
-                            </div>
-
-                            <div className="d-flex justify-content-between align-items-center mt-3">
-                              <div>
-                                {tour.oldPrice && (
-                                  <span style={{
-                                    color: '#B76E3C',
-                                    fontSize: '14px',
-                                    textDecoration: 'line-through',
-                                    marginRight: '10px'
-                                  }}>
-                                    {formatPrice(tour.oldPrice)}
-                                  </span>
-                                )}
-                                <span style={{
-                                  color: '#8B5A2B',
-                                  fontSize: '24px',
-                                  fontWeight: '600'
-                                }}>
-                                  {formatPrice(tour.price)}
-                                </span>
-                              </div>
-                              <span style={{ color: '#B76E3C', fontSize: '14px' }}>
-                                {tour.nights} ночей
-                              </span>
-                            </div>
-
-                            {/* Статус бронирования */}
-                            <div style={{
-                              marginTop: '15px',
-                              padding: '8px',
-                              background: '#D2B48C',
-                              borderRadius: '25px',
-                              textAlign: 'center'
-                            }}>
-                              <span style={{ color: '#FFF8F0', fontSize: '13px', fontWeight: '500' }}>
-                                ✅ Забронировано
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* код в файле */}
               </div>
             )}
           </div>
         </div>
-
-        {/* Дополнительная информация */}
-        <div style={{
-          marginTop: '40px',
-          padding: '20px',
-          background: 'rgba(255, 248, 240, 0.5)',
-          borderRadius: '20px',
-          textAlign: 'center',
-          fontSize: '13px',
-          color: '#8B5A2B'
-        }}>
-          <p>
-            Ваши данные защищены и используются только для бронирования туров.
-            Для изменения данных нажмите кнопку "Редактировать профиль".
-          </p>
+      </div>) : (
+        <div
+          style={{
+            textAlign: 'center'
+          }}
+        >
+          <h1>Доступ заблокирован</h1>
+          <p>Пожалуйста, зайдите в профиль или обратитесь в тех. поддержку</p>
         </div>
+      )}
+      {/* Дополнительная информация */}
+      <div style={{
+        marginTop: '40px',
+        padding: '20px',
+        background: 'rgba(255, 248, 240, 0.5)',
+        borderRadius: '20px',
+        textAlign: 'center',
+        fontSize: '13px',
+        color: '#8B5A2B'
+      }}>
+        <p>
+          Ваши данные защищены и используются только для бронирования туров.
+        </p>
       </div>
     </div>
   );
