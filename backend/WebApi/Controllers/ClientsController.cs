@@ -18,7 +18,9 @@ namespace WebApi.Controllers;
 public sealed class ClientsController(
     ServerDbContext dbContext,
     IPasswordService passwordService,
-    IConfiguration configuration) : ControllerBase
+    IConfiguration configuration,
+    IPasswordHasher passwordHasher
+) : ControllerBase
 {
     private Logger loggerClientsController = LogManager.GetCurrentClassLogger();
 
@@ -93,7 +95,10 @@ public sealed class ClientsController(
                 Email = client.Email,
                 Login = client.Login,
                 Passport_Id = client.Passport_Id,
-                IsReadOnly = client.IsReadOnly
+                IsReadOnly = client.IsReadOnly,
+                Age = client.Age,
+                Birthday = client.Birthday,
+                Gender = client.Gender
             };
 
             return Ok(response);
@@ -210,7 +215,10 @@ public sealed class ClientsController(
                     Email = client.Email,
                     Login = client.Login,
                     Passport_Id = client.Passport_Id,
-                    IsReadOnly = client.IsReadOnly
+                    IsReadOnly = client.IsReadOnly,
+                    Age = client.Age,
+                    Birthday = client.Birthday,
+                    Gender = client.Gender
                 }
             };
 
@@ -389,7 +397,7 @@ public sealed class ClientsController(
     // }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateClient(int id, ClientsModel client)
+    public async Task<IActionResult> UpdateClient(int id, UpdateClientDto clientDto)
     {
         var existsClient = await dbContext.Clients.FindAsync(id);
         if (existsClient == null)
@@ -414,10 +422,74 @@ public sealed class ClientsController(
             });
         }
 
-        dbContext.Entry(client).State = EntityState.Modified;
+        if (clientDto.SurName != null)
+        {
+            existsClient.SurName = clientDto.SurName;
+        }
+
+        if (clientDto.FirstName != null)
+        {
+            existsClient.FirstName = clientDto.FirstName;
+        }
+
+        if (clientDto.MiddleName != null)
+        {
+            existsClient.MiddleName = clientDto.MiddleName;
+        }
+
+        if (clientDto.Gender != null)
+        {
+            existsClient.Gender = clientDto.Gender;
+        }
+
+        if (clientDto.Birthday.HasValue)
+        {
+            existsClient.Birthday = clientDto.Birthday.Value;
+            existsClient.Age = CalculateAge(clientDto.Birthday.Value);
+        }
+
+        if (clientDto.Age.HasValue)
+        {
+            existsClient.Age = clientDto.Age.Value;
+        }
+
+        if (clientDto.PhoneNumber != null)
+        {
+            existsClient.PhoneNumber = clientDto.PhoneNumber;
+        }
+
+        if (clientDto.Email != null)
+        {
+            existsClient.Email = clientDto.Email;
+        }
+
+        // Смена пароля
+        if (!string.IsNullOrEmpty(clientDto.NewPassword))
+        {
+            // Проверяем старый пароль
+            if (string.IsNullOrEmpty(clientDto.CurrentPassword) ||
+                !passwordHasher.VerifyPassword(clientDto.CurrentPassword, existsClient.PasswordHash))
+            {
+                return BadRequest(new { Message = "Неверный текущий пароль" });
+            }
+
+            // Устанавливаем новый пароль
+            existsClient.Password = clientDto.NewPassword;
+            existsClient.PasswordHash = passwordHasher.HashPassword(clientDto.NewPassword);
+        }
+
+        //dbContext.Entry(clientDto).State = EntityState.Modified;
         await dbContext.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    private int CalculateAge(DateOnly birthday)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var age = today.Year - birthday.Year;
+        if (birthday > today.AddYears(-age)) age--;
+        return age;
     }
 
     [HttpDelete("{id}")]
