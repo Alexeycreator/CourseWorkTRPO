@@ -7,6 +7,11 @@ public sealed class UpdateClientDto
     [MaxLength(100)] public string? SurName { get; set; }
     [MaxLength(100)] public string? FirstName { get; set; }
     [MaxLength(100)] public string? MiddleName { get; set; }
+    [MaxLength(25)]
+    public string? Gender { get; set; }
+    public DateOnly? Birthday { get; set; }
+    [Range(0, 150)]
+    public int? Age { get; set; }
 
     [MaxLength(15)]
     [DataType(DataType.PhoneNumber)]

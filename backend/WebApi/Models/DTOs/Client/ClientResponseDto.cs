@@ -11,4 +11,7 @@ public sealed class ClientResponseDto
     public string Login { get; set; }
     public int? Passport_Id { get; set; }
     public bool IsReadOnly { get; set; }
+    public string Gender { get; set; }
+    public DateOnly Birthday { get; set; }
+    public int Age { get; set; }
 }
