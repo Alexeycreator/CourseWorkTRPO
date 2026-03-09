@@ -101,6 +101,7 @@ builder.Services.AddHostedService<DatabaseBackupBackgroundService>(provaider =>
     new DatabaseBackupBackgroundService(connectionString));
 
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
 builder.Services.AddCors(options =>
 {
