@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../Contexts/AuthContext";
 import { getClientPassport, getClients } from "../Services/IndexAuth";
 import { getAddressByPassportId, getClientsByPassportId, getPassportById, Passport, updatePassport } from "../Services/PassportApi";
@@ -33,6 +33,7 @@ const ClientAccountPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const originalDataRef = useRef<Client | null>(null); // для хранения оригинальных данных
 
   const fetchUser = async () => {
     if (!user?.id) {
@@ -41,19 +42,56 @@ const ClientAccountPage = () => {
 
     setLoading(true);
     try {
-      const loadUser = await getClientById(Number(user.id));
+      let loadUser = await getClientById(Number(user.id));
       setUserData(loadUser);
       console.log("Загружены данные пользователя: ", loadUser);
+      let loadUserPassport;
+      let loadUserPassportAddress;
 
       if (loadUser.passport_Id) {
-        const loadUserPassport = await getPassportById(loadUser.passport_Id);
+        loadUserPassport = await getPassportById(loadUser.passport_Id);
         setPassportData(loadUserPassport);
         console.log("Загружены данные паспорта пользователя: ", loadUserPassport);
 
-        const loadUserPassportAddress = await getAddressByPassportId(loadUserPassport.id);
-        setAddressData(loadUserPassportAddress);
-        console.log("Загружены данные регистрации пользователя: ", loadUserPassportAddress);
+        if (loadUserPassport) {
+          loadUserPassportAddress = await getAddressByPassportId(loadUserPassport.id);
+          setAddressData(loadUserPassportAddress);
+          console.log("Загружены данные регистрации пользователя: ", loadUserPassportAddress);
+        }
       }
+      const combinedData = {
+        id: loadUser.id,
+        surName: loadUser.surName,
+        firstName: loadUser.firstName,
+        middleName: loadUser.middleName,
+        phoneNumber: loadUser.phoneNumber,
+        email: loadUser.email,
+        login: loadUser.login,
+        gender: loadUser.gender,
+        birthday: loadUser.birthday,
+        age: loadUser.age,
+        passport_Id: loadUser.passport_Id,
+        isReadOnly: loadUser.isReadOnly,
+
+        passport: loadUserPassport ? {
+          id: loadUserPassport.id,
+          series: loadUserPassport.seria,
+          number: loadUserPassport.number,
+          issuedBy: loadUserPassport.issuedBy,
+          issuedDate: loadUserPassport.dateOfIssue,
+          subdivisionCode: loadUserPassport.departmentCode
+        } : null,
+
+        address: loadUserPassportAddress ? {
+          id: loadUserPassportAddress.id,
+          city: loadUserPassportAddress.city,
+          street: loadUserPassportAddress.street,
+          house: loadUserPassportAddress.house,
+          apartment: loadUserPassportAddress.apartment,
+        } : null
+      };
+      setEditedData(combinedData);
+      originalDataRef.current = JSON.parse(JSON.stringify(combinedData));
     } catch (error) {
       console.error("Ошибка загрузки:", error);
     } finally {
@@ -79,10 +117,22 @@ const ClientAccountPage = () => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
-    setEditedData((prev: any) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    // Обработка вложенных полей (например, "passport.series")
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setEditedData((prev: any) => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: type === 'checkbox' ? checked : value
+        }
+      }));
+    } else {
+      setEditedData((prev: any) => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
 
     if (errors[name]) {
       setErrors(prev => {
@@ -122,31 +172,62 @@ const ClientAccountPage = () => {
   };
 
   const handleSave = async () => {
-    if (validateForm() && editedData) {
-      try {
-        console.log("Отправляемые данные:", editedData); // ПОСМОТРИТЕ ЧТО ТУТ
+    if (!validateForm() || !editedData || !originalDataRef.current) return;
 
-        const updatedClient = await updateClient(editedData.id, {
-          surName: editedData.surName,
-          firstName: editedData.firstName,
-          middleName: editedData.middleName || '',
-          phoneNumber: editedData.phoneNumber,
-          email: editedData.email,
-          login: editedData.login,
-          password: editedData.password, // Есть ли это поле?
-          passport_Id: editedData.passport_Id || editedData.id // Проверьте ID паспорта
-        });
+    try {
+      const updateData: any = {};
+      const original = originalDataRef.current;
 
-        console.log("Ответ сервера:", updatedClient);
-        alert('Данные успешно сохранены!');
-      } catch (error) {
-        console.error("Полная ошибка:", error);
-        // if (error.response) {
-        //   console.log("Статус:", error.response.status);
-        //   console.log("Данные ошибки:", error.response.data); // ВАЖНО!
-        //   console.log("Заголовки:", error.response.headers);
-        // }
+      if (editedData.surName !== original.surName) {
+        updateData.surName = editedData.surName;
       }
+      if (editedData.firstName !== original.firstName) {
+        updateData.firstName = editedData.firstName;
+      }
+      if (editedData.middleName !== original.middleName) {
+        updateData.middleName = editedData.middleName || null;
+      }
+      if (editedData.gender !== original.gender) {
+        updateData.gender = editedData.gender;
+      }
+      if (editedData.birthday !== original.birthday) {
+        updateData.birthday = typeof editedData.birthday === 'object'
+          ? editedData.birthday.toISOString().split('T')[0]
+          : editedData.birthday;
+      }
+
+      if (editedData.age !== original.age) {
+        updateData.age = Number(editedData.age);
+      }
+      if (editedData.phoneNumber !== original.phoneNumber) {
+        updateData.phoneNumber = editedData.phoneNumber;
+      }
+      if (editedData.email !== original.email) {
+        updateData.email = editedData.email;
+      }
+      if (editedData.passport_Id !== original.passport_Id) {
+        updateData.passport_Id = editedData.passport_Id || null;
+      }
+      if (Object.keys(updateData).length === 0) {
+        console.log('Нет изменений для сохранения');
+        return;
+      }
+
+      console.log("Отправляю изменения клиента:", updateData);
+
+      const updatedClient = await updateClient(editedData.id, updateData);
+
+      originalDataRef.current = {
+        ...originalDataRef.current,
+        ...updateData
+      };
+
+      console.log('Данные успешно сохранены!');
+      setIsEditing(false);
+
+    } catch (error: any) {
+      console.error("Ошибка:", error);
+      console.log(error.response?.data?.message || 'Ошибка при сохранении');
     }
   };
 
@@ -445,6 +526,31 @@ const ClientAccountPage = () => {
 
                       <div>
                         <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                          Отчество
+                        </label>
+                        <input
+                          type="text"
+                          name="lastName"
+                          value={editedData.middleName}
+                          onChange={handleChange}
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: `2px solid ${errors.middleName ? '#dc3545' : '#D2B48C'}`,
+                            borderRadius: '15px',
+                            backgroundColor: '#FFF8F0',
+                            color: '#8B5A2B',
+                            fontSize: '15px',
+                            outline: 'none'
+                          }}
+                        />
+                        {errors.middleName && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.middleName}</div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                           Email <span style={{ color: '#dc3545' }}>*</span>
                         </label>
                         <input
@@ -503,7 +609,7 @@ const ClientAccountPage = () => {
                               type="radio"
                               name="gender"
                               value="male"
-                              checked={editedData.gender === 'male'}
+                              checked={editedData.gender === 'Мужской'}
                               onChange={handleChange}
                             />
                             Мужской
@@ -513,7 +619,7 @@ const ClientAccountPage = () => {
                               type="radio"
                               name="gender"
                               value="female"
-                              checked={editedData.gender === 'female'}
+                              checked={editedData.gender === 'Женский'}
                               onChange={handleChange}
                             />
                             Женский
@@ -522,70 +628,29 @@ const ClientAccountPage = () => {
                       </div>
 
                       <div>
-                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                          Дата рождения
-                        </label>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                          <select
-                            name="birthDay"
-                            value={editedData.birthDay}
+                        <div>
+                          <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                            Дата рождения <span style={{ color: '#dc3545' }}>*</span>
+                          </label>
+                          <input
+                            type="date"
+                            name="passportDate"
+                            value={editedData.birthday}
                             onChange={handleChange}
                             style={{
-                              flex: 1,
+                              width: '100%',
                               padding: '12px',
-                              border: '2px solid #D2B48C',
+                              border: `2px solid ${errors.birthday ? '#dc3545' : '#D2B48C'}`,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
                               fontSize: '15px',
                               outline: 'none'
                             }}
-                          >
-                            <option value="">День</option>
-                            {days.map(day => (
-                              <option key={day} value={day}>{day}</option>
-                            ))}
-                          </select>
-                          <select
-                            name="birthMonth"
-                            value={editedData.birthMonth}
-                            onChange={handleChange}
-                            style={{
-                              flex: 2,
-                              padding: '12px',
-                              border: '2px solid #D2B48C',
-                              borderRadius: '15px',
-                              backgroundColor: '#FFF8F0',
-                              color: '#8B5A2B',
-                              fontSize: '15px',
-                              outline: 'none'
-                            }}
-                          >
-                            <option value="">Месяц</option>
-                            {months.map((month, index) => (
-                              <option key={month} value={index + 1}>{month}</option>
-                            ))}
-                          </select>
-                          <select
-                            name="birthYear"
-                            value={editedData.birthYear}
-                            onChange={handleChange}
-                            style={{
-                              flex: 1,
-                              padding: '12px',
-                              border: '2px solid #D2B48C',
-                              borderRadius: '15px',
-                              backgroundColor: '#FFF8F0',
-                              color: '#8B5A2B',
-                              fontSize: '15px',
-                              outline: 'none'
-                            }}
-                          >
-                            <option value="">Год</option>
-                            {years.map(year => (
-                              <option key={year} value={year}>{year}</option>
-                            ))}
-                          </select>
+                          />
+                          {errors.birthday && (
+                            <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.birthday}</div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -617,15 +682,13 @@ const ClientAccountPage = () => {
                         <div style={{ color: '#5D3A1A' }}>{user?.phoneNumber}</div>
 
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Пол:</div>
-                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+                        <div style={{ color: '#5D3A1A' }}>{user?.gender}</div>
 
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Дата рождения:</div>
-                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+                        <div style={{ color: '#5D3A1A' }}>{user?.birthday}</div>
 
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Возраст:</div>
-                        <div style={{ color: '#5D3A1A' }}>
-                          В разработке
-                        </div>
+                        <div style={{ color: '#5D3A1A' }}>{user?.age}</div>
                       </div>
                     </div>
                   )}
@@ -709,12 +772,12 @@ const ClientAccountPage = () => {
                         <input
                           type="text"
                           name="passportIssued"
-                          value={editedData.passportIssued}
+                          value={editedData.issuedBy}
                           onChange={handleChange}
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.passportIssued ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.issuedBy ? '#dc3545' : '#D2B48C'}`,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -722,8 +785,8 @@ const ClientAccountPage = () => {
                             outline: 'none'
                           }}
                         />
-                        {errors.passportIssued && (
-                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportIssued}</div>
+                        {errors.issuedBy && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.issuedBy}</div>
                         )}
                       </div>
 
@@ -734,12 +797,12 @@ const ClientAccountPage = () => {
                         <input
                           type="date"
                           name="passportDate"
-                          value={editedData.passportDate}
+                          value={editedData.dateOfIssue}
                           onChange={handleChange}
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.passportDate ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.dateOfIssue ? '#dc3545' : '#D2B48C'}`,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -747,8 +810,8 @@ const ClientAccountPage = () => {
                             outline: 'none'
                           }}
                         />
-                        {errors.passportDate && (
-                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportDate}</div>
+                        {errors.dateOfIssue && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.dateOfIssue}</div>
                         )}
                       </div>
 
@@ -759,7 +822,7 @@ const ClientAccountPage = () => {
                         <input
                           type="text"
                           name="passportCode"
-                          value={editedData.passportCode}
+                          value={editedData.departmentCode}
                           onChange={handleChange}
                           style={{
                             width: '100%',
@@ -791,15 +854,13 @@ const ClientAccountPage = () => {
                         <div style={{ color: '#5D3A1A' }}>{passportData?.seria} {passportData?.number}</div>
 
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Кем выдан:</div>
-                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+                        <div style={{ color: '#5D3A1A' }}>{passportData?.issuedBy}</div>
 
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Дата выдачи:</div>
-                        <div style={{ color: '#5D3A1A' }}>
-                          В разработке
-                        </div>
+                        <div style={{ color: '#5D3A1A' }}>{passportData?.dateOfIssue}</div>
 
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Код подразделения:</div>
-                        <div style={{ color: '#5D3A1A' }}>В разработке</div>
+                        <div style={{ color: '#5D3A1A' }}>{passportData?.departmentCode}</div>
 
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Тип паспорта:</div>
                         <div style={{ color: '#5D3A1A' }}>{passportData?.type}</div>
@@ -913,7 +974,10 @@ const ClientAccountPage = () => {
                   }}>
                     {isEditing ? (
                       <>
-                        <div style={{ marginBottom: '15px' }}>
+                        <div>
+                          Соглашения (в разработке)
+                        </div>
+                        {/* <div style={{ marginBottom: '15px' }}>
                           <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8B5A2B', fontSize: '14px' }}>
                             <input
                               type="checkbox"
@@ -921,7 +985,7 @@ const ClientAccountPage = () => {
                               checked={editedData.agreeToNews}
                               onChange={handleChange}
                             />
-                            Получать новости и специальные предложения
+                            Получать новости и специальные предложения (в разработке)
                           </label>
                         </div>
 
@@ -933,14 +997,14 @@ const ClientAccountPage = () => {
                               checked={editedData.agreeToPersonalData}
                               onChange={handleChange}
                             />
-                            <span>Согласие на обработку персональных данных <span style={{ color: '#dc3545' }}>*</span></span>
+                            <span>Согласие на обработку персональных данных (в разработке)<span style={{ color: '#dc3545' }}>*</span></span>
                           </label>
                           {errors.agreeToPersonalData && (
                             <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px' }}>
                               {errors.agreeToPersonalData}
                             </div>
                           )}
-                        </div>
+                        </div> */}
                       </>
                     ) : (
                       <div style={{
@@ -966,6 +1030,7 @@ const ClientAccountPage = () => {
                   <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
                     <button
                       type="submit"
+                      onClick={handleSave}
                       style={{
                         padding: '15px 50px',
                         background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
