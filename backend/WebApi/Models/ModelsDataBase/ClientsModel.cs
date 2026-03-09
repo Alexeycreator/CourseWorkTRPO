@@ -15,6 +15,9 @@ public sealed class ClientsModel
     [Required] [MaxLength(100)] public string SurName { get; set; }
     [Required] [MaxLength(100)] public string FirstName { get; set; }
     [MaxLength(100)] public string? MiddleName { get; set; }
+    [Required] [MaxLength(25)] public string Gender { get; set; }
+    [Required] public DateOnly Birthday { get; set; }
+    [Required] public int Age { get; set; }
 
     [Required]
     [MaxLength(15)]
