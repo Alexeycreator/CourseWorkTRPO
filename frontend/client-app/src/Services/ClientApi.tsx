@@ -20,6 +20,10 @@ export interface Client {
     email: string;
     login: string;
     password: string;
+    gender: string;
+    age: number;
+    birthday: string;
+    isReadOnly: boolean;
     passport_Id?: number | null;
     passport?: Passport | null;
     tickets?: Ticket[] | null;
@@ -94,11 +98,13 @@ export const createClient = async (clientData: {
 export const updateClient = async (id: number, clientData: {
     surName: string;
     firstName: string;
-    middleName?: string;
+    middleName?: string | null;  // ← Исправлено: может быть null
     phoneNumber: string;
     email: string;
     login: string;
-    password: string;
+    gender: string;
+    birthday: string;            // Формат: "2026-03-09"
+    age: number;
     passport_Id?: number | null;
 }): Promise<Client> => {
     const response = await api.put<Client>(`/Clients/${id}`, clientData);
