@@ -16,6 +16,9 @@ export interface Passport {
     seria: number;
     number: number;
     type: string;
+    issuedBy: string;
+    departmentCode: string;
+    dateOfIssue: string;
     addresses?: Address[] | null;
     clients?: Client[] | null;
 }
