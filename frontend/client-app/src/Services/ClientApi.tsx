@@ -20,19 +20,65 @@ export interface Client {
     email: string;
     login: string;
     password: string;
+    gender: string;
+    age: number;
+    birthday: string;
+    isReadOnly: boolean;
     passport_Id?: number | null;
     passport?: Passport | null;
     tickets?: Ticket[] | null;
 }
 
 export const getClients = async (): Promise<Client[]> => {
-    const response = await api.get<Client[]>('/Clients');
-    return response.data;
+    try {
+        const response = await api.get<Client[]>('/Clients');
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+
+            // eslint-disable-next-line no-throw-literal
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            // eslint-disable-next-line no-throw-literal
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            // eslint-disable-next-line no-throw-literal
+            throw { message: error.message, isSetupError: true };
+        }
+    }
 };
 
 export const getClientById = async (id: number): Promise<Client> => {
-    const response = await api.get<Client>(`/Clients/${id}`);
-    return response.data;
+    try {
+        const response = await api.get<Client>(`/Clients/${id}`);
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+
+            // eslint-disable-next-line no-throw-literal
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            // eslint-disable-next-line no-throw-literal
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            // eslint-disable-next-line no-throw-literal
+            throw { message: error.message, isSetupError: true };
+        }
+    }
 };
 
 export const createClient = async (clientData: {
@@ -52,11 +98,13 @@ export const createClient = async (clientData: {
 export const updateClient = async (id: number, clientData: {
     surName: string;
     firstName: string;
-    middleName: string;
+    middleName?: string | null;  // ← Исправлено: может быть null
     phoneNumber: string;
     email: string;
     login: string;
-    password: string;
+    gender: string;
+    birthday: string;            // Формат: "2026-03-09"
+    age: number;
     passport_Id?: number | null;
 }): Promise<Client> => {
     const response = await api.put<Client>(`/Clients/${id}`, clientData);

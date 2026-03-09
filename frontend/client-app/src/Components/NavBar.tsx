@@ -1,8 +1,9 @@
-import React, { Component, useState, useEffect } from "react";
+import React, { Component, useState, useEffect, createRef } from "react";
 import { Link } from 'react-router-dom';
 import ButtonGoogleAuth from "./BtnGoogleAuth";
 import { Modal, ModalHeader, ModalBody } from 'reactstrap';
 import { getCurrencyRates } from "../Services/CurrencyRatesApi";
+import { authApi, UserData } from "../Services/IndexAuth";
 
 interface RegistrationFormData {
   firstName: string;
@@ -45,13 +46,65 @@ interface NavBarState {
   }>;
   loading: boolean;
   error: string | null;
+  user: UserData | null;
 
+  // Форма регистрации
   registrationForm: RegistrationFormData;
+  registrationStep: 1 | 2; // Для многошаговой формы
+  registrationLoading: boolean;
+  registrationError: string | null;
+  registrationFieldErrors: Record<string, string>;
+
+  // Форма авторизации
+  authForm: {
+    login: string;
+    password: string;
+  };
+  authLoading: boolean;
+  authError: string | null;
+  authFieldErrors: {
+    login?: string;
+    password?: string;
+  };
+
   showPassword: boolean;
   errors: Record<string, string>;
+
+  showUserMenu: boolean;
 }
 
 export default class NavBar extends Component<NavBarProps, NavBarState> {
+  private loginInput = createRef<HTMLInputElement>();
+  private passwordInput = createRef<HTMLInputElement>();
+  private authRef = createRef<HTMLDivElement>();
+  private registrationRef = createRef<HTMLDivElement>();
+  private menuRef = React.createRef<HTMLDivElement>();
+  private userMenuRef = createRef<HTMLDivElement>();
+
+  // Начальное состояние формы регистрации
+  private readonly initialRegistrationForm: RegistrationFormData = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    gender: 'male',
+    birthDay: '',
+    birthMonth: '',
+    birthYear: '',
+    passportSeries: '',
+    passportNumber: '',
+    passportIssued: '',
+    passportDate: '',
+    passportCode: '',
+    city: '',
+    address: '',
+    password: '',
+    confirmPassword: '',
+    agreeToNews: false,
+    agreeToPersonalData: false
+  };
+
+  // конструктор состояний
   state: NavBarState = {
     showAuth: false,
     googleAuthModal: false,
@@ -60,31 +113,37 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     selectedCurrency: 'RUB', // если надо поменять изначальную валюту, то надо ввести ее letterCode
     currencyOptions: [],
     ratesData: [],
+    user: authApi.getStoredUser(),
+
+    // Регистрация
+    registrationForm: { ...this.initialRegistrationForm },
+    registrationStep: 1,
+    registrationLoading: false,
+    registrationError: null,
+    registrationFieldErrors: {},
+
+    // Авторизация
+    authForm: {
+      login: '',
+      password: ''
+    },
+    authLoading: false,
+    authError: null,
+    authFieldErrors: {},
+
+    showPassword: false,
     loading: true,
     error: null,
-    registrationForm: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      gender: 'male',
-      birthDay: '',
-      birthMonth: '',
-      birthYear: '',
-      passportSeries: '',
-      passportNumber: '',
-      passportIssued: '',
-      passportDate: '',
-      passportCode: '',
-      city: '',
-      address: '',
-      password: '',
-      confirmPassword: '',
-      agreeToNews: false,
-      agreeToPersonalData: false
-    },
-    showPassword: false, // <-- ДОБАВИТЬ
-    errors: {} // <-
+    errors: {}, // <-
+    showUserMenu: false,
+  };
+
+  toggleUserMenu = () => {
+    this.setState(prev => ({ showUserMenu: !prev.showUserMenu }));
+  };
+
+  closeUserMenu = () => {
+    this.setState({ showUserMenu: false });
   };
 
   days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
@@ -202,8 +261,6 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       // Если курс не найден, но колбэк есть, отправляем запрос на сервер
       this.fetchAndSendRate(currencyCode);
     }
-
-    console.log(`Выбрана валюта: ${currencyCode}, курс: ${rate}`);
   };
 
   fetchAndSendRate = async (currencyCode: string) => {
@@ -227,10 +284,282 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     return found ? found.rate : null;
   };
 
+  // ========== АВТОРИЗАЦИЯ ==========
   toggleAuthModal = () => {
-    this.setState(prevState => ({
-      showAuth: !prevState.showAuth
+    this.setState(prev => ({
+      showAuth: !prev.showAuth,
+      authError: null,
+      authFieldErrors: {},
+      authForm: { login: '', password: '' }
     }));
+  };
+
+  handleAuthInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    this.setState(prev => ({
+      authForm: {
+        ...prev.authForm,
+        [name]: value
+      },
+      authFieldErrors: {
+        ...prev.authFieldErrors,
+        [name]: undefined
+      },
+      authError: null
+    }));
+  };
+
+  validateAuthForm = (): boolean => {
+    const { login, password } = this.state.authForm;
+    const errors: { login?: string; password?: string } = {};
+
+    if (!login.trim()) {
+      errors.login = 'Введите логин или email';
+    }
+
+    if (!password) {
+      errors.password = 'Введите пароль';
+    }
+
+    this.setState({ authFieldErrors: errors });
+    return Object.keys(errors).length === 0;
+  };
+
+  notifyAuthChange = (user: UserData | null) => {
+    window.dispatchEvent(new CustomEvent('authChange', { detail: { user } }));
+  };
+
+  handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!this.validateAuthForm()) {
+      return;
+    }
+
+    this.setState({ authLoading: true, authError: null });
+
+    try {
+      const { login, password } = this.state.authForm;
+      const response = await authApi.login({ login, password });
+
+      this.setState({
+        user: response.user,
+        showAuth: false,
+        authForm: { login: '', password: '' },
+        authError: null,
+        authFieldErrors: {}
+      });
+
+      this.notifyAuthChange(response.user);
+
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        this.setState({
+          authError: 'Неверный логин или пароль',
+          authFieldErrors: {
+            login: 'Пользователь не найден',
+            password: 'Неверный пароль'
+          }
+        });
+      } else if (error.request) {
+        this.setState({
+          authError: 'Сервер не отвечает. Проверьте подключение'
+        });
+      } else {
+        this.setState({
+          authError: 'Произошла ошибка. Попробуйте снова'
+        });
+      }
+    } finally {
+      this.setState({ authLoading: false });
+    }
+  };
+
+  handleLogout = () => {
+    authApi.logout();
+    this.setState({ user: null });
+    this.notifyAuthChange(null);
+  };
+
+  // ========== РЕГИСТРАЦИЯ ==========
+  switchToRegistration = () => {
+    this.setState({
+      showAuth: false,
+      showRegistrationModal: true,
+      registrationForm: { ...this.initialRegistrationForm },
+      registrationStep: 1,
+      registrationError: null,
+      registrationFieldErrors: {}
+    });
+  };
+
+  switchToAuth = () => {
+    this.setState({
+      showRegistrationModal: false,
+      showAuth: true,
+      registrationForm: { ...this.initialRegistrationForm },
+      registrationStep: 1
+    });
+  };
+
+  handleClickOutside = (event: MouseEvent) => {
+    if (this.menuRef.current && !this.menuRef.current.contains(event.target as Node)) {
+      this.setState({ showCurrencyMenu: false });
+    }
+    if (this.authRef.current && !this.authRef.current.contains(event.target as Node)) {
+      this.setState({
+        showAuth: false,
+        authError: null,
+        authFieldErrors: {},
+        authForm: { login: '', password: '' }
+      });
+    }
+    if (this.registrationRef.current && !this.registrationRef.current.contains(event.target as Node)) {
+      // Исправляем: передаем объект, а не функцию
+      this.setState({
+        showRegistrationModal: false,
+        registrationError: null,
+        registrationFieldErrors: {},
+        registrationForm: { ...this.initialRegistrationForm },
+        registrationStep: 1
+      });
+    }
+    if (this.userMenuRef.current && !this.userMenuRef.current.contains(event.target as Node)) {
+      this.setState({ showUserMenu: false });
+    }
+  };
+
+  validateRegistrationStep1 = (): boolean => {
+    const form = this.state.registrationForm;
+    const errors: Record<string, string> = {};
+
+    if (!form.lastName.trim()) errors.lastName = 'Введите фамилию';
+    if (!form.firstName.trim()) errors.firstName = 'Введите имя';
+    if (!form.email.trim()) {
+      errors.email = 'Введите email';
+    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
+      errors.email = 'Введите корректный email';
+    }
+    if (!form.phone.trim()) {
+      errors.phone = 'Введите телефон';
+    } else if (!/^(\+7|7|8)\d{10}$/.test(form.phone)) {
+      errors.phone = 'Формат: +7XXXXXXXXXX';
+    }
+    if (!form.birthDay) errors.birthDay = 'Выберите день';
+    if (!form.birthMonth) errors.birthMonth = 'Выберите месяц';
+    if (!form.birthYear) errors.birthYear = 'Выберите год';
+
+    this.setState({ registrationFieldErrors: errors });
+    return Object.keys(errors).length === 0;
+  };
+
+  validateRegistrationStep2 = (): boolean => {
+    const form = this.state.registrationForm;
+    const errors: Record<string, string> = {};
+
+    if (!form.passportSeries.trim()) {
+      errors.passportSeries = 'Введите серию паспорта';
+    } else if (!/^\d{4}$/.test(form.passportSeries)) {
+      errors.passportSeries = '4 цифры';
+    }
+
+    if (!form.passportNumber.trim()) {
+      errors.passportNumber = 'Введите номер паспорта';
+    } else if (!/^\d{6}$/.test(form.passportNumber)) {
+      errors.passportNumber = '6 цифр';
+    }
+
+    if (!form.passportIssued.trim()) errors.passportIssued = 'Введите кем выдан';
+    if (!form.passportDate) errors.passportDate = 'Введите дату выдачи';
+
+    if (!form.city.trim()) errors.city = 'Введите город';
+    if (!form.address.trim()) errors.address = 'Введите адрес';
+
+    if (!form.password) {
+      errors.password = 'Введите пароль';
+    } else if (form.password.length < 6) {
+      errors.password = 'Минимум 6 символов';
+    }
+
+    if (form.password !== form.confirmPassword) {
+      errors.confirmPassword = 'Пароли не совпадают';
+    }
+
+    if (!form.agreeToPersonalData) {
+      errors.agreeToPersonalData = 'Необходимо согласие';
+    }
+
+    this.setState({ registrationFieldErrors: errors });
+    return Object.keys(errors).length === 0;
+  };
+
+  handleRegistrationNext = () => {
+    if (this.validateRegistrationStep1()) {
+      this.setState({ registrationStep: 2 });
+    }
+  };
+
+  handleRegistrationBack = () => {
+    this.setState({ registrationStep: 1 });
+  };
+
+  handleRegistrationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!this.validateRegistrationStep2()) {
+      return;
+    }
+
+    this.setState({ registrationLoading: true, registrationError: null });
+
+    try {
+      const form = this.state.registrationForm;
+
+      // Преобразуем данные формы в формат для API
+      const registerData = {
+        surName: form.lastName,
+        firstName: form.firstName,
+        middleName: '', // Можно добавить поле в форму если нужно
+        phoneNumber: form.phone,
+        email: form.email,
+        login: form.email, // Используем email как логин
+        password: form.password
+      };
+
+      // Отправляем запрос на регистрацию
+      await authApi.register(registerData);
+
+      // После успешной регистрации пробуем сразу войти
+      const loginResponse = await authApi.login({
+        login: form.email,
+        password: form.password
+      });
+
+      this.setState({
+        user: loginResponse.user,
+        showRegistrationModal: false,
+        registrationForm: { ...this.initialRegistrationForm },
+        registrationStep: 1
+      });
+
+      alert('Регистрация успешна! Добро пожаловать!');
+
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        const message = error.response.data?.message || '';
+        if (message.includes('логин')) {
+          this.setState({ registrationError: 'Пользователь с таким email уже существует' });
+        } else if (message.includes('телефон')) {
+          this.setState({ registrationError: 'Пользователь с таким телефоном уже существует' });
+        } else {
+          this.setState({ registrationError: 'Пользователь уже существует' });
+        }
+      } else {
+        this.setState({ registrationError: 'Ошибка при регистрации. Попробуйте позже' });
+      }
+    } finally {
+      this.setState({ registrationLoading: false });
+    }
   };
 
   toggleGoogleAuth = () => {
@@ -306,53 +635,6 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     return Object.keys(newErrors).length === 0;
   };
 
-  handleRegistrationSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (this.validateRegistrationForm()) {
-      console.log('Данные регистрации:', this.state.registrationForm);
-      alert('Регистрация успешно завершена!');
-      this.setState({
-        showRegistrationModal: false,
-        // Очищаем форму
-        registrationForm: {
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          gender: 'male',
-          birthDay: '',
-          birthMonth: '',
-          birthYear: '',
-          passportSeries: '',
-          passportNumber: '',
-          passportIssued: '',
-          passportDate: '',
-          passportCode: '',
-          city: '',
-          address: '',
-          password: '',
-          confirmPassword: '',
-          agreeToNews: false,
-          agreeToPersonalData: false
-        },
-        errors: {}
-      });
-    }
-  };
-
-  private menuRef = React.createRef<HTMLDivElement>();
-  private authRef = React.createRef<HTMLDivElement>();
-
-  handleClickOutside = (event: MouseEvent) => {
-    if (this.menuRef.current && !this.menuRef.current.contains(event.target as Node)) {
-      this.setState({ showCurrencyMenu: false });
-    }
-    if (this.authRef.current && !this.authRef.current.contains(event.target as Node)) {
-      this.setState({ showAuth: false });
-    }
-  };
-
   render() {
     const {
       showAuth,
@@ -361,7 +643,16 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       selectedCurrency,
       registrationForm,
       showPassword,
-      errors
+      errors,
+      user,
+      authLoading,
+      authError,
+      authFieldErrors,
+      authForm,
+      registrationStep,
+      registrationLoading,
+      registrationError,
+      registrationFieldErrors
     } = this.state;
 
     return (
@@ -606,31 +897,33 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         𓋴 Помощь
                       </Link>
                     </li>
-                    <li>
-                      <Link
-                        className="dropdown-item"
-                        to="/account"
-                        style={{
-                          color: '#8B5A2B',
-                          padding: '8px 15px',
-                          borderRadius: '8px',
-                          transition: 'all 0.3s',
-                          textDecoration: 'none',
-                          display: 'block',
-                          fontSize: '14px'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#C0A080';
-                          e.currentTarget.style.color = '#F8F0E0';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = '#8B5A2B';
-                        }}
-                      >
-                        𓁐 Личный кабинет
-                      </Link>
-                    </li>
+                    {user && (
+                      <li>
+                        <Link
+                          className="dropdown-item"
+                          to={`/account/${user.id}`}
+                          style={{
+                            color: '#8B5A2B',
+                            padding: '8px 15px',
+                            borderRadius: '8px',
+                            transition: 'all 0.3s',
+                            textDecoration: 'none',
+                            display: 'block',
+                            fontSize: '14px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#C0A080';
+                            e.currentTarget.style.color = '#F8F0E0';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = '#8B5A2B';
+                          }}
+                        >
+                          𓁐 Личный кабинет
+                        </Link>
+                      </li>
+                    )}
                   </ul>
                 </li>
               </ul>
@@ -839,38 +1132,74 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
               </form>
 
               {/* Кнопка авторизации */}
-              <div className="position-relative"
-                style={{ flexShrink: 0 }}>
-                <button
-                  className="btn"
-                  id="authButton"
-                  onClick={this.toggleAuthModal}
-                  style={{
-                    background: '#C0A080',
-                    color: '#F8F0E0',
-                    border: '1px solid #8B5A2B',
-                    borderRadius: '50%',
-                    width: '35px',
-                    height: '35px',
-                    padding: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px',
-                    transition: 'all 0.3s',
-                    boxShadow: '0 2px 5px rgba(160, 120, 80, 0.1)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#8B5A2B';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#C0A080';
-                  }}
-                >
-                  𓁐
-                </button>
+              <div className="position-relative" style={{ flexShrink: 0 }}>
+                {user ? (
+                  // Если пользователь авторизован - показываем профиль
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{
+                      color: '#8B5A2B',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}>
+                      {user.surName} {user.firstName}
+                    </span>
+                    <button
+                      className="btn"
+                      onClick={this.handleLogout}
+                      style={{
+                        background: '#C0A080',
+                        color: '#F8F0E0',
+                        border: '1px solid #8B5A2B',
+                        borderRadius: '8px',
+                        padding: '5px 10px',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#8B5A2B';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#C0A080';
+                      }}
+                    >
+                      Выйти
+                    </button>
+                  </div>
+                ) : (
+                  // Если не авторизован - показываем кнопку входа
+                  <button
+                    className="btn"
+                    id="authButton"
+                    onClick={this.toggleAuthModal}
+                    style={{
+                      background: '#C0A080',
+                      color: '#F8F0E0',
+                      border: '1px solid #8B5A2B',
+                      borderRadius: '50%',
+                      width: '35px',
+                      height: '35px',
+                      padding: '0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      transition: 'all 0.3s',
+                      boxShadow: '0 2px 5px rgba(160, 120, 80, 0.1)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#8B5A2B';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#C0A080';
+                    }}
+                  >
+                    𓁐
+                  </button>
+                )}
 
-                {showAuth && (
+                {/* Модальное окно авторизации */}
+                {showAuth && !user && (
                   <div
                     ref={this.authRef}
                     id="authModal"
@@ -898,70 +1227,119 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                       𓋴 Вход
                     </h3>
 
-                    <form onSubmit={(e) => e.preventDefault()}>
+                    <form onSubmit={this.handleAuthSubmit}>
+                      {/* Поле логина */}
                       <div style={{ marginBottom: '10px' }}>
                         <input
                           type="text"
-                          placeholder="Email"
+                          name="login"
+                          value={this.state.authForm.login}
+                          onChange={this.handleAuthInputChange}
+                          placeholder="Введите логин или Email"
                           style={{
                             width: '100%',
                             padding: '8px 12px',
                             backgroundColor: '#F0E0D0',
-                            border: '1px solid #C0A080',
+                            border: `1px solid ${this.state.authFieldErrors.login ? '#d32f2f' : '#C0A080'}`,
                             borderRadius: '8px',
                             color: '#8B5A2B',
                             fontSize: '14px',
                             outline: 'none'
                           }}
                         />
+                        {this.state.authFieldErrors.login && (
+                          <div style={{
+                            color: '#d32f2f',
+                            fontSize: '12px',
+                            marginTop: '4px',
+                            paddingLeft: '4px'
+                          }}>
+                            {this.state.authFieldErrors.login}
+                          </div>
+                        )}
                       </div>
 
+                      {/* Поле пароля */}
                       <div style={{ marginBottom: '15px' }}>
                         <input
                           type="password"
+                          name="password"
+                          value={this.state.authForm.password}
+                          onChange={this.handleAuthInputChange}
                           placeholder="Пароль"
                           style={{
                             width: '100%',
                             padding: '8px 12px',
                             backgroundColor: '#F0E0D0',
-                            border: '1px solid #C0A080',
+                            border: `1px solid ${this.state.authFieldErrors.password ? '#d32f2f' : '#C0A080'}`,
                             borderRadius: '8px',
                             color: '#8B5A2B',
                             fontSize: '14px',
                             outline: 'none'
                           }}
                         />
+                        {this.state.authFieldErrors.password && (
+                          <div style={{
+                            color: '#d32f2f',
+                            fontSize: '12px',
+                            marginTop: '4px',
+                            paddingLeft: '4px'
+                          }}>
+                            {this.state.authFieldErrors.password}
+                          </div>
+                        )}
                       </div>
 
+                      {/* Общая ошибка */}
+                      {this.state.authError && (
+                        <div style={{
+                          backgroundColor: '#ffebee',
+                          color: '#d32f2f',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          marginBottom: '15px',
+                          fontSize: '13px',
+                          textAlign: 'center',
+                          border: '1px solid #ffcdd2'
+                        }}>
+                          {this.state.authError}
+                        </div>
+                      )}
+
+                      {/* Кнопки входа и регистрации */}
                       <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                         <button
                           type="submit"
+                          disabled={this.state.authLoading}
                           style={{
                             flex: '1',
                             padding: '8px',
-                            background: '#C0A080',
+                            background: this.state.authLoading ? '#999' : '#C0A080',
                             color: '#F8F0E0',
                             border: '1px solid #8B5A2B',
                             borderRadius: '8px',
                             fontSize: '14px',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s'
+                            cursor: this.state.authLoading ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.3s',
+                            opacity: this.state.authLoading ? 0.7 : 1
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#8B5A2B';
+                            if (!this.state.authLoading) {
+                              e.currentTarget.style.background = '#8B5A2B';
+                            }
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#C0A080';
+                            if (!this.state.authLoading) {
+                              e.currentTarget.style.background = '#C0A080';
+                            }
                           }}
                         >
-                          Войти
+                          {this.state.authLoading ? 'Вход...' : 'Войти'}
                         </button>
+
                         <button
                           type="button"
-                          onClick={() => {
-                            this.toggleRegistrationModal(); // Открываем модалку регистрации
-                            this.toggleAuthModal(); // Закрываем модалку авторизации
-                          }}
+                          onClick={this.switchToRegistration}
                           style={{
                             flex: '1',
                             padding: '8px',
@@ -970,15 +1348,24 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                             border: '1px solid #C0A080',
                             borderRadius: '8px',
                             fontSize: '14px',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.3s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#F0E0D0';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
                           Регистрация
                         </button>
                       </div>
 
+                      {/* Google авторизация */}
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                         <button
+                          type="button"
                           style={{
                             width: '35px',
                             height: '35px',
@@ -1005,22 +1392,23 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                           G
                         </button>
                       </div>
-
-                      <Modal
-                        isOpen={this.state.googleAuthModal}
-                        toggle={this.toggleGoogleAuth}
-                        centered
-                      >
-                        <ModalHeader toggle={this.toggleGoogleAuth}>
-                          Авторизация через Google
-                        </ModalHeader>
-                        <ModalBody>
-                          <ButtonGoogleAuth />
-                        </ModalBody>
-                      </Modal>
                     </form>
                   </div>
                 )}
+
+                {/* Google Auth Modal */}
+                <Modal
+                  isOpen={this.state.googleAuthModal}
+                  toggle={this.toggleGoogleAuth}
+                  centered
+                >
+                  <ModalHeader toggle={this.toggleGoogleAuth}>
+                    Авторизация через Google
+                  </ModalHeader>
+                  <ModalBody>
+                    <ButtonGoogleAuth />
+                  </ModalBody>
+                </Modal>
               </div>
             </div>
           </div>
