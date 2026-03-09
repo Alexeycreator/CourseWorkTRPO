@@ -24,6 +24,9 @@ export interface UserData {
     login: string;
     passport_Id: number | null;
     isReadOnly: boolean;
+    gender: string;
+    age: number;
+    birthday: string;
     // Пароля здесь НЕТ!
 }
 
