@@ -1,4 +1,5 @@
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation, Location } from 'react-router-dom';
+import { useEffect } from 'react';
 import NavBar from './Components/NavBar';
 import Footer from './Components/Footer';
 import MainPage from './Components/MainPage';
@@ -12,7 +13,27 @@ import { TourPage } from './Pages/TourPage';
 import PrivacyTermsPage from './Pages/PrivacyTermsPage';
 import { AuthProvider } from './Contexts/AuthContext';
 
+
+interface ScrollToTopProps {
+    location: Location;
+}
+
+const ScrollToTop = ({ location }: ScrollToTopProps) => {
+    useEffect(() => {
+        window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: 'smooth'
+        });
+    }, [location]);
+
+    return null;
+};
+
 function App() {
+
+    const location = useLocation();
+
     return (
         <AuthProvider>
             <div style={{
@@ -22,8 +43,9 @@ function App() {
                 background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)'
             }}>
                 <NavBar />
+                <ScrollToTop location={location} />
                 <div style={{ flex: '1 0 auto', width: '100%' }}>
-                    <Routes>
+                    <Routes  location={location} key={location.pathname}>
                         <Route path='/' element={<MainPage />} />
                         <Route path='/catalog' element={<CatalogToursPage />} />
                         <Route path='/hot-tours' element={<HotTourPage />} />
