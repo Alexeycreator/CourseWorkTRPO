@@ -1608,7 +1608,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                       )}
                     </div>
 
-                    {/* Пол */}
+                    {/* Пол 
                     <div>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Пол
@@ -1636,8 +1636,9 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         </label>
                       </div>
                     </div>
+                    */}
 
-                    {/* Дата рождения */}
+                    {/* Дата рождения 
                     <div>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Дата рождения
@@ -1705,10 +1706,11 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         </select>
                       </div>
                     </div>
+                    */}
                   </div>
                 </section>
 
-                {/* Паспортные данные */}
+                {/* Паспортные данные 
                 <section style={{ marginBottom: '30px' }}>
                   <h3 style={{
                     fontSize: '20px',
@@ -1726,7 +1728,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                     gridTemplateColumns: 'repeat(2, 1fr)',
                     gap: '20px'
                   }}>
-                    {/* Серия */}
+                    */}
+                {/* Серия 
                     <div>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Серия <span style={{ color: '#dc3545' }}>*</span>
@@ -1753,8 +1756,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportSeries}</div>
                       )}
                     </div>
-
-                    {/* Номер */}
+*/}
+                {/* Номер 
                     <div>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Номер <span style={{ color: '#dc3545' }}>*</span>
@@ -1781,8 +1784,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportNumber}</div>
                       )}
                     </div>
-
-                    {/* Кем выдан */}
+*/}
+                {/* Кем выдан 
                     <div style={{ gridColumn: 'span 2' }}>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Кем выдан <span style={{ color: '#dc3545' }}>*</span>
@@ -1808,8 +1811,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportIssued}</div>
                       )}
                     </div>
-
-                    {/* Дата выдачи */}
+*/}
+                {/* Дата выдачи 
                     <div>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Дата выдачи <span style={{ color: '#dc3545' }}>*</span>
@@ -1834,8 +1837,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportDate}</div>
                       )}
                     </div>
-
-                    {/* Код подразделения */}
+*/}
+                {/* Код подразделения 
                     <div>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Код подразделения
@@ -1860,8 +1863,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                     </div>
                   </div>
                 </section>
-
-                {/* Адрес регистрации */}
+*/}
+                {/* Адрес регистрации 
                 <section style={{ marginBottom: '30px' }}>
                   <h3 style={{
                     fontSize: '20px',
@@ -1879,7 +1882,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                     gridTemplateColumns: 'repeat(2, 1fr)',
                     gap: '20px'
                   }}>
-                    {/* Город */}
+                    */}
+                {/* Город 
                     <div>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Город <span style={{ color: '#dc3545' }}>*</span>
@@ -1905,8 +1909,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.city}</div>
                       )}
                     </div>
-
-                    {/* Улица/дом/квартира */}
+*/}
+                {/* Улица/дом/квартира 
                     <div style={{ gridColumn: 'span 2' }}>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Адрес <span style={{ color: '#dc3545' }}>*</span>
@@ -1934,8 +1938,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                     </div>
                   </div>
                 </section>
-
-                {/* Безопасность */}
+*/}
+                {/* Безопасность 
                 <section style={{ marginBottom: '30px' }}>
                   <h3 style={{
                     fontSize: '20px',
@@ -1953,7 +1957,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                     gridTemplateColumns: 'repeat(2, 1fr)',
                     gap: '20px'
                   }}>
-                    {/* Пароль */}
+                    */}
+                {/* Пароль 
                     <div>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Пароль <span style={{ color: '#dc3545' }}>*</span>
@@ -1979,8 +1984,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                         <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.password}</div>
                       )}
                     </div>
-
-                    {/* Подтверждение пароля */}
+*/}
+                {/* Подтверждение пароля 
                     <div>
                       <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                         Подтвердите пароль <span style={{ color: '#dc3545' }}>*</span>
@@ -2007,8 +2012,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                       )}
                     </div>
                   </div>
-
-                  {/* Чекбокс показа пароля */}
+*/}
+                {/* Чекбокс показа пароля
                   <div style={{ marginTop: '10px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B', fontSize: '14px' }}>
                       <input
@@ -2020,8 +2025,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                     </label>
                   </div>
                 </section>
-
-                {/* Согласия */}
+ */}
+                {/* Согласия 
                 <section style={{ marginBottom: '30px' }}>
                   <div style={{
                     background: '#FFF8F0',
@@ -2059,7 +2064,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                     </div>
                   </div>
                 </section>
-
+*/}
                 {/* Кнопки */}
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
                   <button
