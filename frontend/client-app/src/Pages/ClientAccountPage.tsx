@@ -23,7 +23,7 @@ interface Tour {
 
 const ClientAccountPage = () => {
   // Состояние для активной вкладки
-  const [activeTab, setActiveTab] = useState<'profile' | 'bookings'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'bookings'>('profile');
   const { user, isAuthenticated } = useAuth();
   const [userData, setUserData] = useState<Client | null>(null);
   const [passportData, setPassportData] = useState<Passport | null>(null);
@@ -349,6 +349,7 @@ const ClientAccountPage = () => {
               {[
                 { id: 'profile' as const, label: '📋 Мои данные' },
                 //{ id: 'bookings' as const, label: '🗺️ Мои туры', badge: bookedTours.length.toString() },
+                { id: 'documents' as const, label: '📄 Документы' },
                 { id: 'logout' as const, label: '🚪 Выход' }
               ].map(item => (
                 <button
@@ -694,7 +695,7 @@ const ClientAccountPage = () => {
                   )}
                 </section>
 
-                {/* Паспортные данные */}
+                {/* Паспортные данные 
                 <section style={{ marginBottom: '30px' }}>
                   <h3 style={{
                     fontSize: '20px',
@@ -868,8 +869,8 @@ const ClientAccountPage = () => {
                     </div>
                   )}
                 </section>
-
-                {/* Адрес регистрации */}
+*/}
+                {/* Адрес регистрации 
                 <section style={{ marginBottom: '30px' }}>
                   <h3 style={{
                     fontSize: '20px',
@@ -963,8 +964,8 @@ const ClientAccountPage = () => {
                     </div>
                   )}
                 </section>
-
-                {/* Согласия */}
+*/}
+                {/* Согласия 
                 <section style={{ marginBottom: '30px' }}>
                   <div style={{
                     background: '#FFF8F0',
@@ -977,7 +978,7 @@ const ClientAccountPage = () => {
                         <div>
                           Соглашения (в разработке)
                         </div>
-                        {/* <div style={{ marginBottom: '15px' }}>
+                         <div style={{ marginBottom: '15px' }}>
                           <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8B5A2B', fontSize: '14px' }}>
                             <input
                               type="checkbox"
@@ -1004,7 +1005,7 @@ const ClientAccountPage = () => {
                               {errors.agreeToPersonalData}
                             </div>
                           )}
-                        </div> */}
+                        </div>
                       </>
                     ) : (
                       <div style={{
@@ -1015,15 +1016,15 @@ const ClientAccountPage = () => {
                       }}>
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Новости:</div>
                         <div style={{ color: '#5D3A1A' }}>В разработке</div>
-                        {/* <div style={{ color: '#5D3A1A' }}>{clientData.agreeToNews ? '✓ Согласен' : '✗ Не согласен'}</div> */}
+                        {/* <div style={{ color: '#5D3A1A' }}>{clientData.agreeToNews ? '✓ Согласен' : '✗ Не согласен'}</div> 
 
                         <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Персональные данные:</div>
                         <div style={{ color: '#5D3A1A' }}>В разработке</div>
-                        {/* <div style={{ color: '#5D3A1A' }}>{clientData.agreeToPersonalData ? '✓ Согласен' : '✗ Не согласен'}</div> */}
+                        {/* <div style={{ color: '#5D3A1A' }}>{clientData.agreeToPersonalData ? '✓ Согласен' : '✗ Не согласен'}</div> 
                       </div>
                     )}
                   </div>
-                </section>
+                </section>*/}
 
                 {/* Кнопки сохранения/отмены */}
                 {isEditing && (
@@ -1081,8 +1082,144 @@ const ClientAccountPage = () => {
                   </div>
                 )}
               </form>
+            ) : activeTab === 'documents' ? (
+
+              <div>
+                <h3 style={{
+                  fontSize: '24px',
+                  color: '#8B5A2B',
+                  marginBottom: '25px',
+                  fontFamily: "'Cormorant Garamond', serif",
+                  borderBottom: '2px solid #D2B48C',
+                  paddingBottom: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <span>📄 Мои документы</span>
+                </h3>
+
+                {/* Паспортные данные */}
+                <section style={{ marginBottom: '30px' }}>
+                  <h4 style={{
+                    fontSize: '18px',
+                    color: '#8B5A2B',
+                    marginBottom: '15px',
+                    fontFamily: "'Cormorant Garamond', serif"
+                  }}>
+                    🪪 Паспортные данные
+                  </h4>
+                  <div style={{
+                    background: '#FFF8F0',
+                    borderRadius: '20px',
+                    padding: '20px',
+                    border: '2px solid #D2B48C'
+                  }}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '180px 1fr',
+                      gap: '15px',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Серия и номер:</div>
+                      <div style={{ color: '#5D3A1A' }}>{passportData?.seria} {passportData?.number}</div>
+
+                      <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Кем выдан:</div>
+                      <div style={{ color: '#5D3A1A' }}>{passportData?.issuedBy}</div>
+
+                      <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Дата выдачи:</div>
+                      <div style={{ color: '#5D3A1A' }}>{passportData?.dateOfIssue}</div>
+
+                      <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Код подразделения:</div>
+                      <div style={{ color: '#5D3A1A' }}>{passportData?.departmentCode}</div>
+
+                      <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Тип паспорта:</div>
+                      <div style={{ color: '#5D3A1A' }}>{passportData?.type}</div>
+
+                      {/* Выделенный блок с адресом регистрации */}
+                      <div style={{
+                        marginTop: '20px',
+                      }}>
+                        <h5 style={{
+                          fontSize: '16px',
+                          color: '#B76E3C',
+                          marginBottom: '15px',
+                          fontFamily: "'Cormorant Garamond', serif",
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          Адрес регистрации:
+                        </h5>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '180px 1fr',
+                          gap: '15px',
+                          alignItems: 'center'
+                        }}>
+                          <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Страна:</div>
+                          <div style={{ color: '#5D3A1A' }}>{addressData?.country}</div>
+
+                          <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Город:</div>
+                          <div style={{ color: '#5D3A1A' }}>{addressData?.city}</div>
+
+                          <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Улица:</div>
+                          <div style={{ color: '#5D3A1A' }}>{addressData?.street}</div>
+
+                          <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Дом:</div>
+                          <div style={{ color: '#5D3A1A' }}>{addressData?.house}</div>
+
+                          <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Квартира:</div>
+                          <div style={{ color: '#5D3A1A' }}>{addressData?.apartment || '—'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Дополнительная информация */}
+                <section>
+                  <h4 style={{
+                    fontSize: '18px',
+                    color: '#8B5A2B',
+                    marginBottom: '15px',
+                    fontFamily: "'Cormorant Garamond', serif"
+                  }}>
+                    ℹ️ Дополнительная информация
+                  </h4>
+                  <div style={{
+                    background: '#FFF8F0',
+                    borderRadius: '20px',
+                    padding: '20px',
+                    border: '2px solid #D2B48C'
+                  }}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '180px 1fr',
+                      gap: '15px',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Гражданство:</div>
+                      <div style={{ color: '#5D3A1A' }}>Российская Федерация</div>
+
+                      <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Статус документа:</div>
+                      <div style={{ color: '#5D3A1A' }}>
+                        <span style={{
+                          background: '#28a745',
+                          color: 'white',
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px'
+                        }}>
+                          Действителен
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
             ) : (
-              // Вкладка "Мои туры"
+              // Вкладка "Мои туры" (существующий код)
               <div>
                 <h3 style={{
                   fontSize: '24px',
