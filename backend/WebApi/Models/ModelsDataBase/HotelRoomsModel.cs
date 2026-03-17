@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace WebApi.Models.ModelsDataBase;
 
+[Table("HotelRooms")]
 public sealed class HotelRoomsModel
 {
     [Key]
@@ -11,10 +13,11 @@ public sealed class HotelRoomsModel
 
     [Required] [MaxLength(100)] public string NameRoom { get; set; }
 
-    public string? Details { get; set; }
+    [MaxLength(1000)] public string? Details { get; set; }
     [Required] public int Floor { get; set; }
 
     [MaxLength(1000)] public string? ImageRoom { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
-    public ICollection<HotelsModel> Hotels { get; set; }
+    [JsonIgnore] public ICollection<HotelsModel>? Hotels { get; set; }
 }

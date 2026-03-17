@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
 
@@ -15,20 +18,29 @@ public sealed class HotelsModel
     [Required] public int TimeOfStay { get; set; }
     [Required] [MaxLength(1000)] public string ImageHotel { get; set; }
     [MaxLength(2000)] public string? Details { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
     [Column("Address_Id")]
     [ForeignKey("Address")]
-    public int Address_Id { get; set; }
+    public int? Address_Id { get; set; }
 
     [Column("Tickets_Id")]
     [ForeignKey("Ticket")]
-    public int Tickets_Id { get; set; }
+    public int? Tickets_Id { get; set; }
 
     [Column("HotelRooms_Id")]
     [ForeignKey("HotelRoom")]
     public int HotelRooms_Id { get; set; }
 
-    public AddressesModel Address { get; set; }
-    public TicketsModel Ticket { get; set; }
-    public HotelRoomsModel HotelRoom { get; set; }
+    [DeleteBehavior(DeleteBehavior.SetNull)]
+    [JsonIgnore]
+    public AddressesModel? Address { get; set; }
+
+    [DeleteBehavior(DeleteBehavior.SetNull)]
+    [JsonIgnore]
+    public TicketsModel? Ticket { get; set; }
+
+    [DeleteBehavior(DeleteBehavior.Cascade)]
+    [JsonIgnore]
+    public HotelRoomsModel? HotelRoom { get; set; }
 }

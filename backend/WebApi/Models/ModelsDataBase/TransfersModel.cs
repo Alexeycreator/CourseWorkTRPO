@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace WebApi.Models.ModelsDataBase;
 
@@ -11,8 +12,10 @@ public sealed class TransfersModel
     public int Id { get; private set; }
 
     [Required] [MaxLength(100)] public string Name { get; set; }
-    [Required] [MaxLength(1000)] public string Route { get; set; }
+    [Required] [MaxLength(100)] public string Arrival { get; set; }
+    [Required] [MaxLength(100)] public string Departure { get; set; }
     [MaxLength(2000)] public string? Details { get; set; }
+    public bool IsReadOnly { get; set; } = false;
 
-    public ICollection<ToursModel> Tours { get; set; }
+    [JsonIgnore] public ICollection<ToursModel>? Tours { get; set; }
 }
