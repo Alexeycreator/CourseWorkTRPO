@@ -948,11 +948,23 @@ const TourPage = () => {
                                     </div>
                                 )}
                                 {tour.hotelName && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span style={{ color: '#8B5A2B' }}>🏨 Отель:</span>
-                                        <span style={{ color: '#B76E3C' }}>{selectedTourTransfer?.departure}</span>
-                                    </div>
-                                )}
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <span style={{ color: '#8B5A2B' }}>🏨 Отель:</span>
+        <Link 
+            to={`/hotel/${id}`} 
+            style={{ 
+                color: '#B76E3C', 
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                transition: 'color 0.3s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#8B5A2B'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#B76E3C'}
+        >
+            {tour.hotelName}
+        </Link>
+    </div>
+)}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                     <span style={{ color: '#8B5A2B' }}>🌙 Ночей:</span>
                                     <span style={{ color: '#B76E3C' }}>{calculateNights(String(selectedTour?.startDot), String(selectedTour?.endDot))}</span>
