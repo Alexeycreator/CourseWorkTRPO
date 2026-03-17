@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../Contexts/AuthContext";
-import { getClientPassport, getClients } from "../Services/IndexAuth";
+import { getClientPassport, getClients, authApi, UserData } from "../Services/IndexAuth";
 import { getAddressByPassportId, getClientsByPassportId, getPassportById, Passport, updatePassport } from "../Services/PassportApi";
 import { Client, getClientById, updateClient } from "../Services/ClientApi";
 import { Address, getAddressById, getAddresses } from "../Services/AddressApi";
+
 
 interface Tour {
   id: number;
@@ -24,7 +25,7 @@ interface Tour {
 const ClientAccountPage = () => {
   // Состояние для активной вкладки
   const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'bookings'>('profile');
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [userData, setUserData] = useState<Client | null>(null);
   const [passportData, setPassportData] = useState<Passport | null>(null);
   const [addressData, setAddressData] = useState<Address | null>(null);
@@ -34,6 +35,18 @@ const ClientAccountPage = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const originalDataRef = useRef<Client | null>(null); // для хранения оригинальных данных
+
+  const handleLogout = () => {
+    authApi.logout(); // Вызов метода logout из authApi
+    // Обновление состояния через контекст
+    if (logout) {
+      logout(); // Если есть функция logout в контексте
+    }
+    // Перенаправление на главную страницу
+    window.location.href = '/';
+  };
+
+
 
   const fetchUser = async () => {
     if (!user?.id) {
@@ -357,7 +370,7 @@ const ClientAccountPage = () => {
                   type="button"
                   onClick={() => {
                     if (item.id === 'logout') {
-                      console.log('Выход из аккаунта');
+                      handleLogout();
                     } else {
                       setActiveTab(item.id);
                       if (item.id !== 'profile') {
