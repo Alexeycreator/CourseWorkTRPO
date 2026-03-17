@@ -12,6 +12,8 @@ import { NotFoundPage } from './Pages/NotFoundPage';
 import { TourPage } from './Pages/TourPage';
 import PrivacyTermsPage from './Pages/PrivacyTermsPage';
 import { AuthProvider } from './Contexts/AuthContext';
+import HotelPage from './Pages/HotelPage';
+import HotelRoomPage from './Pages/HotelRoomPage';
 
 
 interface ScrollToTopProps {
@@ -54,6 +56,8 @@ function App() {
                         <Route path='/account/:id' element={<ClientAccountPage />} />
                         <Route path='/catalog/tour/:id' element={<TourPage />} />
                         <Route path='/hot-tours/tour/:id' element={<TourPage />} /> {/* Динамический маршрут */}
+                        <Route path="/hotel/:id" element={<HotelPage />} />
+                        <Route path="/hotel-room/:hotelId/:roomId" element={<HotelRoomPage />} />
                         <Route path='/legal' element={<PrivacyTermsPage />} />
                         <Route path='*' element={<NotFoundPage />} />
                     </Routes>
