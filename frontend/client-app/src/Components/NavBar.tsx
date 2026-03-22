@@ -8,12 +8,14 @@ import { authApi, UserData } from "../Services/IndexAuth";
 interface RegistrationFormData {
   firstName: string;
   lastName: string;
+  middleName: string;
   email: string;
   phone: string;
   gender: 'male' | 'female';
   birthDay: string;
   birthMonth: string;
   birthYear: string;
+  age: number;
   passportSeries: string;
   passportNumber: string;
   passportIssued: string;
@@ -21,10 +23,12 @@ interface RegistrationFormData {
   passportCode: string;
   city: string;
   address: string;
+  login: string;
   password: string;
   confirmPassword: string;
   agreeToNews: boolean;
   agreeToPersonalData: boolean;
+  isReadOnly: boolean;
 }
 
 interface NavBarProps {
@@ -85,12 +89,14 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
   private readonly initialRegistrationForm: RegistrationFormData = {
     firstName: '',
     lastName: '',
+    middleName: '',
     email: '',
     phone: '',
     gender: 'male',
     birthDay: '',
     birthMonth: '',
     birthYear: '',
+    age: 0,
     passportSeries: '',
     passportNumber: '',
     passportIssued: '',
@@ -98,10 +104,12 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     passportCode: '',
     city: '',
     address: '',
+    login: '',
     password: '',
     confirmPassword: '',
     agreeToNews: false,
-    agreeToPersonalData: false
+    agreeToPersonalData: false,
+    isReadOnly: false
   };
 
   // конструктор состояний
@@ -393,6 +401,22 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     });
   };
 
+  //Функция для расчета возраста
+  calculateAge = (day: string, month: string, year: string): number => {
+    if (!day || !month || !year) return 0;
+
+    const birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
+  };
+
   switchToAuth = () => {
     this.setState({
       showRegistrationModal: false,
@@ -435,6 +459,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
 
     if (!form.lastName.trim()) errors.lastName = 'Введите фамилию';
     if (!form.firstName.trim()) errors.firstName = 'Введите имя';
+    // Отчество - необязательное поле, не проверяем
     if (!form.email.trim()) {
       errors.email = 'Введите email';
     } else if (!/\S+@\S+\.\S+/.test(form.email)) {
@@ -448,6 +473,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     if (!form.birthDay) errors.birthDay = 'Выберите день';
     if (!form.birthMonth) errors.birthMonth = 'Выберите месяц';
     if (!form.birthYear) errors.birthYear = 'Выберите год';
+    if (!form.gender) errors.gender = 'Выберите пол'; // ДОБАВЛЕНО
 
     this.setState({ registrationFieldErrors: errors });
     return Object.keys(errors).length === 0;
@@ -456,6 +482,13 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
   validateRegistrationStep2 = (): boolean => {
     const form = this.state.registrationForm;
     const errors: Record<string, string> = {};
+
+    // ДОБАВЛЕНО: Проверка логина
+    if (!form.login.trim()) {
+      errors.login = 'Введите логин';
+    } else if (form.login.length < 3) {
+      errors.login = 'Логин должен содержать минимум 3 символа';
+    }
 
     if (!form.passportSeries.trim()) {
       errors.passportSeries = 'Введите серию паспорта';
@@ -506,6 +539,9 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
   handleRegistrationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // ДОБАВЛЕНО: Вывод в консоль при нажатии кнопки
+    console.log('RegButton Ok');
+
     if (!this.validateRegistrationStep2()) {
       return;
     }
@@ -519,19 +555,25 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       const registerData = {
         surName: form.lastName,
         firstName: form.firstName,
-        middleName: '', // Можно добавить поле в форму если нужно
+        middleName: form.middleName, // ДОБАВЛЕНО: Отчество
         phoneNumber: form.phone,
         email: form.email,
-        login: form.email, // Используем email как логин
-        password: form.password
+        login: form.login, // ИЗМЕНЕНО: Используем введенный логин вместо email
+        password: form.password,
+        gender: form.gender === 'male' ? 'Мужской' : 'Женский', // ДОБАВЛЕНО
+        birthday: `${form.birthYear}-${form.birthMonth}-${form.birthDay}`, // ДОБАВЛЕНО
+        age: this.calculateAge(form.birthDay, form.birthMonth, form.birthYear), // ДОБАВЛЕНО
+        isReadOnly: form.isReadOnly // ДОБАВЛЕНО
       };
+
+      console.log('Данные для регистрации:', registerData); // ДОБАВЛЕНО для отладки
 
       // Отправляем запрос на регистрацию
       await authApi.register(registerData);
 
       // После успешной регистрации пробуем сразу войти
       const loginResponse = await authApi.login({
-        login: form.email,
+        login: form.login, // ИЗМЕНЕНО: используем введенный логин
         password: form.password
       });
 
@@ -547,7 +589,10 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     } catch (error: any) {
       if (error.response?.status === 409) {
         const message = error.response.data?.message || '';
+        // ИЗМЕНЕНО: Добавлена проверка на email
         if (message.includes('логин')) {
+          this.setState({ registrationError: 'Пользователь с таким логином уже существует' });
+        } else if (message.includes('email')) {
           this.setState({ registrationError: 'Пользователь с таким email уже существует' });
         } else if (message.includes('телефон')) {
           this.setState({ registrationError: 'Пользователь с таким телефоном уже существует' });
@@ -579,12 +624,23 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
 
-    this.setState(prev => ({
-      registrationForm: {
+    this.setState(prev => {
+      const newForm = {
         ...prev.registrationForm,
         [name]: type === 'checkbox' ? checked : value
+      };
+
+      // ДОБАВЛЕНО: Если изменилась дата рождения, пересчитываем возраст
+      if (name === 'birthDay' || name === 'birthMonth' || name === 'birthYear') {
+        newForm.age = this.calculateAge(
+          name === 'birthDay' ? value : newForm.birthDay,
+          name === 'birthMonth' ? value : newForm.birthMonth,
+          name === 'birthYear' ? value : newForm.birthYear
+        );
       }
-    }));
+
+      return { registrationForm: newForm };
+    });
 
     // Очищаем ошибку для поля, если она была
     if (this.state.errors[name]) {
@@ -1482,641 +1538,585 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
               </h2>
 
               <form onSubmit={this.handleRegistrationSubmit}>
-                {/* Личные данные */}
-                <section style={{ marginBottom: '30px' }}>
-                  <h3 style={{
-                    fontSize: '20px',
-                    color: '#8B5A2B',
-                    marginBottom: '20px',
-                    fontFamily: "'Cormorant Garamond', serif",
-                    borderBottom: '2px solid #D2B48C',
-                    paddingBottom: '10px'
-                  }}>
-                    📋 Личные данные
-                  </h3>
+                {registrationStep === 1 ? (
+                  // Шаг 1 - Личные данные
+                  <section style={{ marginBottom: '30px' }}>
+                    <h3 style={{
+                      fontSize: '20px',
+                      color: '#8B5A2B',
+                      marginBottom: '20px',
+                      fontFamily: "'Cormorant Garamond', serif",
+                      borderBottom: '2px solid #D2B48C',
+                      paddingBottom: '10px'
+                    }}>
+                      📋 Личные данные
+                    </h3>
 
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '20px'
-                  }}>
-                    {/* Имя */}
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Имя <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={registrationForm.firstName}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="Иван"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.firstName ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.firstName && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.firstName}</div>
-                      )}
-                    </div>
-
-                    {/* Фамилия */}
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Фамилия <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={registrationForm.lastName}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="Петров"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.lastName ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.lastName && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.lastName}</div>
-                      )}
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Email <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={registrationForm.email}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="ivan@mail.ru"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.email ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.email && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.email}</div>
-                      )}
-                    </div>
-
-                    {/* Телефон */}
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Телефон <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={registrationForm.phone}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="+7 (999) 123-45-67"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.phone ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.phone && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.phone}</div>
-                      )}
-                    </div>
-
-                    {/* Пол 
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Пол
-                      </label>
-                      <div style={{ display: 'flex', gap: '20px', padding: '12px 0' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B' }}>
-                          <input
-                            type="radio"
-                            name="gender"
-                            value="male"
-                            checked={registrationForm.gender === 'male'}
-                            onChange={this.handleRegistrationChange}
-                          />
-                          Мужской
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '20px'
+                    }}>
+                      {/* Имя */}
+                      <div>
+                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                          Имя <span style={{ color: '#dc3545' }}>*</span>
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B' }}>
-                          <input
-                            type="radio"
-                            name="gender"
-                            value="female"
-                            checked={registrationForm.gender === 'female'}
-                            onChange={this.handleRegistrationChange}
-                          />
-                          Женский
+                        <input
+                          type="text"
+                          name="firstName"
+                          value={registrationForm.firstName}
+                          onChange={this.handleRegistrationChange}
+                          placeholder="Иван"
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: `2px solid ${errors.firstName ? '#dc3545' : '#D2B48C'}`,
+                            borderRadius: '15px',
+                            backgroundColor: '#FFF8F0',
+                            color: '#8B5A2B',
+                            fontSize: '15px',
+                            outline: 'none'
+                          }}
+                        />
+                        {errors.firstName && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.firstName}</div>
+                        )}
+                      </div>
+
+                      {/* Фамилия */}
+                      <div>
+                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                          Фамилия <span style={{ color: '#dc3545' }}>*</span>
                         </label>
+                        <input
+                          type="text"
+                          name="lastName"
+                          value={registrationForm.lastName}
+                          onChange={this.handleRegistrationChange}
+                          placeholder="Петров"
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: `2px solid ${errors.lastName ? '#dc3545' : '#D2B48C'}`,
+                            borderRadius: '15px',
+                            backgroundColor: '#FFF8F0',
+                            color: '#8B5A2B',
+                            fontSize: '15px',
+                            outline: 'none'
+                          }}
+                        />
+                        {errors.lastName && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.lastName}</div>
+                        )}
+                      </div>
+
+                      {/* Отчество (необязательное) */}
+                      <div>
+                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                          Отчество <span style={{ color: '#999' }}>(при наличии)</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="middleName"
+                          value={registrationForm.middleName}
+                          onChange={this.handleRegistrationChange}
+                          placeholder="Иванович"
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: `2px solid #D2B48C`,
+                            borderRadius: '15px',
+                            backgroundColor: '#FFF8F0',
+                            color: '#8B5A2B',
+                            fontSize: '15px',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+
+                      {/* Email */}
+                      <div>
+                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                          Email <span style={{ color: '#dc3545' }}>*</span>
+                        </label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={registrationForm.email}
+                          onChange={this.handleRegistrationChange}
+                          placeholder="ivan@mail.ru"
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: `2px solid ${errors.email ? '#dc3545' : '#D2B48C'}`,
+                            borderRadius: '15px',
+                            backgroundColor: '#FFF8F0',
+                            color: '#8B5A2B',
+                            fontSize: '15px',
+                            outline: 'none'
+                          }}
+                        />
+                        {errors.email && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.email}</div>
+                        )}
+                      </div>
+
+                      {/* Телефон */}
+                      <div>
+                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                          Телефон <span style={{ color: '#dc3545' }}>*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={registrationForm.phone}
+                          onChange={this.handleRegistrationChange}
+                          placeholder="+7 (999) 123-45-67"
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: `2px solid ${errors.phone ? '#dc3545' : '#D2B48C'}`,
+                            borderRadius: '15px',
+                            backgroundColor: '#FFF8F0',
+                            color: '#8B5A2B',
+                            fontSize: '15px',
+                            outline: 'none'
+                          }}
+                        />
+                        {errors.phone && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.phone}</div>
+                        )}
+                      </div>
+
+                      {/* Пол */}
+                      <div>
+                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                          Пол <span style={{ color: '#dc3545' }}>*</span>
+                        </label>
+                        <div style={{ display: 'flex', gap: '20px', padding: '12px 0' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B' }}>
+                            <input
+                              type="radio"
+                              name="gender"
+                              value="male"
+                              checked={registrationForm.gender === 'male'}
+                              onChange={this.handleRegistrationChange}
+                            />
+                            Мужской
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B' }}>
+                            <input
+                              type="radio"
+                              name="gender"
+                              value="female"
+                              checked={registrationForm.gender === 'female'}
+                              onChange={this.handleRegistrationChange}
+                            />
+                            Женский
+                          </label>
+                        </div>
+                        {registrationFieldErrors.gender && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{registrationFieldErrors.gender}</div>
+                        )}
+                      </div>
+
+                      {/* Дата рождения */}
+                      <div>
+                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                          Дата рождения <span style={{ color: '#dc3545' }}>*</span>
+                        </label>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                          <select
+                            name="birthDay"
+                            value={registrationForm.birthDay}
+                            onChange={this.handleRegistrationChange}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              border: `2px solid ${registrationFieldErrors.birthDay ? '#dc3545' : '#D2B48C'}`,
+                              borderRadius: '15px',
+                              backgroundColor: '#FFF8F0',
+                              color: '#8B5A2B',
+                              fontSize: '15px',
+                              outline: 'none'
+                            }}
+                          >
+                            <option value="">День</option>
+                            {this.days.map(day => (
+                              <option key={day} value={day}>{day}</option>
+                            ))}
+                          </select>
+                          <select
+                            name="birthMonth"
+                            value={registrationForm.birthMonth}
+                            onChange={this.handleRegistrationChange}
+                            style={{
+                              flex: 2,
+                              padding: '12px',
+                              border: `2px solid ${registrationFieldErrors.birthMonth ? '#dc3545' : '#D2B48C'}`,
+                              borderRadius: '15px',
+                              backgroundColor: '#FFF8F0',
+                              color: '#8B5A2B',
+                              fontSize: '15px',
+                              outline: 'none'
+                            }}
+                          >
+                            <option value="">Месяц</option>
+                            {this.months.map((month, index) => (
+                              <option key={month} value={index + 1}>{month}</option>
+                            ))}
+                          </select>
+                          <select
+                            name="birthYear"
+                            value={registrationForm.birthYear}
+                            onChange={this.handleRegistrationChange}
+                            style={{
+                              flex: 1,
+                              padding: '12px',
+                              border: `2px solid ${registrationFieldErrors.birthYear ? '#dc3545' : '#D2B48C'}`,
+                              borderRadius: '15px',
+                              backgroundColor: '#FFF8F0',
+                              color: '#8B5A2B',
+                              fontSize: '15px',
+                              outline: 'none'
+                            }}
+                          >
+                            <option value="">Год</option>
+                            {this.years.map(year => (
+                              <option key={year} value={year}>{year}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {(registrationFieldErrors.birthDay || registrationFieldErrors.birthMonth || registrationFieldErrors.birthYear) && (
+                          <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>
+                            Выберите полную дату рождения
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Возраст (автоматический расчет) */}
+                      <div>
+                        <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                          Возраст
+                        </label>
+                        <input
+                          type="text"
+                          value={registrationForm.age ? `${registrationForm.age} лет` : '—'}
+                          disabled
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            border: '2px solid #D2B48C',
+                            borderRadius: '15px',
+                            backgroundColor: '#F0E0D0',
+                            color: '#8B5A2B',
+                            fontSize: '15px',
+                            outline: 'none'
+                          }}
+                        />
                       </div>
                     </div>
-                    */}
 
-                    {/* Дата рождения 
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Дата рождения
-                      </label>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <select
-                          name="birthDay"
-                          value={registrationForm.birthDay}
-                          onChange={this.handleRegistrationChange}
-                          style={{
-                            flex: 1,
-                            padding: '12px',
-                            border: '2px solid #D2B48C',
-                            borderRadius: '15px',
-                            backgroundColor: '#FFF8F0',
-                            color: '#8B5A2B',
-                            fontSize: '15px',
-                            outline: 'none'
-                          }}
-                        >
-                          <option value="">День</option>
-                          {this.days.map(day => (
-                            <option key={day} value={day}>{day}</option>
-                          ))}
-                        </select>
-                        <select
-                          name="birthMonth"
-                          value={registrationForm.birthMonth}
-                          onChange={this.handleRegistrationChange}
-                          style={{
-                            flex: 2,
-                            padding: '12px',
-                            border: '2px solid #D2B48C',
-                            borderRadius: '15px',
-                            backgroundColor: '#FFF8F0',
-                            color: '#8B5A2B',
-                            fontSize: '15px',
-                            outline: 'none'
-                          }}
-                        >
-                          <option value="">Месяц</option>
-                          {this.months.map((month, index) => (
-                            <option key={month} value={index + 1}>{month}</option>
-                          ))}
-                        </select>
-                        <select
-                          name="birthYear"
-                          value={registrationForm.birthYear}
-                          onChange={this.handleRegistrationChange}
-                          style={{
-                            flex: 1,
-                            padding: '12px',
-                            border: '2px solid #D2B48C',
-                            borderRadius: '15px',
-                            backgroundColor: '#FFF8F0',
-                            color: '#8B5A2B',
-                            fontSize: '15px',
-                            outline: 'none'
-                          }}
-                        >
-                          <option value="">Год</option>
-                          {this.years.map(year => (
-                            <option key={year} value={year}>{year}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    */}
-                  </div>
-                </section>
-
-                {/* Паспортные данные 
-                <section style={{ marginBottom: '30px' }}>
-                  <h3 style={{
-                    fontSize: '20px',
-                    color: '#8B5A2B',
-                    marginBottom: '20px',
-                    fontFamily: "'Cormorant Garamond', serif",
-                    borderBottom: '2px solid #D2B48C',
-                    paddingBottom: '10px'
-                  }}>
-                    🪪 Паспортные данные
-                  </h3>
-
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '20px'
-                  }}>
-                    */}
-                {/* Серия 
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Серия <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="passportSeries"
-                        value={registrationForm.passportSeries}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="4510"
-                        maxLength={4}
+                    {/* Кнопка Далее */}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '30px' }}>
+                      <button
+                        type="button"
+                        onClick={this.handleRegistrationNext}
                         style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.passportSeries ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.passportSeries && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportSeries}</div>
-                      )}
-                    </div>
-*/}
-                {/* Номер 
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Номер <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="passportNumber"
-                        value={registrationForm.passportNumber}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="123456"
-                        maxLength={6}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.passportNumber ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.passportNumber && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportNumber}</div>
-                      )}
-                    </div>
-*/}
-                {/* Кем выдан 
-                    <div style={{ gridColumn: 'span 2' }}>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Кем выдан <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="passportIssued"
-                        value={registrationForm.passportIssued}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="ОВД 'Тверской' г. Москвы"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.passportIssued ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.passportIssued && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportIssued}</div>
-                      )}
-                    </div>
-*/}
-                {/* Дата выдачи 
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Дата выдачи <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="date"
-                        name="passportDate"
-                        value={registrationForm.passportDate}
-                        onChange={this.handleRegistrationChange}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.passportDate ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.passportDate && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.passportDate}</div>
-                      )}
-                    </div>
-*/}
-                {/* Код подразделения 
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Код подразделения
-                      </label>
-                      <input
-                        type="text"
-                        name="passportCode"
-                        value={registrationForm.passportCode}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="770-001"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
+                          padding: '12px 40px',
+                          background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                          color: '#FFF8F0',
                           border: '2px solid #D2B48C',
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
+                          borderRadius: '40px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s',
+                          boxShadow: '0 5px 15px rgba(183, 110, 60, 0.3)'
                         }}
-                      />
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                          e.currentTarget.style.boxShadow = '0 8px 25px rgba(183, 110, 60, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.boxShadow = '0 5px 15px rgba(183, 110, 60, 0.3)';
+                        }}
+                      >
+                        Далее →
+                      </button>
                     </div>
-                  </div>
-                </section>
-*/}
-                {/* Адрес регистрации 
-                <section style={{ marginBottom: '30px' }}>
-                  <h3 style={{
-                    fontSize: '20px',
-                    color: '#8B5A2B',
-                    marginBottom: '20px',
-                    fontFamily: "'Cormorant Garamond', serif",
-                    borderBottom: '2px solid #D2B48C',
-                    paddingBottom: '10px'
-                  }}>
-                    📍 Адрес регистрации
-                  </h3>
+                  </section>
+                ) : (
+                  // Шаг 2 - Безопасность и настройки
+                  <>
+                    {/* Безопасность */}
+                    <section style={{ marginBottom: '30px' }}>
+                      <h3 style={{
+                        fontSize: '20px',
+                        color: '#8B5A2B',
+                        marginBottom: '20px',
+                        fontFamily: "'Cormorant Garamond', serif",
+                        borderBottom: '2px solid #D2B48C',
+                        paddingBottom: '10px'
+                      }}>
+                        🔐 Безопасность
+                      </h3>
 
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '20px'
-                  }}>
-                    */}
-                {/* Город 
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Город <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={registrationForm.city}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="Москва"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.city ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.city && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.city}</div>
-                      )}
-                    </div>
-*/}
-                {/* Улица/дом/квартира 
-                    <div style={{ gridColumn: 'span 2' }}>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Адрес <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="address"
-                        value={registrationForm.address}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="ул. Пушкина, д. 10, кв. 42"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.address ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.address && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.address}</div>
-                      )}
-                    </div>
-                  </div>
-                </section>
-*/}
-                {/* Безопасность 
-                <section style={{ marginBottom: '30px' }}>
-                  <h3 style={{
-                    fontSize: '20px',
-                    color: '#8B5A2B',
-                    marginBottom: '20px',
-                    fontFamily: "'Cormorant Garamond', serif",
-                    borderBottom: '2px solid #D2B48C',
-                    paddingBottom: '10px'
-                  }}>
-                    🔐 Безопасность
-                  </h3>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '20px'
+                      }}>
+                        {/* Логин */}
+                        <div>
+                          <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                            Логин <span style={{ color: '#dc3545' }}>*</span>
+                          </label>
+                          <input
+                            type="text"
+                            name="login"
+                            value={registrationForm.login}
+                            onChange={this.handleRegistrationChange}
+                            placeholder="ivan_petrov"
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: `2px solid ${registrationFieldErrors.login ? '#dc3545' : '#D2B48C'}`,
+                              borderRadius: '15px',
+                              backgroundColor: '#FFF8F0',
+                              color: '#8B5A2B',
+                              fontSize: '15px',
+                              outline: 'none'
+                            }}
+                          />
+                          {registrationFieldErrors.login && (
+                            <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{registrationFieldErrors.login}</div>
+                          )}
+                        </div>
 
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '20px'
-                  }}>
-                    */}
-                {/* Пароль 
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Пароль <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        name="password"
-                        value={registrationForm.password}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="Не менее 6 символов"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.password ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.password && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.password}</div>
-                      )}
-                    </div>
-*/}
-                {/* Подтверждение пароля 
-                    <div>
-                      <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                        Подтвердите пароль <span style={{ color: '#dc3545' }}>*</span>
-                      </label>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        name="confirmPassword"
-                        value={registrationForm.confirmPassword}
-                        onChange={this.handleRegistrationChange}
-                        placeholder="Повторите пароль"
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          border: `2px solid ${errors.confirmPassword ? '#dc3545' : '#D2B48C'}`,
-                          borderRadius: '15px',
-                          backgroundColor: '#FFF8F0',
-                          color: '#8B5A2B',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      {errors.confirmPassword && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.confirmPassword}</div>
-                      )}
-                    </div>
-                  </div>
-*/}
-                {/* Чекбокс показа пароля
-                  <div style={{ marginTop: '10px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B', fontSize: '14px' }}>
-                      <input
-                        type="checkbox"
-                        checked={showPassword}
-                        onChange={() => this.setState({ showPassword: !showPassword })}
-                      />
-                      Показать пароль
-                    </label>
-                  </div>
-                </section>
- */}
-                {/* Согласия 
-                <section style={{ marginBottom: '30px' }}>
-                  <div style={{
-                    background: '#FFF8F0',
-                    borderRadius: '20px',
-                    padding: '20px',
-                    border: '2px solid #D2B48C'
-                  }}>
-                    <div style={{ marginBottom: '15px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8B5A2B', fontSize: '14px' }}>
-                        <input
-                          type="checkbox"
-                          name="agreeToNews"
-                          checked={registrationForm.agreeToNews}
-                          onChange={this.handleRegistrationChange}
-                        />
-                        Я согласен на получение новостей и специальных предложений
-                      </label>
-                    </div>
+                        {/* Пароль */}
+                        <div>
+                          <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                            Пароль <span style={{ color: '#dc3545' }}>*</span>
+                          </label>
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={registrationForm.password}
+                            onChange={this.handleRegistrationChange}
+                            placeholder="Не менее 6 символов"
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: `2px solid ${registrationFieldErrors.password ? '#dc3545' : '#D2B48C'}`,
+                              borderRadius: '15px',
+                              backgroundColor: '#FFF8F0',
+                              color: '#8B5A2B',
+                              fontSize: '15px',
+                              outline: 'none'
+                            }}
+                          />
+                          {registrationFieldErrors.password && (
+                            <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{registrationFieldErrors.password}</div>
+                          )}
+                        </div>
 
-                    <div>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8B5A2B', fontSize: '14px' }}>
-                        <input
-                          type="checkbox"
-                          name="agreeToPersonalData"
-                          checked={registrationForm.agreeToPersonalData}
-                          onChange={this.handleRegistrationChange}
-                        />
-                        <span>Я согласен на обработку персональных данных <span style={{ color: '#dc3545' }}>*</span></span>
-                      </label>
-                      {errors.agreeToPersonalData && (
-                        <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px' }}>
-                          {errors.agreeToPersonalData}
+                        {/* Подтверждение пароля */}
+                        <div>
+                          <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
+                            Подтвердите пароль <span style={{ color: '#dc3545' }}>*</span>
+                          </label>
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            name="confirmPassword"
+                            value={registrationForm.confirmPassword}
+                            onChange={this.handleRegistrationChange}
+                            placeholder="Повторите пароль"
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: `2px solid ${registrationFieldErrors.confirmPassword ? '#dc3545' : '#D2B48C'}`,
+                              borderRadius: '15px',
+                              backgroundColor: '#FFF8F0',
+                              color: '#8B5A2B',
+                              fontSize: '15px',
+                              outline: 'none'
+                            }}
+                          />
+                          {registrationFieldErrors.confirmPassword && (
+                            <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{registrationFieldErrors.confirmPassword}</div>
+                          )}
+                        </div>
+
+                        {/* Чекбокс показа пароля */}
+                        <div style={{ display: 'flex', alignItems: 'center', paddingTop: '35px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B', fontSize: '14px' }}>
+                            <input
+                              type="checkbox"
+                              checked={showPassword}
+                              onChange={() => this.setState({ showPassword: !showPassword })}
+                            />
+                            Показать пароль
+                          </label>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Согласия */}
+                    <section style={{ marginBottom: '30px' }}>
+                      <div style={{
+                        background: '#FFF8F0',
+                        borderRadius: '20px',
+                        padding: '20px',
+                        border: '2px solid #D2B48C'
+                      }}>
+                        <div style={{ marginBottom: '15px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8B5A2B', fontSize: '14px' }}>
+                            <input
+                              type="checkbox"
+                              name="agreeToNews"
+                              checked={registrationForm.agreeToNews}
+                              onChange={this.handleRegistrationChange}
+                            />
+                            Я согласен на получение новостей и специальных предложений
+                          </label>
+                        </div>
+
+                        <div style={{ marginBottom: '15px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8B5A2B', fontSize: '14px' }}>
+                            <input
+                              type="checkbox"
+                              name="agreeToPersonalData"
+                              checked={registrationForm.agreeToPersonalData}
+                              onChange={this.handleRegistrationChange}
+                            />
+                            <span>Я согласен на обработку персональных данных <span style={{ color: '#dc3545' }}>*</span></span>
+                          </label>
+                          {registrationFieldErrors.agreeToPersonalData && (
+                            <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px' }}>
+                              {registrationFieldErrors.agreeToPersonalData}
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8B5A2B', fontSize: '14px' }}>
+                            <input
+                              type="checkbox"
+                              name="isReadOnly"
+                              checked={registrationForm.isReadOnly}
+                              onChange={this.handleRegistrationChange}
+                            />
+                            <span>Защита от изменений (данные нельзя будет редактировать без специального разрешения)</span>
+                          </label>
+                          <div style={{ fontSize: '12px', color: '#8B5A2B', marginTop: '5px', marginLeft: '25px' }}>
+                            ⓘ Включите эту опцию, если хотите защитить свои данные от несанкционированных изменений
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Ошибка регистрации */}
+                      {registrationError && (
+                        <div style={{
+                          backgroundColor: '#ffebee',
+                          color: '#d32f2f',
+                          padding: '12px',
+                          borderRadius: '15px',
+                          marginTop: '20px',
+                          textAlign: 'center',
+                          border: '1px solid #ffcdd2'
+                        }}>
+                          {registrationError}
                         </div>
                       )}
-                    </div>
-                  </div>
-                </section>
-*/}
-                {/* Кнопки */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
-                  <button
-                    type="submit"
-                    style={{
-                      padding: '15px 50px',
-                      background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
-                      color: '#FFF8F0',
-                      border: '2px solid #D2B48C',
-                      borderRadius: '40px',
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s',
-                      boxShadow: '0 5px 15px rgba(183, 110, 60, 0.3)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(183, 110, 60, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.boxShadow = '0 5px 15px rgba(183, 110, 60, 0.3)';
-                    }}
-                  >
-                    🐪 Зарегистрироваться
-                  </button>
+                    </section>
 
-                  <button
-                    type="button"
-                    onClick={this.toggleRegistrationModal}
-                    style={{
-                      padding: '15px 30px',
-                      background: 'transparent',
-                      color: '#8B5A2B',
-                      border: '2px solid #D2B48C',
-                      borderRadius: '40px',
-                      fontSize: '16px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(183, 110, 60, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    Отмена
-                  </button>
-                </div>
+                    {/* Кнопки навигации для второго шага */}
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '30px' }}>
+                      <button
+                        type="button"
+                        onClick={this.handleRegistrationBack}
+                        style={{
+                          padding: '12px 30px',
+                          background: 'transparent',
+                          color: '#8B5A2B',
+                          border: '2px solid #D2B48C',
+                          borderRadius: '40px',
+                          fontSize: '16px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(183, 110, 60, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        ← Назад
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={registrationLoading}
+                        style={{
+                          padding: '12px 40px',
+                          background: registrationLoading ? '#999' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                          color: '#FFF8F0',
+                          border: '2px solid #D2B48C',
+                          borderRadius: '40px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          cursor: registrationLoading ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.3s',
+                          boxShadow: '0 5px 15px rgba(183, 110, 60, 0.3)',
+                          opacity: registrationLoading ? 0.7 : 1
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!registrationLoading) {
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                            e.currentTarget.style.boxShadow = '0 8px 25px rgba(183, 110, 60, 0.4)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!registrationLoading) {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = '0 5px 15px rgba(183, 110, 60, 0.3)';
+                          }
+                        }}
+                      >
+                        {registrationLoading ? 'Регистрация...' : '🐪 Зарегистрироваться'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={this.toggleRegistrationModal}
+                        style={{
+                          padding: '12px 30px',
+                          background: 'transparent',
+                          color: '#8B5A2B',
+                          border: '2px solid #D2B48C',
+                          borderRadius: '40px',
+                          fontSize: '16px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(183, 110, 60, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        Отмена
+                      </button>
+                    </div>
+                  </>
+                )}
               </form>
             </div>
           </div>
@@ -2124,4 +2124,4 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       </>
     );
   }
-}  
+}
