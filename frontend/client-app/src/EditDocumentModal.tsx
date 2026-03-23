@@ -7,6 +7,8 @@ export interface DocumentFormData {
   dateOfIssue: string;
   departmentCode: string;
   type: string;
+  gender?: string; // ДОБАВЛЕНО: Пол
+  placeOfBirth?: string; // ДОБАВЛЕНО: Место рождения
   id?: number;
 }
 
@@ -71,6 +73,8 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
         dateOfIssue: data.passport.dateOfIssue || '',
         departmentCode: data.passport.departmentCode || '',
         type: data.passport.type || 'passport',
+        gender: (data.passport as any).gender || '', // ДОБАВЛЕНО
+        placeOfBirth: (data.passport as any).placeOfBirth || '', // ДОБАВЛЕНО
         id: data.passport.id
       });
 
@@ -90,7 +94,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
         issuedBy: '',
         dateOfIssue: '',
         departmentCode: '',
-        type: 'passport'
+        type: 'passport',
+        gender: '', // ДОБАВЛЕНО
+        placeOfBirth: '' // ДОБАВЛЕНО
       });
       setAddressForm({
         country: 'Российская Федерация',
@@ -136,23 +142,23 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
 
   const validatePassport = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!passportForm.seria?.trim()) {
       newErrors.seria = 'Серия паспорта обязательна';
     } else if (!/^\d{4}$/.test(passportForm.seria)) {
       newErrors.seria = 'Серия должна содержать 4 цифры';
     }
-    
+
     if (!passportForm.number?.trim()) {
       newErrors.number = 'Номер паспорта обязателен';
     } else if (!/^\d{6}$/.test(passportForm.number)) {
       newErrors.number = 'Номер должен содержать 6 цифр';
     }
-    
+
     if (!passportForm.issuedBy?.trim()) {
       newErrors.issuedBy = 'Кем выдан паспорт обязательно';
     }
-    
+
     if (!passportForm.dateOfIssue) {
       newErrors.dateOfIssue = 'Дата выдачи обязательна';
     } else {
@@ -162,7 +168,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
         newErrors.dateOfIssue = 'Дата выдачи не может быть в будущем';
       }
     }
-    
+
     if (!passportForm.departmentCode?.trim()) {
       newErrors.departmentCode = 'Код подразделения обязателен';
     } else if (!/^\d{3}-\d{3}$/.test(passportForm.departmentCode)) {
@@ -255,7 +261,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
             gap: '10px'
           }}>
             <span>{mode === 'edit' ? '✏️' : '➕'}</span>
-            {mode === 'edit' 
+            {mode === 'edit'
               ? `Редактирование документа ${data?.index !== undefined ? `#${data.index + 1}` : ''}`
               : 'Добавление нового документа'
             }
@@ -345,9 +351,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   }}
                 />
                 {passportErrors.seria && (
-                  <div style={{ 
-                    color: '#dc3545', 
-                    fontSize: '12px', 
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
                     marginTop: '3px',
                     display: 'flex',
                     alignItems: 'center',
@@ -388,9 +394,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   }}
                 />
                 {passportErrors.number && (
-                  <div style={{ 
-                    color: '#dc3545', 
-                    fontSize: '12px', 
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
                     marginTop: '3px',
                     display: 'flex',
                     alignItems: 'center',
@@ -430,9 +436,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   }}
                 />
                 {passportErrors.issuedBy && (
-                  <div style={{ 
-                    color: '#dc3545', 
-                    fontSize: '12px', 
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
                     marginTop: '3px',
                     display: 'flex',
                     alignItems: 'center',
@@ -472,9 +478,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   }}
                 />
                 {passportErrors.dateOfIssue && (
-                  <div style={{ 
-                    color: '#dc3545', 
-                    fontSize: '12px', 
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
                     marginTop: '3px',
                     display: 'flex',
                     alignItems: 'center',
@@ -514,9 +520,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   }}
                 />
                 {passportErrors.departmentCode && (
-                  <div style={{ 
-                    color: '#dc3545', 
-                    fontSize: '12px', 
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
                     marginTop: '3px',
                     display: 'flex',
                     alignItems: 'center',
@@ -525,6 +531,72 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                     <span>⚠️</span> {passportErrors.departmentCode}
                   </div>
                 )}
+              </div>
+
+              {/* ДОБАВЛЕНО: Пол */}
+              <div>
+                <label style={{
+                  display: 'block',
+                  color: '#8B5A2B',
+                  fontSize: '14px',
+                  marginBottom: '5px',
+                  fontWeight: '500'
+                }}>
+                  Пол
+                </label>
+                <div style={{ display: 'flex', gap: '20px', padding: '12px 0' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B' }}>
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="Мужской"
+                      checked={passportForm.gender === 'Мужской'}
+                      onChange={handlePassportChange}
+                    />
+                    Мужской
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B' }}>
+                    <input
+                      type="radio"
+                      name="gender"
+                      value="Женский"
+                      checked={passportForm.gender === 'Женский'}
+                      onChange={handlePassportChange}
+                    />
+                    Женский
+                  </label>
+                </div>
+              </div>
+
+              {/* ДОБАВЛЕНО: Место рождения */}
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{
+                  display: 'block',
+                  color: '#8B5A2B',
+                  fontSize: '14px',
+                  marginBottom: '5px',
+                  fontWeight: '500'
+                }}>
+                  Место рождения
+                </label>
+                <input
+                  type="text"
+                  name="placeOfBirth"
+                  value={passportForm.placeOfBirth || ''}
+                  onChange={handlePassportChange}
+                  placeholder="г. Москва, Россия"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: `2px solid ${(passportErrors as any).placeOfBirth ? '#dc3545' : '#D2B48C'}`,
+                    borderRadius: '15px',
+                    backgroundColor: '#FFF8F0',
+                    color: '#8B5A2B',
+                    fontSize: '15px',
+                    outline: 'none',
+                    transition: 'all 0.3s'
+                  }}
+                />
               </div>
             </div>
 
@@ -645,9 +717,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   }}
                 />
                 {addressErrors.city && (
-                  <div style={{ 
-                    color: '#dc3545', 
-                    fontSize: '12px', 
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
                     marginTop: '3px',
                     display: 'flex',
                     alignItems: 'center',
@@ -687,9 +759,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   }}
                 />
                 {addressErrors.street && (
-                  <div style={{ 
-                    color: '#dc3545', 
-                    fontSize: '12px', 
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
                     marginTop: '3px',
                     display: 'flex',
                     alignItems: 'center',
@@ -729,9 +801,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   }}
                 />
                 {addressErrors.house && (
-                  <div style={{ 
-                    color: '#dc3545', 
-                    fontSize: '12px', 
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
                     marginTop: '3px',
                     display: 'flex',
                     alignItems: 'center',
