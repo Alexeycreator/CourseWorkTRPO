@@ -27,11 +27,11 @@ const ClientAccountPage = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'bookings'>('profile');
   const { user, isAuthenticated, logout } = useAuth();
   const [userData, setUserData] = useState<Client | null>(null);
-  
+
   // Используем массивы для хранения множества документов
   const [passportsData, setPassportsData] = useState<Passport[]>([]);
   const [addressesData, setAddressesData] = useState<Address[]>([]);
-  
+
   const [editedData, setEditedData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -63,6 +63,8 @@ const ClientAccountPage = () => {
         dateOfIssue: passport.dateOfIssue || '',
         departmentCode: passport.departmentCode || '',
         type: passport.type || 'passport',
+        gender: (passport as any).gender || '',
+        placeOfBirth: (passport as any).placeOfBirth || '',
         id: passport.id
       },
       address: address ? {
@@ -96,7 +98,9 @@ const ClientAccountPage = () => {
         issuedBy: '',
         dateOfIssue: '',
         departmentCode: '',
-        type: 'passport'
+        type: 'passport',
+        gender: '',
+        placeOfBirth: ''
       },
       address: {
         country: 'Российская Федерация',
@@ -119,7 +123,7 @@ const ClientAccountPage = () => {
       if (modalMode === 'edit' && modalData && modalData.index !== undefined && modalData.index >= 0) {
         // Режим редактирования - обновляем существующие документы
         const index = modalData.index;
-        
+
         // Обновляем паспорт
         const updatedPassports = [...passportsData];
         updatedPassports[index] = {
@@ -129,7 +133,9 @@ const ClientAccountPage = () => {
           issuedBy: passportData.issuedBy,
           dateOfIssue: passportData.dateOfIssue,
           departmentCode: passportData.departmentCode,
-          type: passportData.type
+          type: passportData.type,
+          gender: (passportData as any).gender,
+          placeOfBirth: (passportData as any).placeOfBirth
         };
         setPassportsData(updatedPassports);
 
@@ -172,7 +178,9 @@ const ClientAccountPage = () => {
           issuedBy: passportData.issuedBy,
           dateOfIssue: passportData.dateOfIssue,
           departmentCode: passportData.departmentCode,
-          type: passportData.type
+          type: passportData.type,
+          gender: (passportData as any).gender,
+          placeOfBirth: (passportData as any).placeOfBirth
         };
 
         const createdAddress = {
@@ -230,7 +238,7 @@ const ClientAccountPage = () => {
       let loadUser = await getClientById(Number(user.id));
       setUserData(loadUser);
       console.log("Загружены данные пользователя: ", loadUser);
-      
+
       let loadUserPassports: Passport[] = [];
       let loadUserAddresses: Address[] = [];
 
@@ -251,7 +259,7 @@ const ClientAccountPage = () => {
           }
         }
       }
-      
+
       const combinedData = {
         id: loadUser.id,
         surName: loadUser.surName,
@@ -265,6 +273,7 @@ const ClientAccountPage = () => {
         age: loadUser.age,
         passport_Id: loadUser.passport_Id,
         isReadOnly: loadUser.isReadOnly,
+        // Убираем placeOfBirth из личных данных
 
         passports: loadUserPassports.map(p => ({
           id: p.id,
@@ -272,7 +281,9 @@ const ClientAccountPage = () => {
           number: p.number,
           issuedBy: p.issuedBy,
           issuedDate: p.dateOfIssue,
-          subdivisionCode: p.departmentCode
+          subdivisionCode: p.departmentCode,
+          gender: (p as any).gender,
+          placeOfBirth: (p as any).placeOfBirth
         })),
 
         addresses: loadUserAddresses.map(a => ({
@@ -371,7 +382,8 @@ const ClientAccountPage = () => {
       if (editedData.phoneNumber !== original.phoneNumber) updateData.phoneNumber = editedData.phoneNumber;
       if (editedData.email !== original.email) updateData.email = editedData.email;
       if (editedData.passport_Id !== original.passport_Id) updateData.passport_Id = editedData.passport_Id || null;
-      
+      // Убираем placeOfBirth из сохранения личных данных
+
       if (Object.keys(updateData).length === 0) {
         console.log('Нет изменений для сохранения');
         return;
@@ -1098,6 +1110,14 @@ const ClientAccountPage = () => {
 
                               <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Код подразделения:</div>
                               <div style={{ color: '#5D3A1A' }}>{passport.departmentCode || '—'}</div>
+
+                              {/* Пол */}
+                              <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Пол:</div>
+                              <div style={{ color: '#5D3A1A' }}>{(passport as any).gender || user?.gender || '—'}</div>
+
+                              {/* Место рождения - ТОЛЬКО В ПАСПОРТЕ */}
+                              <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Место рождения:</div>
+                              <div style={{ color: '#5D3A1A' }}>{(passport as any).placeOfBirth || '—'}</div>
                             </div>
                           </div>
 
