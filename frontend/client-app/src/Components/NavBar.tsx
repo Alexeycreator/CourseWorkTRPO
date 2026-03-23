@@ -563,7 +563,6 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
         gender: form.gender === 'male' ? 'Мужской' : 'Женский', // ДОБАВЛЕНО
         birthday: `${form.birthYear}-${form.birthMonth}-${form.birthDay}`, // ДОБАВЛЕНО
         age: this.calculateAge(form.birthDay, form.birthMonth, form.birthYear), // ДОБАВЛЕНО
-        isReadOnly: form.isReadOnly // ДОБАВЛЕНО
       };
 
       console.log('Данные для регистрации:', registerData); // ДОБАВЛЕНО для отладки
