@@ -24,6 +24,7 @@ export interface Client {
     age: number;
     birthday: string;
     isReadOnly: boolean;
+    placeOfBirth?: string;
     passport_Id?: number | null;
     passport?: Passport | null;
     tickets?: Ticket[] | null;
@@ -105,6 +106,7 @@ export const updateClient = async (id: number, clientData: {
     gender: string;
     birthday: string;            // Формат: "2026-03-09"
     age: number;
+    placeOfBirth?: string | null;
     passport_Id?: number | null;
 }): Promise<Client> => {
     const response = await api.put<Client>(`/Clients/${id}`, clientData);
