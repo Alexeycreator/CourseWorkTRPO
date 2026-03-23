@@ -19,6 +19,8 @@ export interface Passport {
     issuedBy: string;
     departmentCode: string;
     dateOfIssue: string;
+    gender?: string; // ДОБАВЛЕНО: Пол
+    placeOfBirth?: string; // ДОБАВЛЕНО: Место рождения
     addresses?: Address[] | null;
     clients?: Client[] | null;
 }
