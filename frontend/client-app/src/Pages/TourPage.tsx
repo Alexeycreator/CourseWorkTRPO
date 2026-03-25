@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../Contexts/AuthContext';
 
 // Импортируем изображения для всех туров
 import maldivImage from '../Images/Maldiv.jpg';
@@ -17,6 +18,9 @@ import { getTicketById, Ticket } from '../Services/TicketsApi';
 import { getTransferById, Transfer } from '../Services/TransfersApi';
 import NavBar from '../Components/NavBar';
 import { Address, getAddressById } from '../Services/AddressApi';
+import { getClientById } from '../Services/ClientApi';
+import { getPassportById, Passport } from '../Services/PassportApi';
+import TicketPayment from '../TicketPayment';
 
 // Интерфейс для данных тура
 interface TourData {
@@ -48,6 +52,7 @@ const TourPage = () => {
     const { id } = useParams<{ id: string }>();
     const API_URL = process.env.REACT_APP_API_URL;
     const navigate = useNavigate();
+    const { user, isAuthenticated } = useAuth();
     const [tour, setTour] = useState<TourData | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeImage, setActiveImage] = useState(0);
@@ -71,6 +76,12 @@ const TourPage = () => {
     const [currentRate, setCurrentRate] = useState(1);
     const [signCurrency, setSignCurrency] = useState('₽');
 
+    // Состояния для модального окна оплаты
+    const [showPayment, setShowPayment] = useState(false);
+    const [clientData, setClientData] = useState<any>(null);
+    const [passportData, setPassportData] = useState<Passport | null>(null);
+    const [addressData, setAddressData] = useState<Address | null>(null);
+
     const fetchTour = async () => {
         try {
             setLoading(true);
@@ -91,10 +102,9 @@ const TourPage = () => {
             console.error('Ошибка загрузки тура:', err);
 
             if (err.code === 'ERR_BAD_REQUEST') {
-                // Axios ошибка с ответом от сервера
                 if (err.response?.status === 404) {
                     const serverMessage = err.response.data?.message || 'Тур не найден';
-                    setErrorTour(serverMessage); // Будет "Данный тур не существует"
+                    setErrorTour(serverMessage);
                     navigate('/404', { replace: true });
                 } else {
                     setErrorTour(err.response?.data?.message || 'Ошибка загрузки данных');
@@ -107,28 +117,46 @@ const TourPage = () => {
         }
     };
 
+    // Загрузка данных клиента и паспорта
+    const fetchClientData = async () => {
+        if (!user?.id) return;
+        
+        try {
+            const client = await getClientById(Number(user.id));
+            setClientData(client);
+            
+            if (client.passport_Id) {
+                const passport = await getPassportById(client.passport_Id);
+                setPassportData(passport);
+                
+                // Здесь также можно загрузить адрес, если нужно
+                // const address = await getAddressByPassportId(passport.id);
+                // setAddressData(address);
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки данных клиента:', error);
+        }
+    };
+
     useEffect(() => {
         fetchTour();
-    }, [id]);
+        if (isAuthenticated) {
+            fetchClientData();
+        }
+    }, [id, user?.id, isAuthenticated]);
 
     // Функция для расчета количества дней
     const calculateNights = (startDate: string, endDate: string): number => {
         const start = new Date(startDate);
         const end = new Date(endDate);
-
-        // Разница в миллисекундах
         const diffTime = Math.abs(end.getTime() - start.getTime());
-
-        // Конвертируем в дни (1 день = 24 * 60 * 60 * 1000 мс)
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
         return diffDays;
     };
 
     // функция расчета цены в зависимости от курса
     const calculatePrice = (tourPrice: number, currencyRate: number): string => {
         const totalPrice = tourPrice / currencyRate;
-
         return Intl.NumberFormat('ru-RU', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
@@ -147,6 +175,52 @@ const TourPage = () => {
         }
         setSelectedCurrency(currency);
         setCurrentRate(rate);
+    };
+
+    // Функция обработки бронирования
+    const handleBooking = () => {
+        if (!isAuthenticated) {
+            // Если пользователь не авторизован, перенаправляем на страницу входа
+            if (window.confirm('Для бронирования тура необходимо авторизоваться. Перейти на страницу входа?')) {
+                navigate('/login', { state: { from: `/tour/${id}` } });
+            }
+            return;
+        }
+        
+        if (!clientData || !passportData) {
+            // Если данные клиента не загружены
+            alert('Пожалуйста, обновите страницу или заполните данные в личном кабинете');
+            return;
+        }
+        
+        // Открываем модальное окно оплаты
+        setShowPayment(true);
+    };
+
+    // Функция отправки данных бронирования
+    const handleSubmitBooking = async (ticketData: any) => {
+        try {
+            console.log('Отправка данных бронирования:', ticketData);
+            
+            // Здесь должен быть API вызов для создания билета
+            // const response = await createTicket(ticketData);
+            
+            // Имитация успешного бронирования
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            alert('Тур успешно забронирован! На вашу почту отправлено подтверждение.');
+            
+            // Закрываем модальное окно
+            setShowPayment(false);
+            
+            // Опционально: перенаправление на страницу с бронированиями
+            // navigate('/profile', { state: { activeTab: 'bookings' } });
+            
+        } catch (error) {
+            console.error('Ошибка при бронировании:', error);
+            alert('Произошла ошибка при бронировании. Пожалуйста, попробуйте позже.');
+            throw error;
+        }
     };
 
     // База данных всех туров с подробными описаниями
@@ -572,23 +646,15 @@ const TourPage = () => {
 
     useEffect(() => {
         setLoading(true);
-
-        // Имитация загрузки данных
         setTimeout(() => {
             if (id && toursDatabase[id]) {
                 setTour(toursDatabase[id]);
             } else {
-                // Тур не найден, перенаправляем на 404
                 navigate('/404');
             }
             setLoading(false);
         }, 300);
     }, [id, navigate]);
-
-    // сделать не через alert, а всплывающим окном
-    const handleBooking = () => {
-        alert(`Спасибо за интерес к туру "${tour?.title}"! Мы свяжемся с вами в ближайшее время.`);
-    };
 
     if (loading) {
         return (
@@ -616,7 +682,7 @@ const TourPage = () => {
     }
 
     if (!tour) {
-        return null; // Будет перенаправлено на 404
+        return null;
     }
 
     return (
@@ -673,24 +739,10 @@ const TourPage = () => {
                         </h1>
                         <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
                             <span style={{ color: '#B76E3C' }}>📍 {addressTour?.country}, {addressTour?.region}, {addressTour?.city}</span>
-                            {/* <span style={{ color: '#B76E3C' }}>•</span>
-                            <span style={{ color: '#B76E3C' }}>⭐ {tour.rating} ({tour.reviews} отзывов)</span> */}
                             <span style={{ color: '#B76E3C' }}>•</span>
                             <span style={{ color: '#B76E3C' }}>🏷️ {selectedTour?.type}</span>
                         </div>
                     </div>
-                    {/* {tour.hot && (
-                        <div style={{
-                            background: '#B76E3C',
-                            color: '#FFF8F0',
-                            padding: '8px 20px',
-                            borderRadius: '30px',
-                            fontSize: '16px',
-                            fontWeight: '600'
-                        }}>
-                            🔥 Горящий тур
-                        </div>
-                    )} */}
                 </div>
 
                 {/* Изображение */}
@@ -889,51 +941,6 @@ const TourPage = () => {
                                 </select>
                             </div>
 
-                            {/* Количество туристов */}
-                            {/* <div style={{ marginBottom: '20px' }}>
-                                <label style={{
-                                    display: 'block',
-                                    color: '#8B5A2B',
-                                    fontSize: '14px',
-                                    marginBottom: '5px'
-                                }}>
-                                    👥 Количество туристов
-                                </label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <button
-                                        onClick={() => setTourists(Math.max(1, tourists - 1))}
-                                        style={{
-                                            width: '35px',
-                                            height: '35px',
-                                            borderRadius: '50%',
-                                            border: '2px solid #D2B48C',
-                                            background: 'transparent',
-                                            color: '#8B5A2B',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        −
-                                    </button>
-                                    <span style={{ flex: 1, textAlign: 'center', color: '#8B5A2B' }}>
-                                        {tourists}
-                                    </span>
-                                    <button
-                                        onClick={() => setTourists(tourists + 1)}
-                                        style={{
-                                            width: '35px',
-                                            height: '35px',
-                                            borderRadius: '50%',
-                                            border: '2px solid #D2B48C',
-                                            background: 'transparent',
-                                            color: '#8B5A2B',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                            </div> */}
-
                             {/* Информация о туре */}
                             <div style={{
                                 background: '#F0E5D5',
@@ -948,23 +955,23 @@ const TourPage = () => {
                                     </div>
                                 )}
                                 {tour.hotelName && (
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <span style={{ color: '#8B5A2B' }}>🏨 Отель:</span>
-        <Link 
-            to={`/hotel/${id}`} 
-            style={{ 
-                color: '#B76E3C', 
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                transition: 'color 0.3s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#8B5A2B'}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#B76E3C'}
-        >
-            {tour.hotelName}
-        </Link>
-    </div>
-)}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                        <span style={{ color: '#8B5A2B' }}>🏨 Отель:</span>
+                                        <Link 
+                                            to={`/hotel/${id}`} 
+                                            style={{ 
+                                                color: '#B76E3C', 
+                                                textDecoration: 'underline',
+                                                cursor: 'pointer',
+                                                transition: 'color 0.3s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.color = '#8B5A2B'}
+                                            onMouseLeave={(e) => e.currentTarget.style.color = '#B76E3C'}
+                                        >
+                                            {tour.hotelName}
+                                        </Link>
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                     <span style={{ color: '#8B5A2B' }}>🌙 Ночей:</span>
                                     <span style={{ color: '#B76E3C' }}>{calculateNights(String(selectedTour?.startDot), String(selectedTour?.endDot))}</span>
@@ -990,8 +997,7 @@ const TourPage = () => {
                                     fontSize: '18px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
-                                    transition: 'all 0.3s',
-                                    pointerEvents: 'none'
+                                    transition: 'all 0.3s'
                                 }}
                                 onMouseEnter={(e) => {
                                     e.currentTarget.style.transform = 'scale(1.02)';
@@ -1040,6 +1046,18 @@ const TourPage = () => {
                     </Link>
                 </div>
             </div>
+
+            {/* Модальное окно оплаты */}
+            <TicketPayment
+                isOpen={showPayment}
+                onClose={() => setShowPayment(false)}
+                onSubmit={handleSubmitBooking}
+                tour={selectedTour}
+                clientData={clientData}
+                passportData={passportData}
+                addressData={addressData}
+                totalPrice={Number(selectedTour?.price)}
+            />
         </div>
     );
 };
