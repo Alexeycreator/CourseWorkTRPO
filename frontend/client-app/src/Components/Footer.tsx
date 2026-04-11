@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrencyRates } from '../Services/CurrencyRatesApi';
 import { Link } from 'react-router-dom';
-import { authApi } from '../Services/IndexAuth';
+import { useAuth } from '../Contexts/AuthContext'; // ДОБАВИТЬ ИМПОРТ
 
 const Footer = () => {
+    const { user } = useAuth(); // ИСПОЛЬЗОВАТЬ КОНТЕКСТ ВМЕСТО authApi.getStoredUser()
     const [currencyRatesOptions, setCurrencyRatesOptions] = useState<Array<{ code: string, rate: number }>>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showAuthWarning, setShowAuthWarning] = useState(false);
 
-    const currentUser = authApi.getStoredUser();
+    // УДАЛИТЬ ЭТУ СТРОКУ: const currentUser = authApi.getStoredUser();
 
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
@@ -42,7 +43,7 @@ const Footer = () => {
     }, [formattedToday]);
 
     const handleAccountClick = (e: React.MouseEvent) => {
-        if (!currentUser) {
+        if (!user) { // ИСПОЛЬЗОВАТЬ user ВМЕСТО currentUser
             e.preventDefault();
             setShowAuthWarning(true);
         }
@@ -173,7 +174,7 @@ const Footer = () => {
                             </li>
                             <li style={{ marginBottom: '8px' }}>
                                 <Link
-                                    to={currentUser ? `/account/${currentUser.id}` : "#"}
+                                    to={user ? `/account/${user.id}` : "#"}
                                     onClick={handleAccountClick}
                                     style={{ color: '#F5F0E5', fontSize: '14px', textDecoration: 'none', opacity: 0.9, transition: 'opacity 0.3s' }}
                                     onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
