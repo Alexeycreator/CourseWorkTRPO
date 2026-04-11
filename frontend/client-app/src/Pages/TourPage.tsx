@@ -76,6 +76,9 @@ const TourPage = () => {
     const [currentRate, setCurrentRate] = useState(1);
     const [signCurrency, setSignCurrency] = useState('₽');
 
+    const [convertedPrice, setConvertedPrice] = useState<number>(0);
+    const [displayPrice, setDisplayPrice] = useState('');
+
     // Состояния для модального окна оплаты
     const [showPayment, setShowPayment] = useState(false);
     const [clientData, setClientData] = useState<any>(null);
@@ -120,15 +123,15 @@ const TourPage = () => {
     // Загрузка данных клиента и паспорта
     const fetchClientData = async () => {
         if (!user?.id) return;
-        
+
         try {
             const client = await getClientById(Number(user.id));
             setClientData(client);
-            
+
             if (client.passport_Id) {
                 const passport = await getPassportById(client.passport_Id);
                 setPassportData(passport);
-                
+
                 // Здесь также можно загрузить адрес, если нужно
                 // const address = await getAddressByPassportId(passport.id);
                 // setAddressData(address);
@@ -144,6 +147,16 @@ const TourPage = () => {
             fetchClientData();
         }
     }, [id, user?.id, isAuthenticated]);
+
+    useEffect(() => {
+        if (selectedTour?.price) {
+            const formatted = new Intl.NumberFormat('ru-RU', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(selectedTour.price);
+            setDisplayPrice(`${formatted} ₽`);
+        }
+    }, [selectedTour]);
 
     // Функция для расчета количества дней
     const calculateNights = (startDate: string, endDate: string): number => {
@@ -175,6 +188,11 @@ const TourPage = () => {
         }
         setSelectedCurrency(currency);
         setCurrentRate(rate);
+
+        if (selectedTour?.price) {
+            const converted = selectedTour.price / rate;
+            setConvertedPrice(converted);
+        }
     };
 
     // Функция обработки бронирования
@@ -186,13 +204,13 @@ const TourPage = () => {
             }
             return;
         }
-        
+
         if (!clientData || !passportData) {
             // Если данные клиента не загружены
             alert('Пожалуйста, обновите страницу или заполните данные в личном кабинете');
             return;
         }
-        
+
         // Открываем модальное окно оплаты
         setShowPayment(true);
     };
@@ -201,21 +219,21 @@ const TourPage = () => {
     const handleSubmitBooking = async (ticketData: any) => {
         try {
             console.log('Отправка данных бронирования:', ticketData);
-            
+
             // Здесь должен быть API вызов для создания билета
             // const response = await createTicket(ticketData);
-            
+
             // Имитация успешного бронирования
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            alert('Тур успешно забронирован! На вашу почту отправлено подтверждение.');
-            
+
+            //alert('Тур успешно забронирован! На вашу почту отправлено подтверждение.');
+
             // Закрываем модальное окно
             setShowPayment(false);
-            
+
             // Опционально: перенаправление на страницу с бронированиями
             // navigate('/profile', { state: { activeTab: 'bookings' } });
-            
+
         } catch (error) {
             console.error('Ошибка при бронировании:', error);
             alert('Произошла ошибка при бронировании. Пожалуйста, попробуйте позже.');
@@ -656,6 +674,12 @@ const TourPage = () => {
         }, 300);
     }, [id, navigate]);
 
+    useEffect(() => {
+        if (selectedTour?.price) {
+            setConvertedPrice(selectedTour.price);
+        }
+    }, [selectedTour]);
+    
     if (loading) {
         return (
             <div style={{
@@ -957,10 +981,10 @@ const TourPage = () => {
                                 {tour.hotelName && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ color: '#8B5A2B' }}>🏨 Отель:</span>
-                                        <Link 
-                                            to={`/hotel/${id}`} 
-                                            style={{ 
-                                                color: '#B76E3C', 
+                                        <Link
+                                            to={`/hotel/${id}`}
+                                            style={{
+                                                color: '#B76E3C',
                                                 textDecoration: 'underline',
                                                 cursor: 'pointer',
                                                 transition: 'color 0.3s'
@@ -1056,7 +1080,8 @@ const TourPage = () => {
                 clientData={clientData}
                 passportData={passportData}
                 addressData={addressData}
-                totalPrice={Number(selectedTour?.price)}
+                convertedPrice={convertedPrice}
+                currencySymbol={signCurrency}
             />
         </div>
     );
