@@ -987,7 +987,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                       <li>
                         <Link
                           className="dropdown-item"
-                          to={`/ account / ${user.id} `}
+                          to={`/account/${user.id}`}
                           style={{
                             color: '#8B5A2B',
                             padding: '8px 15px',
