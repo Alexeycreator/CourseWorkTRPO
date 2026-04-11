@@ -169,10 +169,18 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     this.fetchCurrency();
     this.fetchRatesData();
     document.addEventListener('mousedown', this.handleClickOutside);
+    // Слушатель для открытия окна авторизации из других компонентов
+    window.addEventListener('openAuthModal', this.openAuthFromEvent);
+    // Слушатель для открытия окна регистрации из других компонентов
+    window.addEventListener('openRegistrationModal', this.openRegistrationFromEvent);
+
   }
 
   componentWillUnmount() {
     document.removeEventListener('mousedown', this.handleClickOutside);
+    window.removeEventListener('openAuthModal', this.openAuthFromEvent);
+    window.removeEventListener('openRegistrationModal', this.openRegistrationFromEvent);
+
   }
 
   toggleCurrencyMenu = () => {
@@ -319,6 +327,22 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       },
       authError: null
     }));
+  };
+
+
+  // Обработчики событий
+  openAuthFromEvent = () => {
+    this.setState({
+      showAuth: true,
+      showRegistrationModal: false
+    });
+  };
+
+  openRegistrationFromEvent = () => {
+    this.setState({
+      showRegistrationModal: true,
+      showAuth: false
+    });
   };
 
   validateAuthForm = (): boolean => {
