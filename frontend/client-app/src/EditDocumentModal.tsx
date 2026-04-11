@@ -7,8 +7,8 @@ export interface DocumentFormData {
   dateOfIssue: string;
   departmentCode: string;
   type: string;
-  gender?: string; // ДОБАВЛЕНО: Пол
-  placeOfBirth?: string; // ДОБАВЛЕНО: Место рождения
+  gender?: string;
+  placeOfBirth?: string;
   id?: number;
 }
 
@@ -73,8 +73,8 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
         dateOfIssue: data.passport.dateOfIssue || '',
         departmentCode: data.passport.departmentCode || '',
         type: data.passport.type || 'passport',
-        gender: (data.passport as any).gender || '', // ДОБАВЛЕНО
-        placeOfBirth: (data.passport as any).placeOfBirth || '', // ДОБАВЛЕНО
+        gender: (data.passport as any).gender || '',
+        placeOfBirth: (data.passport as any).placeOfBirth || '',
         id: data.passport.id
       });
 
@@ -87,7 +87,6 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
         id: data.address.id
       });
     } else if (open && mode === 'add') {
-      // Для режима добавления - пустые формы
       setPassportForm({
         seria: '',
         number: '',
@@ -95,8 +94,8 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
         dateOfIssue: '',
         departmentCode: '',
         type: 'passport',
-        gender: '', // ДОБАВЛЕНО
-        placeOfBirth: '' // ДОБАВЛЕНО
+        gender: '',
+        placeOfBirth: ''
       });
       setAddressForm({
         country: 'Российская Федерация',
@@ -108,35 +107,89 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
     }
   }, [data, open, mode]);
 
-  const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPassportForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    if (passportErrors[name]) {
-      setPassportErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+  // Форматирование серии паспорта (только цифры, максимум 4)
+  const handleSeriaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+    setPassportForm(prev => ({ ...prev, seria: value }));
+    if (passportErrors.seria) {
+      setPassportErrors(prev => { const newErrors = { ...prev }; delete newErrors.seria; return newErrors; });
     }
   };
 
-  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setAddressForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  // Форматирование номера паспорта (только цифры, максимум 6)
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setPassportForm(prev => ({ ...prev, number: value }));
+    if (passportErrors.number) {
+      setPassportErrors(prev => { const newErrors = { ...prev }; delete newErrors.number; return newErrors; });
+    }
+  };
 
-    if (addressErrors[name]) {
-      setAddressErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+  // Форматирование кода подразделения (только цифры и дефис, формат 000-000)
+  const handleDepartmentCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/[^\d-]/g, '');
+    if (value.length === 3 && !value.includes('-')) {
+      value = value + '-';
+    }
+    value = value.slice(0, 7);
+    setPassportForm(prev => ({ ...prev, departmentCode: value }));
+    if (passportErrors.departmentCode) {
+      setPassportErrors(prev => { const newErrors = { ...prev }; delete newErrors.departmentCode; return newErrors; });
+    }
+  };
+
+  const handlePassportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPassportForm(prev => ({ ...prev, [name]: value }));
+    if (passportErrors[name]) {
+      setPassportErrors(prev => { const newErrors = { ...prev }; delete newErrors[name]; return newErrors; });
+    }
+  };
+
+  // Валидация места рождения (только буквы, пробелы, дефисы, точки, запятые)
+  const handlePlaceOfBirthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^а-яА-Яa-zA-Z\s\-\.\,]/g, '');
+    setPassportForm(prev => ({ ...prev, placeOfBirth: value }));
+    if ((passportErrors as any).placeOfBirth) {
+      setPassportErrors(prev => { const newErrors = { ...prev }; delete newErrors.placeOfBirth; return newErrors; });
+    }
+  };
+
+  // Валидация номера дома (только цифры, буквы и дробь)
+  const handleHouseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^\dа-яА-Яa-zA-Z/\\-]/g, '');
+    setAddressForm(prev => ({ ...prev, house: value }));
+    if (addressErrors.house) {
+      setAddressErrors(prev => { const newErrors = { ...prev }; delete newErrors.house; return newErrors; });
+    }
+  };
+
+  // Валидация квартиры (только цифры)
+  const handleApartmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    setAddressForm(prev => ({ ...prev, apartment: value }));
+    if (addressErrors.apartment) {
+      setAddressErrors(prev => { const newErrors = { ...prev }; delete newErrors.apartment; return newErrors; });
+    }
+  };
+
+  // Валидация города, улицы и страны (только буквы, пробелы, дефисы, точки)
+  const handleTextAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const filteredValue = value.replace(/[^а-яА-Яa-zA-Z\s\-\.]/g, '');
+    
+    if (name === 'city') {
+      setAddressForm(prev => ({ ...prev, city: filteredValue }));
+      if (addressErrors.city) {
+        setAddressErrors(prev => { const newErrors = { ...prev }; delete newErrors.city; return newErrors; });
+      }
+    } else if (name === 'street') {
+      setAddressForm(prev => ({ ...prev, street: filteredValue }));
+      if (addressErrors.street) {
+        setAddressErrors(prev => { const newErrors = { ...prev }; delete newErrors.street; return newErrors; });
+      }
+    } else if (name === 'country') {
+      setAddressForm(prev => ({ ...prev, country: filteredValue }));
     }
   };
 
@@ -146,17 +199,19 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
     if (!passportForm.seria?.trim()) {
       newErrors.seria = 'Серия паспорта обязательна';
     } else if (!/^\d{4}$/.test(passportForm.seria)) {
-      newErrors.seria = 'Серия должна содержать 4 цифры';
+      newErrors.seria = 'Серия должна содержать ровно 4 цифры';
     }
 
     if (!passportForm.number?.trim()) {
       newErrors.number = 'Номер паспорта обязателен';
     } else if (!/^\d{6}$/.test(passportForm.number)) {
-      newErrors.number = 'Номер должен содержать 6 цифр';
+      newErrors.number = 'Номер должен содержать ровно 6 цифр';
     }
 
     if (!passportForm.issuedBy?.trim()) {
       newErrors.issuedBy = 'Кем выдан паспорт обязательно';
+    } else if (passportForm.issuedBy.length < 5) {
+      newErrors.issuedBy = 'Введите полное наименование органа';
     }
 
     if (!passportForm.dateOfIssue) {
@@ -164,8 +219,13 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
     } else {
       const selectedDate = new Date(passportForm.dateOfIssue);
       const today = new Date();
+      const minDate = new Date();
+      minDate.setFullYear(today.getFullYear() - 100);
+      
       if (selectedDate > today) {
         newErrors.dateOfIssue = 'Дата выдачи не может быть в будущем';
+      } else if (selectedDate < minDate) {
+        newErrors.dateOfIssue = 'Дата выдачи не может быть более 100 лет назад';
       }
     }
 
@@ -173,6 +233,15 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
       newErrors.departmentCode = 'Код подразделения обязателен';
     } else if (!/^\d{3}-\d{3}$/.test(passportForm.departmentCode)) {
       newErrors.departmentCode = 'Код подразделения должен быть в формате 000-000';
+    }
+
+    // Валидация места рождения
+    if (passportForm.placeOfBirth?.trim()) {
+      if (passportForm.placeOfBirth.length < 5) {
+        newErrors.placeOfBirth = 'Место рождения должно содержать минимум 5 символов';
+      } else if (!/^[а-яА-Яa-zA-Z\s\-\.\,]+$/.test(passportForm.placeOfBirth)) {
+        newErrors.placeOfBirth = 'Место рождения должно содержать только буквы, пробелы, дефисы, точки и запятые';
+      }
     }
 
     setPassportErrors(newErrors);
@@ -184,12 +253,28 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
 
     if (!addressForm.city?.trim()) {
       newErrors.city = 'Город обязателен';
+    } else if (addressForm.city.length < 3) {
+      newErrors.city = 'Название города должно содержать минимум 3 символа';
+    } else if (!/^[а-яА-Яa-zA-Z\s\-\.]+$/.test(addressForm.city)) {
+      newErrors.city = 'Город должен содержать только буквы, пробелы, дефисы и точки';
     }
+
     if (!addressForm.street?.trim()) {
       newErrors.street = 'Улица обязательна';
+    } else if (addressForm.street.length < 3) {
+      newErrors.street = 'Название улицы должно содержать минимум 3 символа';
+    } else if (!/^[а-яА-Яa-zA-Z\s\-\.]+$/.test(addressForm.street)) {
+      newErrors.street = 'Улица должна содержать только буквы, пробелы, дефисы и точки';
     }
+
     if (!addressForm.house?.trim()) {
       newErrors.house = 'Номер дома обязателен';
+    } else if (!/^[\d\/\\\-]+[а-яА-Яa-zA-Z]?$/.test(addressForm.house)) {
+      newErrors.house = 'Номер дома должен содержать цифры, возможно букву или дробь';
+    }
+
+    if (addressForm.apartment && !/^\d+$/.test(addressForm.apartment)) {
+      newErrors.apartment = 'Номер квартиры должен содержать только цифры';
     }
 
     setAddressErrors(newErrors);
@@ -335,7 +420,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   type="text"
                   name="seria"
                   value={passportForm.seria}
-                  onChange={handlePassportChange}
+                  onChange={handleSeriaChange}
                   maxLength={4}
                   placeholder="0000"
                   style={{
@@ -378,7 +463,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   type="text"
                   name="number"
                   value={passportForm.number}
-                  onChange={handlePassportChange}
+                  onChange={handleNumberChange}
                   maxLength={6}
                   placeholder="000000"
                   style={{
@@ -505,7 +590,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   type="text"
                   name="departmentCode"
                   value={passportForm.departmentCode}
-                  onChange={handlePassportChange}
+                  onChange={handleDepartmentCodeChange}
                   placeholder="000-000"
                   style={{
                     width: '100%',
@@ -533,7 +618,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                 )}
               </div>
 
-              {/* ДОБАВЛЕНО: Пол */}
+              {/* Пол */}
               <div>
                 <label style={{
                   display: 'block',
@@ -568,7 +653,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                 </div>
               </div>
 
-              {/* ДОБАВЛЕНО: Место рождения */}
+              {/* Место рождения */}
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={{
                   display: 'block',
@@ -583,7 +668,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   type="text"
                   name="placeOfBirth"
                   value={passportForm.placeOfBirth || ''}
-                  onChange={handlePassportChange}
+                  onChange={handlePlaceOfBirthChange}
                   placeholder="г. Москва, Россия"
                   style={{
                     width: '100%',
@@ -597,6 +682,16 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                     transition: 'all 0.3s'
                   }}
                 />
+                {(passportErrors as any).placeOfBirth && (
+                  <div style={{
+                    color: '#8B0000',
+                    fontSize: '12px',
+                    marginTop: '5px',
+                    marginLeft: '5px'
+                  }}>
+                    {(passportErrors as any).placeOfBirth}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -627,6 +722,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                 <li>Серия: 4 цифры (например: 4510)</li>
                 <li>Номер: 6 цифр (например: 123456)</li>
                 <li>Код подразделения: формат 000-000 (например: 123-456)</li>
+                <li>Место рождения: минимум 5 символов, только буквы</li>
               </ul>
             </div>
           </div>
@@ -672,7 +768,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   type="text"
                   name="country"
                   value={addressForm.country}
-                  onChange={handleAddressChange}
+                  onChange={handleTextAddressChange}
                   placeholder="Российская Федерация"
                   style={{
                     width: '100%',
@@ -702,7 +798,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   type="text"
                   name="city"
                   value={addressForm.city}
-                  onChange={handleAddressChange}
+                  onChange={handleTextAddressChange}
                   placeholder="Например: Москва"
                   style={{
                     width: '100%',
@@ -744,7 +840,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   type="text"
                   name="street"
                   value={addressForm.street}
-                  onChange={handleAddressChange}
+                  onChange={handleTextAddressChange}
                   placeholder="Например: Тверская"
                   style={{
                     width: '100%',
@@ -786,8 +882,8 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   type="text"
                   name="house"
                   value={addressForm.house}
-                  onChange={handleAddressChange}
-                  placeholder="Например: 15"
+                  onChange={handleHouseChange}
+                  placeholder="Например: 15 или 15к1 или 15/2"
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -828,7 +924,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   type="text"
                   name="apartment"
                   value={addressForm.apartment}
-                  onChange={handleAddressChange}
+                  onChange={handleApartmentChange}
                   placeholder="Например: 42"
                   style={{
                     width: '100%',
@@ -842,6 +938,18 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                     transition: 'all 0.3s'
                   }}
                 />
+                {addressErrors.apartment && (
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
+                    marginTop: '3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px'
+                  }}>
+                    <span>⚠️</span> {addressErrors.apartment}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -869,8 +977,10 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                 color: '#5D3A1A',
                 fontSize: '13px'
               }}>
-                <li>Все поля обязательны, кроме квартиры</li>
-                <li>Адрес должен соответствовать прописке в паспорте</li>
+                <li>Город: минимум 3 символа, только буквы</li>
+                <li>Улица: минимум 3 символа, только буквы</li>
+                <li>Номер дома: цифры, буква или дробь (например: 15, 15к2, 15/2)</li>
+                <li>Квартира: только цифры</li>
               </ul>
             </div>
           </div>
