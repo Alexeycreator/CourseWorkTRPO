@@ -5,7 +5,7 @@ import { getAddressByPassportId, getClientsByPassportId, getPassportById, Passpo
 import { Client, getClientById, updateClient } from "../Services/ClientApi";
 import { Address, getAddressById, getAddresses } from "../Services/AddressApi";
 import EditDocumentModal, { DocumentFormData, AddressFormData, CombinedDocumentData } from '../EditDocumentModal';
-
+import { Link } from 'react-router-dom';
 // Обновленные интерфейсы согласно моделям
 interface Tour {
   id?: number;
@@ -75,12 +75,12 @@ const ClientAccountPage = () => {
   const [tours, setTours] = useState<Tour[]>([]);
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [hotelRooms, setHotelRooms] = useState<HotelRoom[]>([]);
-  
+
   // Состояния для форм добавления
   const [showTourForm, setShowTourForm] = useState(false);
   const [showHotelForm, setShowHotelForm] = useState(false);
   const [showRoomForm, setShowRoomForm] = useState(false);
-  
+
   // Формы для добавления
   const [newTour, setNewTour] = useState<Partial<Tour>>({
     type: 'Экскурсионный',
@@ -90,14 +90,14 @@ const ClientAccountPage = () => {
     program: 'Не предусмотрено',
     imageTour: '/default-tour.jpg'
   });
-  
+
   const [newHotel, setNewHotel] = useState<Partial<Hotel>>({
     stars: 3,
     timeOfStay: 1,
     imageHotel: '/default-hotel.jpg',
     details: ''
   });
-  
+
   const [newRoom, setNewRoom] = useState<Partial<HotelRoom>>({
     floor: 1,
     details: '',
@@ -717,7 +717,7 @@ const ClientAccountPage = () => {
                 {[
                   { id: 'profile' as const, label: '📋 Мои данные' },
                   { id: 'documents' as const, label: '📄 Документы' },
-                  { id: 'bookings' as const, label: '🗺️ Мои туры' },
+                  { id: 'bookings' as const, label: '🗺️ Мои бронирования' },
                   { id: 'admin' as const, label: '👨‍💼 Администратор' },
                   { id: 'employee' as const, label: '👨‍💻 Сотрудник' },
                   { id: 'logout' as const, label: '🚪 Выход' }
@@ -1453,18 +1453,194 @@ const ClientAccountPage = () => {
                   }}>
                     🗺️ Ваши забронированные туры
                   </h3>
-                  <div style={{
-                    textAlign: 'center',
-                    padding: '40px',
-                    background: '#FFF8F0',
-                    borderRadius: '20px',
-                    border: '2px solid #D2B48C'
-                  }}>
-                    <p style={{ fontSize: '18px', color: '#8B5A2B' }}>
-                      Здесь будут отображаться ваши забронированные туры
-                    </p>
-                  </div>
+
+                  {tours.length === 0 ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '40px',
+                      background: '#FFF8F0',
+                      borderRadius: '20px',
+                      border: '2px solid #D2B48C'
+                    }}>
+                      <p style={{ fontSize: '18px', color: '#8B5A2B' }}>
+                        У вас пока нет забронированных туров
+                      </p>
+                      <Link to="/catalog" style={{ textDecoration: 'none' }}>
+                        <button style={{
+                          marginTop: '20px',
+                          padding: '12px 30px',
+                          background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                          color: '#FFF8F0',
+                          border: '2px solid #D2B48C',
+                          borderRadius: '40px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s',
+                          boxShadow: '0 5px 15px rgba(183, 110, 60, 0.3)'
+                        }}>
+                          🐪 Выбрать тур
+                        </button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '20px'
+                    }}>
+                      {tours.map((tour) => (
+                        <div key={tour.id} style={{
+                          background: '#FFF8F0',
+                          borderRadius: '20px',
+                          padding: '25px',
+                          border: '2px solid #D2B48C',
+                          position: 'relative'
+                        }}>
+                          {/* Бейдж "Оформлен" */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '15px',
+                            right: '15px',
+                            background: 'linear-gradient(135deg, #28a745, #20c997)',
+                            color: 'white',
+                            padding: '5px 15px',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            boxShadow: '0 2px 8px rgba(40, 167, 69, 0.3)'
+                          }}>
+                            <span>✅</span> Оформлен
+                          </div>
+
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '200px 1fr',
+                            gap: '25px'
+                          }}>
+                            {/* Изображение тура */}
+                            <div style={{
+                              width: '100%',
+                              height: '150px',
+                              borderRadius: '15px',
+                              overflow: 'hidden',
+                              border: '2px solid #D2B48C'
+                            }}>
+                              <img
+                                src={tour.imageTour}
+                                alt={tour.name}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover'
+                                }}
+                              />
+                            </div>
+
+                            {/* Информация о туре */}
+                            <div>
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                marginBottom: '10px'
+                              }}>
+                                <h4 style={{
+                                  fontSize: '20px',
+                                  color: '#8B5A2B',
+                                  fontFamily: "'Cormorant Garamond', serif",
+                                  margin: 0
+                                }}>
+                                  {tour.name}
+                                </h4>
+                              </div>
+
+                              <p style={{
+                                color: '#5D3A1A',
+                                fontSize: '14px',
+                                marginBottom: '15px',
+                                lineHeight: '1.6'
+                              }}>
+                                {tour.description}
+                              </p>
+
+                              <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(2, 1fr)',
+                                gap: '10px',
+                                marginBottom: '15px'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ color: '#8B5A2B' }}>📍</span>
+                                  <span style={{ color: '#5D3A1A', fontSize: '14px' }}>
+                                    {tour.startDot} → {tour.endDot}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ color: '#8B5A2B' }}>🏷️</span>
+                                  <span style={{ color: '#5D3A1A', fontSize: '14px' }}>
+                                    {tour.type}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ color: '#8B5A2B' }}>💰</span>
+                                  <span style={{
+                                    color: '#B76E3C',
+                                    fontWeight: '600',
+                                    fontSize: '16px'
+                                  }}>
+                                    {new Intl.NumberFormat('ru-RU').format(tour.price)} ₽
+                                  </span>
+                                </div>
+                                {tour.hotTour && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ color: '#8B5A2B' }}>🔥</span>
+                                    <span style={{
+                                      color: '#dc3545',
+                                      fontSize: '14px',
+                                      fontWeight: '500'
+                                    }}>
+                                      Горящий тур
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Кнопка просмотра */}
+                              <Link to={`/catalog/tour/${tour.id}`} style={{ textDecoration: 'none' }}>
+                                <button style={{
+                                  padding: '8px 20px',
+                                  background: 'transparent',
+                                  color: '#8B5A2B',
+                                  border: '2px solid #D2B48C',
+                                  borderRadius: '20px',
+                                  fontSize: '14px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px'
+                                }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'rgba(183, 110, 60, 0.1)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'transparent';
+                                  }}>
+                                  👁️ Подробнее о туре
+                                </button>
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
               ) : activeTab === 'admin' ? (
                 // Вкладка "Администратор"
                 <div>
