@@ -41,6 +41,8 @@ interface NavBarState {
   showCurrencyMenu: boolean;
 
   showRegistrationModal: boolean;
+  showSuccessModal: boolean;
+  successMessage: string;
 
   selectedCurrency: string;
   currencyOptions: string[];
@@ -118,6 +120,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     googleAuthModal: false,
     showCurrencyMenu: false,
     showRegistrationModal: false,
+    showSuccessModal: false,
+    successMessage: '',
     selectedCurrency: 'RUB', // если надо поменять изначальную валюту, то надо ввести ее letterCode
     currencyOptions: [],
     ratesData: [],
@@ -426,6 +430,10 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     });
   };
 
+  closeSuccessModal = () => {
+    this.setState({ showSuccessModal: false, successMessage: '' });
+  };
+
   handleClickOutside = (event: MouseEvent) => {
     if (this.menuRef.current && !this.menuRef.current.contains(event.target as Node)) {
       this.setState({ showCurrencyMenu: false });
@@ -489,25 +497,25 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     } else if (form.login.length < 3) {
       errors.login = 'Логин должен содержать минимум 3 символа';
     }
-
-    if (!form.passportSeries.trim()) {
-      errors.passportSeries = 'Введите серию паспорта';
-    } else if (!/^\d{4}$/.test(form.passportSeries)) {
-      errors.passportSeries = '4 цифры';
-    }
-
-    if (!form.passportNumber.trim()) {
-      errors.passportNumber = 'Введите номер паспорта';
-    } else if (!/^\d{6}$/.test(form.passportNumber)) {
-      errors.passportNumber = '6 цифр';
-    }
-
-    if (!form.passportIssued.trim()) errors.passportIssued = 'Введите кем выдан';
-    if (!form.passportDate) errors.passportDate = 'Введите дату выдачи';
-
-    if (!form.city.trim()) errors.city = 'Введите город';
-    if (!form.address.trim()) errors.address = 'Введите адрес';
-
+    /*
+       if (!form.passportSeries.trim()) {
+         errors.passportSeries = 'Введите серию паспорта';
+       } else if (!/^\d{4}$/.test(form.passportSeries)) {
+         errors.passportSeries = '4 цифры';
+       }
+   
+       if (!form.passportNumber.trim()) {
+         errors.passportNumber = 'Введите номер паспорта';
+       } else if (!/^\d{6}$/.test(form.passportNumber)) {
+         errors.passportNumber = '6 цифр';
+       }
+   
+       if (!form.passportIssued.trim()) errors.passportIssued = 'Введите кем выдан';
+       if (!form.passportDate) errors.passportDate = 'Введите дату выдачи';
+   
+       if (!form.city.trim()) errors.city = 'Введите город';
+       if (!form.address.trim()) errors.address = 'Введите адрес';
+     */
     if (!form.password) {
       errors.password = 'Введите пароль';
     } else if (form.password.length < 6) {
@@ -539,9 +547,6 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
   handleRegistrationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ДОБАВЛЕНО: Вывод в консоль при нажатии кнопки
-    console.log('RegButton Ok');
-
     if (!this.validateRegistrationStep2()) {
       return;
     }
@@ -551,44 +556,43 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     try {
       const form = this.state.registrationForm;
 
-      // Преобразуем данные формы в формат для API
       const registerData = {
         surName: form.lastName,
         firstName: form.firstName,
-        middleName: form.middleName, // ДОБАВЛЕНО: Отчество
+        middleName: form.middleName,
         phoneNumber: form.phone,
         email: form.email,
-        login: form.login, // ИЗМЕНЕНО: Используем введенный логин вместо email
+        login: form.login,
         password: form.password,
-        gender: form.gender === 'male' ? 'Мужской' : 'Женский', // ДОБАВЛЕНО
-        birthday: `${form.birthYear}-${form.birthMonth}-${form.birthDay}`, // ДОБАВЛЕНО
-        age: this.calculateAge(form.birthDay, form.birthMonth, form.birthYear), // ДОБАВЛЕНО
+        gender: form.gender === 'male' ? 'Мужской' : 'Женский',
+        birthday: `${form.birthYear}-${form.birthMonth}-${form.birthDay}`,
+        age: this.calculateAge(form.birthDay, form.birthMonth, form.birthYear),
       };
 
-      console.log('Данные для регистрации:', registerData); // ДОБАВЛЕНО для отладки
-
-      // Отправляем запрос на регистрацию
       await authApi.register(registerData);
 
-      // После успешной регистрации пробуем сразу войти
       const loginResponse = await authApi.login({
-        login: form.login, // ИЗМЕНЕНО: используем введенный логин
+        login: form.login,
         password: form.password
       });
+
+      const fullName = `${loginResponse.user.surName} ${loginResponse.user.firstName} ${loginResponse.user.middleName || ''}`.trim();
+      const successMessage = `Вы успешно зарегистрированы!\nДобро пожаловать, ${fullName}!`;
 
       this.setState({
         user: loginResponse.user,
         showRegistrationModal: false,
         registrationForm: { ...this.initialRegistrationForm },
-        registrationStep: 1
+        registrationStep: 1,
+        showSuccessModal: true,
+        successMessage: successMessage
       });
 
-      alert('Регистрация успешна! Добро пожаловать!');
+      this.notifyAuthChange(loginResponse.user);
 
     } catch (error: any) {
       if (error.response?.status === 409) {
         const message = error.response.data?.message || '';
-        // ИЗМЕНЕНО: Добавлена проверка на email
         if (message.includes('логин')) {
           this.setState({ registrationError: 'Пользователь с таким логином уже существует' });
         } else if (message.includes('email')) {
@@ -605,6 +609,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       this.setState({ registrationLoading: false });
     }
   };
+
 
   toggleGoogleAuth = () => {
     this.setState(prevState => ({
@@ -707,7 +712,9 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       registrationStep,
       registrationLoading,
       registrationError,
-      registrationFieldErrors
+      registrationFieldErrors,
+      showSuccessModal,
+      successMessage
     } = this.state;
 
     return (
@@ -956,7 +963,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                       <li>
                         <Link
                           className="dropdown-item"
-                          to={`/account/${user.id}`}
+                          to={`/ account / ${user.id} `}
                           style={{
                             color: '#8B5A2B',
                             padding: '8px 15px',
@@ -1008,6 +1015,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                 </>
               )}
             </div> */}
+
               {/* Селектор валюты */}
               <div
                 ref={this.menuRef}
@@ -1066,21 +1074,21 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                     {/* Кастомный скроллбар для WebKit браузеров */}
                     <style>
                       {`
-          div::-webkit-scrollbar {
-            width: 6px;
-          }
-          div::-webkit-scrollbar-track {
-            background: #F8F0E0;
-            border-radius: 0 10px 10px 0;
-          }
-          div::-webkit-scrollbar-thumb {
-            background: #C0A080;
-            border-radius: 3px;
-          }
-          div::-webkit-scrollbar-thumb:hover {
-            background: #A08060;
-          }
-        `}
+div:: -webkit - scrollbar {
+  width: 6px;
+}
+div:: -webkit - scrollbar - track {
+  background: #F8F0E0;
+  border - radius: 0 10px 10px 0;
+}
+div:: -webkit - scrollbar - thumb {
+  background: #C0A080;
+  border - radius: 3px;
+}
+div:: -webkit - scrollbar - thumb:hover {
+  background: #A08060;
+}
+`}
                     </style>
 
                     {this.state.loading ? (
@@ -1295,7 +1303,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                             width: '100%',
                             padding: '8px 12px',
                             backgroundColor: '#F0E0D0',
-                            border: `1px solid ${this.state.authFieldErrors.login ? '#d32f2f' : '#C0A080'}`,
+                            border: `1px solid ${this.state.authFieldErrors.login ? '#d32f2f' : '#C0A080'} `,
                             borderRadius: '8px',
                             color: '#8B5A2B',
                             fontSize: '14px',
@@ -1326,7 +1334,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                             width: '100%',
                             padding: '8px 12px',
                             backgroundColor: '#F0E0D0',
-                            border: `1px solid ${this.state.authFieldErrors.password ? '#d32f2f' : '#C0A080'}`,
+                            border: `1px solid ${this.state.authFieldErrors.password ? '#d32f2f' : '#C0A080'} `,
                             borderRadius: '8px',
                             color: '#8B5A2B',
                             fontSize: '14px',
@@ -1570,7 +1578,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.firstName ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.firstName ? '#dc3545' : '#D2B48C'} `,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -1597,7 +1605,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.lastName ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.lastName ? '#dc3545' : '#D2B48C'} `,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -1648,7 +1656,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.email ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.email ? '#dc3545' : '#D2B48C'} `,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -1675,7 +1683,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                           style={{
                             width: '100%',
                             padding: '12px',
-                            border: `2px solid ${errors.phone ? '#dc3545' : '#D2B48C'}`,
+                            border: `2px solid ${errors.phone ? '#dc3545' : '#D2B48C'} `,
                             borderRadius: '15px',
                             backgroundColor: '#FFF8F0',
                             color: '#8B5A2B',
@@ -1733,7 +1741,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                             style={{
                               flex: 1,
                               padding: '12px',
-                              border: `2px solid ${registrationFieldErrors.birthDay ? '#dc3545' : '#D2B48C'}`,
+                              border: `2px solid ${registrationFieldErrors.birthDay ? '#dc3545' : '#D2B48C'} `,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
@@ -1753,7 +1761,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                             style={{
                               flex: 2,
                               padding: '12px',
-                              border: `2px solid ${registrationFieldErrors.birthMonth ? '#dc3545' : '#D2B48C'}`,
+                              border: `2px solid ${registrationFieldErrors.birthMonth ? '#dc3545' : '#D2B48C'} `,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
@@ -1773,7 +1781,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                             style={{
                               flex: 1,
                               padding: '12px',
-                              border: `2px solid ${registrationFieldErrors.birthYear ? '#dc3545' : '#D2B48C'}`,
+                              border: `2px solid ${registrationFieldErrors.birthYear ? '#dc3545' : '#D2B48C'} `,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
@@ -1882,7 +1890,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                             style={{
                               width: '100%',
                               padding: '12px',
-                              border: `2px solid ${registrationFieldErrors.login ? '#dc3545' : '#D2B48C'}`,
+                              border: `2px solid ${registrationFieldErrors.login ? '#dc3545' : '#D2B48C'} `,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
@@ -1909,7 +1917,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                             style={{
                               width: '100%',
                               padding: '12px',
-                              border: `2px solid ${registrationFieldErrors.password ? '#dc3545' : '#D2B48C'}`,
+                              border: `2px solid ${registrationFieldErrors.password ? '#dc3545' : '#D2B48C'} `,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
@@ -1936,7 +1944,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                             style={{
                               width: '100%',
                               padding: '12px',
-                              border: `2px solid ${registrationFieldErrors.confirmPassword ? '#dc3545' : '#D2B48C'}`,
+                              border: `2px solid ${registrationFieldErrors.confirmPassword ? '#dc3545' : '#D2B48C'} `,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
@@ -2113,10 +2121,86 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                       >
                         Отмена
                       </button>
+
+
+
+
+
+
                     </div>
                   </>
                 )}
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно успешной регистрации */}
+        {showSuccessModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 3000,
+            padding: '20px'
+          }}>
+            <div style={{
+              backgroundColor: '#F8F0E0',
+              borderRadius: '30px',
+              padding: '40px',
+              maxWidth: '500px',
+              width: '100%',
+              position: 'relative',
+              border: '2px solid #C0A080',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '60px',
+                marginBottom: '20px'
+              }}>
+                🎉🐪
+              </div>
+
+              <h2 style={{
+                color: '#8B5A2B',
+                fontSize: '24px',
+                fontFamily: "'Cormorant Garamond', serif",
+                marginBottom: '20px',
+                whiteSpace: 'pre-line'
+              }}>
+                {successMessage}
+              </h2>
+
+              <button
+                onClick={this.closeSuccessModal}
+                style={{
+                  padding: '15px 40px',
+                  background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                  color: '#FFF8F0',
+                  border: '2px solid #D2B48C',
+                  borderRadius: '40px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  boxShadow: '0 5px 15px rgba(183, 110, 60, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                Продолжить
+              </button>
             </div>
           </div>
         )}
