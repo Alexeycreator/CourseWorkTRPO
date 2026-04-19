@@ -1,167 +1,212 @@
-import React, { useState } from "react";
-import { Link } from 'react-router-dom';
-import maldivImage from '../Images/Maldiv.jpg';
-import italiaImage from '../Images/Italia.jpeg';
-import baliImage from '../Images/Bali.jpg';
-import egyptImage from '../Images/egypt.jpg'; 
-import turkeyImage from '../Images/turkey.jpg';
-import greeceImage from '../Images/greece.jpg';
-import thailandImage from '../Images/thailand.jpg';
-import uaeImage from '../Images/uae.jpg';
-import japanImage from '../Images/japan.jpg';
-import franceImage from '../Images/france.jpg';
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from 'react-router-dom';
+import { getTours, Tour } from "../Services/ToursApi";
+import NavBar from "../Components/NavBar";
 
 const HotTourPage = () => {
+  const location = useLocation();
   const [sortBy, setSortBy] = useState('default');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Массив с данными о горящих турах с ПРАВИЛЬНЫМИ ID (1, 3, 4, 5, 7, 8 - горящие)
-  const hotTours = [
-    {
-      id: 1, // Мальдивы - горящий
-      country: "Мальдивы",
-      city: "Мале",
-      area: "Северный Мале",
-      hotelName: "Conrad Maldives Rangali",
-      departureCity: "Москвы",
-      date: "18/03/2026",
-      nights: 7,
-      mealType: "Завтраки",
-      oldPrice: 220000,
-      newPrice: 180000,
-      discount: 18,
-      image: maldivImage,
-      rating: 4.8,
-      type: "Пляжный",
-      description: "Райский отдых на белоснежных пляжах"
-    },
-    {
-      id: 3, // Бали - горящий
-      country: "Индонезия",
-      city: "Денпасар",
-      area: "Убуд",
-      hotelName: "Four Seasons Resort Bali",
-      departureCity: "Москвы",
-      date: "20/03/2026",
-      nights: 10,
-      mealType: "Завтраки",
-      oldPrice: 150000,
-      newPrice: 120000,
-      discount: 20,
-      image: baliImage,
-      rating: 4.9,
-      type: "Оздоровительный",
-      description: "Йога-тур и духовные практики"
-    },
-    {
-      id: 4, // Египет - горящий
-      country: "Египет",
-      city: "Каир",
-      area: "Гиза",
-      hotelName: "Four Seasons Cairo",
-      departureCity: "Москвы",
-      date: "15/03/2026",
-      nights: 8,
-      mealType: "Все включено",
-      oldPrice: 110000,
-      newPrice: 85000,
-      discount: 23,
-      image: egyptImage,
-      rating: 4.6,
-      type: "Пляжный",
-      description: "Тайны пирамид и отдых на Красном море"
-    },
-    {
-      id: 5, // Турция - горящий
-      country: "Турция",
-      city: "Анталья",
-      area: "Кемер",
-      hotelName: "Rixos Sungate",
-      departureCity: "Москвы",
-      date: "16/03/2026",
-      nights: 7,
-      mealType: "Все включено",
-      oldPrice: 90000,
-      newPrice: 65000,
-      discount: 28,
-      image: turkeyImage,
-      rating: 4.5,
-      type: "Пляжный",
-      description: "Всё включено для всей семьи"
-    },
-    {
-      id: 7, // Таиланд - горящий
-      country: "Таиланд",
-      city: "Бангкок",
-      area: "Пхукет",
-      hotelName: "Banyan Tree Phuket",
-      departureCity: "Москвы",
-      date: "22/03/2026",
-      nights: 10,
-      mealType: "Завтраки",
-      oldPrice: 170000,
-      newPrice: 135000,
-      discount: 21,
-      image: thailandImage,
-      rating: 4.7,
-      type: "Экзотический",
-      description: "Экзотика и джунгли"
-    },
-    {
-      id: 8, // ОАЭ - горящий
-      country: "ОАЭ",
-      city: "Дубай",
-      area: "Jumeirah",
-      hotelName: "Burj Al Arab",
-      departureCity: "Москвы",
-      date: "25/03/2026",
-      nights: 6,
-      mealType: "Завтраки",
-      oldPrice: 190000,
-      newPrice: 155000,
-      discount: 18,
-      image: uaeImage,
-      rating: 4.9,
-      type: "Шопинг",
-      description: "Роскошь и небоскрёбы"
-    },
-    {
-      id: 2, // Италия - НЕ горящий (оставляем для разнообразия? или убрать?)
-      country: "Италия",
-      city: "Рим",
-      area: "Центр",
-      hotelName: "Hotel Bristol Rome",
-      departureCity: "Москвы",
-      date: "20/03/2026",
-      nights: 5,
-      mealType: "Завтраки",
-      oldPrice: 120000,
-      newPrice: 95000,
-      discount: 21,
-      image: italiaImage,
-      rating: 4.7,
-      type: "Экскурсионный",
-      description: "Экскурсионный тур по историческим местам"
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
+
+  // Функция для расчета количества дней
+  const calculateNights = (startDate: string, endDate: string): number => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // Загрузка туров с API
+  const fetchTours = async () => {
+    try {
+      setLoading(true);
+      const allTours = await getTours();
+      console.log("Загруженные туры: ", allTours);
+      
+      // Фильтруем только горящие туры (hotTour === true)
+      const hotToursData = allTours.filter(tour => tour.hotTour === true);
+      setTours(hotToursData);
+      setError(null);
+    } catch (err: any) {
+      console.error("Ошибка загрузки туров:", err);
+      
+      if (err.code === 'ERR_BAD_REQUEST') {
+        setError(err.response?.data?.message || 'Не удалось загрузить горящие туры');
+      } else if (err.request) {
+        setError('Сервер не отвечает. Проверьте подключение');
+      } else {
+        setError('Ошибка при загрузке данных');
+      }
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Получение параметра поиска из URL при загрузке страницы
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchParam = params.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    fetchTours();
+  }, []);
 
   // Функция для форматирования цен
   const formatPrice = (price: number) => {
     return price.toLocaleString('ru-RU') + ' ₽';
   };
 
-  // Сортировка туров
-  const sortedTours = [...hotTours].sort((a, b) => {
-    if (sortBy === 'price-asc') {
-      return a.newPrice - b.newPrice;
-    } else if (sortBy === 'price-desc') {
-      return b.newPrice - a.newPrice;
-    } else if (sortBy === 'discount') {
-      return b.discount - a.discount;
-    } else if (sortBy === 'rating') {
-      return b.rating - a.rating;
+  // Функция для расчета скидки
+  const calculateDiscount = (price: number, oldPrice?: number): number => {
+    if (oldPrice && oldPrice > price) {
+      return Math.round(((oldPrice - price) / oldPrice) * 100);
     }
-    return 0;
-  });
+    // Если нет oldPrice, генерируем случайную скидку для демонстрации
+    return Math.floor(Math.random() * 20) + 10;
+  };
+
+  // Функция фильтрации туров (только поиск по всем полям)
+  const filterToursBySearch = (toursList: Tour[]): Tour[] => {
+    if (!searchQuery.trim()) return toursList;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return toursList.filter(tour => {
+      // Проверяем все возможные поля тура
+      const searchableFields = [
+        tour.name,
+        tour.startDot,
+        tour.endDot,
+        tour.type,
+        tour.description,
+        tour.details,
+        tour.included,
+        tour.separately,
+        tour.program
+      ].filter(field => field && typeof field === 'string');
+      
+      return searchableFields.some(field => 
+        field.toLowerCase().includes(query)
+      );
+    });
+  };
+
+  // Фильтрация и сортировка туров
+  const getFilteredAndSortedTours = () => {
+    // Сначала фильтруем по поиску
+    let filtered = filterToursBySearch(tours);
+    
+    // Затем сортируем
+    if (sortBy === 'price-asc') {
+      filtered = [...filtered].sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'price-desc') {
+      filtered = [...filtered].sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'discount') {
+      filtered = [...filtered].sort((a, b) => {
+        const discountA = calculateDiscount(a.price);
+        const discountB = calculateDiscount(b.price);
+        return discountB - discountA;
+      });
+    }
+    
+    return filtered;
+  };
+
+  const filteredAndSortedTours = getFilteredAndSortedTours();
+
+  // Функция сброса поиска
+  const resetSearch = () => {
+    setSearchQuery('');
+  };
+
+  // Определяем, нужно ли показывать сообщение "нет горящих туров"
+  const hasNoHotTours = tours.length === 0 && !loading && !error;
+  
+  // Определяем, нужно ли показывать сообщение "ничего не найдено"
+  const hasNoSearchResults = tours.length > 0 && filteredAndSortedTours.length === 0 && !loading && !error;
+
+  if (loading) {
+    return (
+      <div style={{
+        background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
+        minHeight: '100vh',
+        padding: '20px',
+        paddingTop: '70px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <NavBar />
+        <div style={{ textAlign: 'center', marginTop: '100px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}>🐪</div>
+          <style>{`
+            @keyframes pulse {
+              0% { opacity: 0.6; transform: scale(1); }
+              50% { opacity: 1; transform: scale(1.1); }
+              100% { opacity: 0.6; transform: scale(1); }
+            }
+          `}</style>
+          <h2 style={{ color: '#8B5A2B' }}>Загрузка горящих туров...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
+        minHeight: '100vh',
+        padding: '20px',
+        paddingTop: '70px'
+      }}>
+        <NavBar />
+        <div style={{
+          maxWidth: '600px',
+          margin: '100px auto',
+          textAlign: 'center',
+          background: 'rgba(255, 248, 240, 0.9)',
+          borderRadius: '30px',
+          padding: '40px',
+          border: '2px solid #C0A080'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
+          <h2 style={{ color: '#8B5A2B', marginBottom: '15px' }}>Ошибка загрузки</h2>
+          <p style={{ color: '#B76E3C', marginBottom: '25px' }}>{error}</p>
+          <button
+            onClick={fetchTours}
+            style={{
+              padding: '12px 30px',
+              background: '#C0A080',
+              color: '#FFF8F0',
+              border: '2px solid #8B5A2B',
+              borderRadius: '25px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              transition: 'all 0.3s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#8B5A2B';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#C0A080';
+            }}
+          >
+            Попробовать снова
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -170,6 +215,8 @@ const HotTourPage = () => {
       padding: '20px',
       paddingTop: '70px'
     }}>
+      <NavBar />
+      
       {/* Фоновые иероглифы */}
       <div style={{ position: 'fixed', top: '10%', left: '2%', fontSize: '40px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>
       <div style={{ position: 'fixed', bottom: '10%', right: '3%', fontSize: '50px', opacity: 0.05, pointerEvents: 'none' }}>𓊹</div>
@@ -200,7 +247,6 @@ const HotTourPage = () => {
             Специальные предложения с максимальными скидками! 🐪
           </p>
           
-          {/* Декоративная линия */}
           <div style={{
             width: '150px',
             height: '3px',
@@ -209,391 +255,489 @@ const HotTourPage = () => {
           }}></div>
         </div>
 
-        {/* Панель сортировки */}
+        {/* Поиск и сортировка */}
         <div style={{
           display: 'flex',
-          justifyContent: 'flex-end',
+          justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: '30px',
-          gap: '15px'
+          gap: '20px',
+          flexWrap: 'wrap'
         }}>
-          <span style={{ color: '#8B5A2B', fontSize: '16px' }}>𓊹 Сортировать:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            style={{
-              padding: '8px 20px',
-              border: '2px solid #C0A080',
-              borderRadius: '25px',
-              backgroundColor: '#FFF8F0',
-              color: '#8B5A2B',
-              fontSize: '14px',
-              cursor: 'pointer',
-              outline: 'none'
-            }}
-          >
-            <option value="default">По умолчанию</option>
-            <option value="price-asc">Сначала дешевле</option>
-            <option value="price-desc">Сначала дороже</option>
-            <option value="discount">По размеру скидки</option>
-            <option value="rating">По рейтингу</option>
-          </select>
-        </div>
-
-        {/* Сетка горящих туров */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-          gap: '25px',
-          marginBottom: '40px'
-        }}>
-          {sortedTours.map((tour) => (
-            <div
-              key={tour.id}
-              style={{
-                background: 'rgba(255, 248, 240, 0.9)',
-                border: '2px solid #D2B48C',
-                borderRadius: '20px',
-                overflow: 'hidden',
-                transition: 'all 0.3s',
-                position: 'relative',
-                height: '480px',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-5px)';
-                e.currentTarget.style.boxShadow = '0 15px 30px rgba(183, 110, 60, 0.2)';
-                e.currentTarget.style.borderColor = '#B76E3C';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.borderColor = '#D2B48C';
-              }}
-            >
-              {/* Бейдж "Горящий тур" */}
-              <div style={{
-                position: 'absolute',
-                top: '15px',
-                left: '15px',
-                background: '#B76E3C',
-                color: '#FFF8F0',
-                padding: '8px 15px',
-                borderRadius: '30px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                zIndex: 2,
+          <div style={{ flex: '1', maxWidth: '400px' }}>
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              background: 'rgba(255, 248, 240, 0.9)',
+              borderRadius: '50px',
+              padding: '5px',
+              border: '2px solid #C0A080'
+            }}>
+              <span style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px',
-                boxShadow: '0 4px 10px rgba(183, 110, 60, 0.3)'
+                paddingLeft: '15px',
+                fontSize: '20px',
+                color: '#B76E3C'
               }}>
-                <span style={{ fontSize: '18px' }}>🔥</span>
-                <span>Горящий тур</span>
-              </div>
-
-              {/* Бейдж со скидкой */}
-              <div style={{
-                position: 'absolute',
-                top: '15px',
-                right: '15px',
-                background: '#8B5A2B',
-                color: '#FFD700',
-                padding: '8px 15px',
-                borderRadius: '30px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                zIndex: 2,
-                boxShadow: '0 4px 10px rgba(139, 69, 19, 0.3)'
-              }}>
-                -{tour.discount}%
-              </div>
-
-              {/* Изображение */}
-              <div style={{
-                height: '200px',
-                overflow: 'hidden',
-                position: 'relative',
-                borderBottom: '2px solid #D2B48C'
-              }}>
-                <Link to={`/tour/${tour.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
-                  <img
-                    src={tour.image}
-                    alt={tour.hotelName}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      transition: 'transform 0.5s',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                  />
-                </Link>
-                
-                {/* Рейтинг на изображении */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: '10px',
-                  right: '10px',
-                  background: 'rgba(0,0,0,0.6)',
-                  color: '#FFD700',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <span>⭐</span>
-                  <span>{tour.rating}</span>
-                </div>
-              </div>
-
-              {/* Контент */}
-              <div style={{
-                padding: '20px',
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                {/* Локация */}
-                <div style={{
+                🔍
+              </span>
+              <input
+                type="text"
+                placeholder="Поиск по горящим турам..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '12px 10px',
+                  border: 'none',
+                  borderRadius: '40px',
+                  backgroundColor: 'transparent',
                   color: '#8B5A2B',
-                  fontSize: '14px',
-                  marginBottom: '5px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}>
-                  <span>📍</span>
-                  <span>{tour.country}, {tour.city}, {tour.area}</span>
-                </div>
-
-                {/* Название отеля */}
-                <h3 style={{
-                  margin: '0 0 8px 0',
-                  fontSize: '20px',
-                  fontWeight: '700',
-                  color: '#8B5A2B',
-                  fontFamily: "'Cormorant Garamond', serif"
-                }}>
-                  <Link to={`/tour/${tour.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                    {tour.hotelName}
-                  </Link>
-                </h3>
-
-                {/* Описание */}
-                <p style={{
-                  color: '#B76E3C',
-                  fontSize: '14px',
-                  marginBottom: '10px',
-                  fontStyle: 'italic'
-                }}>
-                  {tour.description}
-                </p>
-
-                {/* Детали тура */}
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '10px',
-                  marginBottom: '15px',
-                  fontSize: '13px',
-                  color: '#8B5A2B'
-                }}>
-                  <span style={{ background: '#F0E5D5', padding: '4px 8px', borderRadius: '15px' }}>
-                    ✈️ из {tour.departureCity}
-                  </span>
-                  <span style={{ background: '#F0E5D5', padding: '4px 8px', borderRadius: '15px' }}>
-                    📅 {tour.date}
-                  </span>
-                  <span style={{ background: '#F0E5D5', padding: '4px 8px', borderRadius: '15px' }}>
-                    🌙 {tour.nights} ночей
-                  </span>
-                  <span style={{ background: '#F0E5D5', padding: '4px 8px', borderRadius: '15px' }}>
-                    🍽️ {tour.mealType}
-                  </span>
-                  <span style={{ background: '#F0E5D5', padding: '4px 8px', borderRadius: '15px' }}>
-                    🏷️ {tour.type}
-                  </span>
-                </div>
-
-                {/* Цены */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  justifyContent: 'space-between',
-                  marginTop: 'auto'
-                }}>
-                  <div>
-                    <span style={{
-                      fontSize: '16px',
-                      color: '#B76E3C',
-                      textDecoration: 'line-through',
-                      marginRight: '10px'
-                    }}>
-                      {formatPrice(tour.oldPrice)}
-                    </span>
-                    <span style={{
-                      fontSize: '28px',
-                      fontWeight: '700',
-                      color: '#8B5A2B'
-                    }}>
-                      {formatPrice(tour.newPrice)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Кнопка */}
-                <Link to={`/hot-tours/tour/${tour.id}`} style={{ textDecoration: 'none' }}>
-                  <button
-                    style={{
-                      marginTop: '15px',
-                      background: '#C0A080',
-                      color: '#FFF8F0',
-                      border: '2px solid #8B5A2B',
-                      borderRadius: '30px',
-                      padding: '12px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s',
-                      width: '100%'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#8B5A2B';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '#C0A080';
-                    }}
-                  >
-                    𓊹 Подробнее
-                  </button>
-                </Link>
-              </div>
+                  fontSize: '16px',
+                  outline: 'none'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={resetSearch}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '20px',
+                    cursor: 'pointer',
+                    color: '#B76E3C',
+                    padding: '0 15px',
+                    borderRadius: '50%'
+                  }}
+                >
+                  ✕
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-
-        {/* Дополнительная информация */}
-        <div style={{
-          marginTop: '60px',
-          padding: '40px',
-          background: 'rgba(255, 248, 240, 0.7)',
-          backdropFilter: 'blur(10px)',
-          border: '2px solid #C0A080',
-          borderRadius: '30px',
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          {/* Декоративные элементы */}
-          <div style={{
-            position: 'absolute',
-            top: '-20px',
-            left: '-20px',
-            fontSize: '80px',
-            opacity: 0.1,
-            transform: 'rotate(-15deg)'
-          }}>🐪</div>
-          <div style={{
-            position: 'absolute',
-            bottom: '-20px',
-            right: '-20px',
-            fontSize: '80px',
-            opacity: 0.1,
-            transform: 'rotate(15deg)'
-          }}>🏜️</div>
-
-          <h2 style={{
-            fontSize: '32px',
-            color: '#8B5A2B',
-            marginBottom: '15px',
-            fontFamily: "'Cormorant Garamond', serif"
-          }}>
-            🎯 Не нашли подходящий горящий тур?
-          </h2>
+            <p style={{ fontSize: '12px', color: '#B76E3C', marginTop: '8px', paddingLeft: '15px' }}>
+              💡 Можно искать по названию, городу, типу тура и описанию
+            </p>
+          </div>
           
-          <p style={{
-            color: '#B76E3C',
-            marginBottom: '25px',
-            fontSize: '18px',
-            maxWidth: '600px',
-            margin: '0 auto 25px'
-          }}>
-            Оставьте заявку, и мы подберем для вас индивидуальное предложение со скидкой!
-          </p>
-          
-          <div style={{
-            display: 'flex',
-            gap: '15px',
-            justifyContent: 'center',
-            flexWrap: 'wrap'
-          }}>
-            <input
-              type="email"
-              placeholder="Ваш email"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <span style={{ color: '#8B5A2B', fontSize: '16px' }}>𓊹 Сортировать:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
               style={{
-                padding: '12px 25px',
+                padding: '8px 20px',
                 border: '2px solid #C0A080',
-                borderRadius: '30px',
-                width: '300px',
-                fontSize: '16px',
-                outline: 'none',
+                borderRadius: '25px',
                 backgroundColor: '#FFF8F0',
-                color: '#8B5A2B'
-              }}
-            />
-            <button
-              onClick={() => alert('Спасибо! Скоро мы свяжемся с вами.')}
-              style={{
-                background: '#B76E3C',
-                color: '#FFF8F0',
-                border: '2px solid #8B5A2B',
-                borderRadius: '30px',
-                padding: '12px 40px',
-                fontSize: '16px',
-                fontWeight: '600',
+                color: '#8B5A2B',
+                fontSize: '14px',
                 cursor: 'pointer',
-                transition: 'all 0.3s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#8B5A2B';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#B76E3C';
+                outline: 'none'
               }}
             >
-              𓊹 Подобрать тур
-            </button>
+              <option value="default">По умолчанию</option>
+              <option value="price-asc">Сначала дешевле</option>
+              <option value="price-desc">Сначала дороже</option>
+              <option value="discount">По размеру скидки</option>
+            </select>
           </div>
         </div>
 
-        {/* Статистика */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-around',
-          marginTop: '40px',
-          padding: '20px',
-          background: 'rgba(255, 248, 240, 0.5)',
-          borderRadius: '20px'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '32px', color: '#8B5A2B' }}>{hotTours.length}</div>
-            <div style={{ color: '#B76E3C', fontSize: '14px' }}>Горящих туров</div>
+        {/* Результаты поиска */}
+        {!hasNoHotTours && !hasNoSearchResults && (
+          <div style={{ marginBottom: '20px', color: '#8B5A2B' }}>
+            Найдено туров: {filteredAndSortedTours.length}
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '32px', color: '#8B5A2B' }}>🔥</div>
-            <div style={{ color: '#B76E3C', fontSize: '14px' }}>Скидка до 28%</div>
+        )}
+
+        {/* Сетка горящих туров */}
+        {!hasNoHotTours && !hasNoSearchResults && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+            gap: '25px',
+            marginBottom: '40px'
+          }}>
+            {filteredAndSortedTours.map((tour) => {
+              const discount = calculateDiscount(tour.price);
+              const oldPrice = Math.round(tour.price / (1 - discount / 100));
+              
+              return (
+                <div
+                  key={tour.id}
+                  style={{
+                    background: 'rgba(255, 248, 240, 0.9)',
+                    border: '2px solid #D2B48C',
+                    borderRadius: '20px',
+                    overflow: 'hidden',
+                    transition: 'all 0.3s',
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-5px)';
+                    e.currentTarget.style.boxShadow = '0 15px 30px rgba(183, 110, 60, 0.2)';
+                    e.currentTarget.style.borderColor = '#B76E3C';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.borderColor = '#D2B48C';
+                  }}
+                >
+                  {/* Бейдж "Горящий тур" */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '15px',
+                    left: '15px',
+                    background: '#B76E3C',
+                    color: '#FFF8F0',
+                    padding: '8px 15px',
+                    borderRadius: '30px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    zIndex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    boxShadow: '0 4px 10px rgba(183, 110, 60, 0.3)'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>🔥</span>
+                    <span>Горящий тур</span>
+                  </div>
+
+                  {/* Бейдж со скидкой */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '15px',
+                    right: '15px',
+                    background: '#8B5A2B',
+                    color: '#FFD700',
+                    padding: '8px 15px',
+                    borderRadius: '30px',
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    zIndex: 2,
+                    boxShadow: '0 4px 10px rgba(139, 69, 19, 0.3)'
+                  }}>
+                    -{discount}%
+                  </div>
+
+                  {/* Изображение тура */}
+                  <div style={{
+                    height: '200px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    borderBottom: '2px solid #D2B48C'
+                  }}>
+                    <Link to={`/tour/${tour.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
+                      <img
+                        src={`${API_URL}/${tour.imageTour}`}
+                        alt={tour.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transition: 'transform 0.5s',
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      />
+                    </Link>
+                  </div>
+
+                  {/* Информация о туре */}
+                  <div style={{
+                    padding: '20px',
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{
+                      color: '#8B5A2B',
+                      fontSize: '14px',
+                      marginBottom: '5px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <span>📍</span>
+                      <span>{tour.startDot} → {tour.endDot}</span>
+                    </div>
+
+                    <h3 style={{
+                      margin: '0 0 8px 0',
+                      fontSize: '20px',
+                      fontWeight: '700',
+                      color: '#8B5A2B',
+                      fontFamily: "'Cormorant Garamond', serif"
+                    }}>
+                      <Link to={`/tour/${tour.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                        {tour.name}
+                      </Link>
+                    </h3>
+
+                    <p style={{
+                      color: '#B76E3C',
+                      fontSize: '14px',
+                      marginBottom: '10px',
+                      fontStyle: 'italic'
+                    }}>
+                      {tour.description || tour.details}
+                    </p>
+
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '10px',
+                      marginBottom: '15px',
+                      fontSize: '13px',
+                      color: '#8B5A2B'
+                    }}>
+                      <span style={{ background: '#F0E5D5', padding: '4px 8px', borderRadius: '15px' }}>
+                        🏷️ {tour.type}
+                      </span>
+                      <span style={{ background: '#F0E5D5', padding: '4px 8px', borderRadius: '15px' }}>
+                        🌙 {calculateNights(tour.startDot, tour.endDot)} ночей
+                      </span>
+                    </div>
+
+                    {/* Цены */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      marginTop: 'auto'
+                    }}>
+                      <div>
+                        <span style={{
+                          fontSize: '16px',
+                          color: '#B76E3C',
+                          textDecoration: 'line-through',
+                          marginRight: '10px'
+                        }}>
+                          {formatPrice(oldPrice)}
+                        </span>
+                        <span style={{
+                          fontSize: '28px',
+                          fontWeight: '700',
+                          color: '#8B5A2B'
+                        }}>
+                          {formatPrice(tour.price)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Кнопка подробнее */}
+                    <Link to={`/tour/${tour.id}`} style={{ textDecoration: 'none' }}>
+                      <button
+                        style={{
+                          marginTop: '15px',
+                          background: '#C0A080',
+                          color: '#FFF8F0',
+                          border: '2px solid #8B5A2B',
+                          borderRadius: '30px',
+                          padding: '12px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s',
+                          width: '100%'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#8B5A2B';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#C0A080';
+                        }}
+                      >
+                        𓊹 Подробнее
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '32px', color: '#8B5A2B' }}>🐪</div>
-            <div style={{ color: '#B76E3C', fontSize: '14px' }}>7 стран</div>
+        )}
+
+        {/* Сообщение "По вашему запросу ничего не найдено" (есть горящие туры, но не подходят под поиск) */}
+        {hasNoSearchResults && (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            color: '#8B5A2B'
+          }}>
+            <div style={{ fontSize: '60px', marginBottom: '20px' }}>🏜️</div>
+            <h3>По вашему запросу ничего не найдено</h3>
+            <p>Попробуйте изменить параметры поиска</p>
+            <button
+              onClick={resetSearch}
+              style={{
+                marginTop: '20px',
+                padding: '10px 30px',
+                background: '#C0A080',
+                color: '#FFF8F0',
+                border: '2px solid #8B5A2B',
+                borderRadius: '25px',
+                cursor: 'pointer'
+              }}
+            >
+              Сбросить поиск
+            </button>
           </div>
-        </div>
+        )}
+
+        {/* Сообщение "Нет горящих туров" (нет ни одного горящего тура на сервере) */}
+        {hasNoHotTours && (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            color: '#8B5A2B'
+          }}>
+            <div style={{ fontSize: '60px', marginBottom: '20px' }}>🏜️</div>
+            <h3>На данный момент горящих туров нет</h3>
+            <p>Загляните позже — новые предложения появляются регулярно!</p>
+            <Link to="/catalog">
+              <button
+                style={{
+                  marginTop: '20px',
+                  padding: '10px 30px',
+                  background: '#C0A080',
+                  color: '#FFF8F0',
+                  border: '2px solid #8B5A2B',
+                  borderRadius: '25px',
+                  cursor: 'pointer'
+                }}
+              >
+                Посмотреть все туры
+              </button>
+            </Link>
+          </div>
+        )}
+
+        {/* Дополнительная информация (показывается всегда, кроме случаев ошибки) */}
+        {!error && (
+          <div style={{
+            marginTop: '60px',
+            padding: '40px',
+            background: 'rgba(255, 248, 240, 0.7)',
+            backdropFilter: 'blur(10px)',
+            border: '2px solid #C0A080',
+            borderRadius: '30px',
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '-20px',
+              left: '-20px',
+              fontSize: '80px',
+              opacity: 0.1,
+              transform: 'rotate(-15deg)'
+            }}>🐪</div>
+            <div style={{
+              position: 'absolute',
+              bottom: '-20px',
+              right: '-20px',
+              fontSize: '80px',
+              opacity: 0.1,
+              transform: 'rotate(15deg)'
+            }}>🏜️</div>
+
+            <h2 style={{
+              fontSize: '32px',
+              color: '#8B5A2B',
+              marginBottom: '15px',
+              fontFamily: "'Cormorant Garamond', serif"
+            }}>
+              🎯 Не нашли подходящий горящий тур?
+            </h2>
+            
+            <p style={{
+              color: '#B76E3C',
+              marginBottom: '25px',
+              fontSize: '18px',
+              maxWidth: '600px',
+              margin: '0 auto 25px'
+            }}>
+              Оставьте заявку, и мы подберем для вас индивидуальное предложение со скидкой!
+            </p>
+            
+            <div style={{
+              display: 'flex',
+              gap: '15px',
+              justifyContent: 'center',
+              flexWrap: 'wrap'
+            }}>
+              <input
+                type="email"
+                placeholder="Ваш email"
+                style={{
+                  padding: '12px 25px',
+                  border: '2px solid #C0A080',
+                  borderRadius: '30px',
+                  width: '300px',
+                  fontSize: '16px',
+                  outline: 'none',
+                  backgroundColor: '#FFF8F0',
+                  color: '#8B5A2B'
+                }}
+              />
+              <button
+                onClick={() => alert('Спасибо! Скоро мы свяжемся с вами.')}
+                style={{
+                  background: '#B76E3C',
+                  color: '#FFF8F0',
+                  border: '2px solid #8B5A2B',
+                  borderRadius: '30px',
+                  padding: '12px 40px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#8B5A2B';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#B76E3C';
+                }}
+              >
+                𓊹 Подобрать тур
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Статистика (показывается, если есть горящие туры) */}
+        {!hasNoHotTours && !error && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-around',
+            marginTop: '40px',
+            padding: '20px',
+            background: 'rgba(255, 248, 240, 0.5)',
+            borderRadius: '20px'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', color: '#8B5A2B' }}>{tours.length}</div>
+              <div style={{ color: '#B76E3C', fontSize: '14px' }}>Горящих туров</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', color: '#8B5A2B' }}>🔥</div>
+              <div style={{ color: '#B76E3C', fontSize: '14px' }}>Скидка до 30%</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', color: '#8B5A2B' }}>🐪</div>
+              <div style={{ color: '#B76E3C', fontSize: '14px' }}>Лучшие предложения</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
