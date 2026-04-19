@@ -2,10 +2,15 @@ import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../Contexts/AuthContext";
 import { getClientPassport, getClients, authApi, UserData } from "../Services/IndexAuth";
 import { getAddressByPassportId, getClientsByPassportId, getPassportById, Passport, updatePassport } from "../Services/PassportApi";
-import { Client, getClientById, updateClient } from "../Services/ClientApi";
+import { Client, getClientById, updateClient, getClientTickets } from "../Services/ClientApi";
 import { Address, getAddressById, getAddresses } from "../Services/AddressApi";
 import EditDocumentModal, { DocumentFormData, AddressFormData, CombinedDocumentData } from '../EditDocumentModal';
 import { Link } from 'react-router-dom';
+import { getEmployees, Employee, updateEmployee, getEmployeeById } from "../Services/EmployeesApi";
+import { createTour } from "../Services/ToursApi";
+import { createHotel } from "../Services/HotelsApi";
+import { createHotelRoom } from "../Services/HotelRoomsApi";
+
 // Обновленные интерфейсы согласно моделям
 interface Tour {
   id?: number;
@@ -81,6 +86,14 @@ const ClientAccountPage = () => {
   const [showHotelForm, setShowHotelForm] = useState(false);
   const [showRoomForm, setShowRoomForm] = useState(false);
 
+  // Состояния для админ-панели
+  const [allClients, setAllClients] = useState<Client[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [selectedUserType, setSelectedUserType] = useState<'clients' | 'employees'>('clients');
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [viewingUserData, setViewingUserData] = useState<Client | Employee | null>(null);
+  const [isEditingUser, setIsEditingUser] = useState(false);
+
   // Формы для добавления
   const [newTour, setNewTour] = useState<Partial<Tour>>({
     type: 'Экскурсионный',
@@ -136,8 +149,9 @@ const ClientAccountPage = () => {
     if (tabId !== 'profile') {
       setIsEditing(false);
     }
-    // Сбрасываем формы при смене вкладок
     resetForms();
+    setSelectedUserId(null);
+    setViewingUserData(null);
   };
 
   const handleLogout = () => {
@@ -157,7 +171,7 @@ const ClientAccountPage = () => {
         issuedBy: passport.issuedBy || '',
         dateOfIssue: passport.dateOfIssue || '',
         departmentCode: passport.departmentCode || '',
-        type: passport.type || 'passport',
+        type: passport.type || 'internal',
         gender: (passport as any).gender || '',
         placeOfBirth: (passport as any).placeOfBirth || '',
         id: passport.id
@@ -193,7 +207,7 @@ const ClientAccountPage = () => {
         issuedBy: '',
         dateOfIssue: '',
         departmentCode: '',
-        type: 'passport',
+        type: 'internal',
         gender: '',
         placeOfBirth: ''
       },
@@ -314,138 +328,6 @@ const ClientAccountPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Функции для работы с турами
-  const handleAddTour = () => {
-    // Валидация обязательных полей
-    if (!newTour.name || !newTour.startDot || !newTour.endDot || !newTour.price) {
-      setSaveStatus({
-        show: true,
-        message: 'Пожалуйста, заполните все обязательные поля тура (Название, Начало, Конец, Цена)',
-        type: 'error'
-      });
-      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
-      return;
-    }
-
-    const tour: Tour = {
-      id: Date.now(),
-      name: newTour.name || '',
-      startDot: newTour.startDot || '',
-      endDot: newTour.endDot || '',
-      details: newTour.details || '',
-      imageTour: newTour.imageTour || '/default-tour.jpg',
-      description: newTour.description || '',
-      separately: newTour.separately || 'Не предусмотрено',
-      included: newTour.included || 'Не предусмотрено',
-      program: newTour.program || 'Не предусмотрено',
-      type: newTour.type || 'Экскурсионный',
-      hotTour: newTour.hotTour || false,
-      price: newTour.price || 0,
-      isReadOnly: false,
-      tickets_Id: null,
-      transfers_Id: null
-    };
-
-    setTours(prev => [...prev, tour]);
-    // Сбрасываем форму после добавления
-    setNewTour({
-      type: 'Экскурсионный',
-      hotTour: false,
-      separately: 'Не предусмотрено',
-      included: 'Не предусмотрено',
-      program: 'Не предусмотрено',
-      imageTour: '/default-tour.jpg'
-    });
-    setShowTourForm(false);
-    setSaveStatus({
-      show: true,
-      message: 'Тур успешно добавлен!',
-      type: 'success'
-    });
-    setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
-  };
-
-  // Функции для работы с отелями
-  const handleAddHotel = () => {
-    // Валидация обязательных полей
-    if (!newHotel.name || !newHotel.stars || !newHotel.timeOfStay || !newHotel.imageHotel) {
-      setSaveStatus({
-        show: true,
-        message: 'Пожалуйста, заполните все обязательные поля отеля (Название, Звезды, Время проживания, Изображение)',
-        type: 'error'
-      });
-      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
-      return;
-    }
-
-    const hotel: Hotel = {
-      id: Date.now(),
-      name: newHotel.name || '',
-      stars: newHotel.stars || 0,
-      timeOfStay: newHotel.timeOfStay || 1,
-      imageHotel: newHotel.imageHotel || '/default-hotel.jpg',
-      details: newHotel.details || '',
-      isReadOnly: false,
-      address_Id: null,
-      tickets_Id: null,
-      hotelRooms_Id: Date.now() // Создаем ID для связанной комнаты
-    };
-
-    setHotels(prev => [...prev, hotel]);
-    // Сбрасываем форму после добавления
-    setNewHotel({
-      stars: 3,
-      timeOfStay: 1,
-      imageHotel: '/default-hotel.jpg',
-      details: ''
-    });
-    setShowHotelForm(false);
-    setSaveStatus({
-      show: true,
-      message: 'Отель успешно добавлен!',
-      type: 'success'
-    });
-    setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
-  };
-
-  // Функции для работы с номерами отелей
-  const handleAddRoom = () => {
-    // Валидация обязательных полей
-    if (!newRoom.nameRoom || !newRoom.floor) {
-      setSaveStatus({
-        show: true,
-        message: 'Пожалуйста, заполните все обязательные поля номера (Название номера, Этаж)',
-        type: 'error'
-      });
-      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
-      return;
-    }
-
-    const room: HotelRoom = {
-      id: Date.now(),
-      nameRoom: newRoom.nameRoom || '',
-      details: newRoom.details || '',
-      floor: newRoom.floor || 1,
-      imageRoom: newRoom.imageRoom || '/default-room.jpg',
-      isReadOnly: false
-    };
-
-    setHotelRooms(prev => [...prev, room]);
-    // Сбрасываем форму после добавления
-    setNewRoom({
-      floor: 1,
-      details: '',
-      imageRoom: '/default-room.jpg'
-    });
-    setShowRoomForm(false);
-    setSaveStatus({
-      show: true,
-      message: 'Номер успешно добавлен!',
-      type: 'success'
-    });
-    setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
   };
 
   const fetchUser = async () => {
@@ -632,7 +514,210 @@ const ClientAccountPage = () => {
     setErrors({});
   };
 
-  if (loading) {
+  const fetchAllClients = async () => {
+    try {
+      setLoading(true);
+      const clients = await getClients();
+      setAllClients(clients as Client[]);
+    } catch (error) {
+      console.error("Ошибка загрузки клиентов:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllEmployees = async () => {
+    try {
+      setLoading(true);
+      const employees = await getEmployees();
+      setAllEmployees(employees);
+    } catch (error) {
+      console.error("Ошибка загрузки сотрудников:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewUser = async (id: number, type: 'clients' | 'employees') => {
+    setSelectedUserId(id);
+    setSelectedUserType(type);
+    try {
+      if (type === 'clients') {
+        const client = await getClientById(id);
+        setViewingUserData(client);
+      } else {
+        const employee = await getEmployeeById(id);
+        setViewingUserData(employee);
+      }
+      setIsEditingUser(false);
+    } catch (error) {
+      console.error("Ошибка загрузки пользователя:", error);
+    }
+  };
+
+  const handleAddTourAsync = async () => {
+    if (!newTour.name || !newTour.startDot || !newTour.endDot || !newTour.price) {
+      setSaveStatus({
+        show: true,
+        message: 'Пожалуйста, заполните все обязательные поля',
+        type: 'error'
+      });
+      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const tourData: any = {
+        name: newTour.name,
+        startDot: newTour.startDot,
+        endDot: newTour.endDot,
+        details: newTour.details || '',
+        imageTour: newTour.imageTour || '/default-tour.jpg',
+      };
+
+      const createdTour = await createTour(tourData);
+
+      const fullTour: Tour = {
+        ...createdTour,
+        price: newTour.price || 0,
+        description: newTour.description || '',
+        separately: newTour.separately || 'Не предусмотрено',
+        included: newTour.included || 'Не предусмотрено',
+        program: newTour.program || 'Не предусмотрено',
+        hotTour: newTour.hotTour || false,
+        type: newTour.type || 'Экскурсионный'
+      };
+
+      setTours(prev => [...prev, fullTour]);
+      setShowTourForm(false);
+      setNewTour({
+        type: 'Экскурсионный',
+        hotTour: false,
+        separately: 'Не предусмотрено',
+        included: 'Не предусмотрено',
+        program: 'Не предусмотрено',
+        imageTour: '/default-tour.jpg'
+      });
+      setSaveStatus({
+        show: true,
+        message: 'Тур успешно добавлен!',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Ошибка создания тура:', error);
+      setSaveStatus({
+        show: true,
+        message: 'Ошибка при создании тура',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
+    }
+  };
+
+  const handleAddHotelAsync = async () => {
+    if (!newHotel.name || !newHotel.stars || !newHotel.timeOfStay || !newHotel.imageHotel) {
+      setSaveStatus({
+        show: true,
+        message: 'Пожалуйста, заполните все обязательные поля',
+        type: 'error'
+      });
+      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const createdRoom = await createHotelRoom({
+        nameRoom: `Стандартный номер ${newHotel.name}`,
+        floor: 1,
+        details: 'Стандартный номер',
+        imageRoom: '/default-room.jpg'
+      });
+
+      const createdHotel = await createHotel({
+        name: newHotel.name,
+        stars: newHotel.stars,
+        timeOfStay: newHotel.timeOfStay,
+        imageHotel: newHotel.imageHotel,
+        details: newHotel.details || '',
+        hotelRooms_Id: createdRoom.id
+      });
+
+      setHotels(prev => [...prev, createdHotel as Hotel]);
+      setShowHotelForm(false);
+      setNewHotel({
+        stars: 3,
+        timeOfStay: 1,
+        imageHotel: '/default-hotel.jpg',
+        details: ''
+      });
+      setSaveStatus({
+        show: true,
+        message: 'Отель успешно добавлен!',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Ошибка создания отеля:', error);
+      setSaveStatus({
+        show: true,
+        message: 'Ошибка при создании отеля',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
+    }
+  };
+
+  const handleAddRoomAsync = async () => {
+    if (!newRoom.nameRoom || !newRoom.floor) {
+      setSaveStatus({
+        show: true,
+        message: 'Пожалуйста, заполните все обязательные поля',
+        type: 'error'
+      });
+      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const createdRoom = await createHotelRoom({
+        nameRoom: newRoom.nameRoom,
+        floor: newRoom.floor,
+        details: newRoom.details || '',
+        imageRoom: newRoom.imageRoom || '/default-room.jpg'
+      });
+
+      setHotelRooms(prev => [...prev, createdRoom as HotelRoom]);
+      setShowRoomForm(false);
+      setNewRoom({
+        floor: 1,
+        details: '',
+        imageRoom: '/default-room.jpg'
+      });
+      setSaveStatus({
+        show: true,
+        message: 'Номер успешно добавлен!',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Ошибка создания номера:', error);
+      setSaveStatus({
+        show: true,
+        message: 'Ошибка при создании номера',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
+    }
+  };
+
+  if (loading && !userData) {
     return <div>Загрузка...</div>;
   }
 
@@ -794,7 +879,6 @@ const ClientAccountPage = () => {
               {activeTab === 'profile' ? (
                 // Вкладка "Мои данные"
                 <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-                  {/* Кнопка редактирования */}
                   {!isEditing && (
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
                       <button
@@ -825,7 +909,6 @@ const ClientAccountPage = () => {
                     </div>
                   )}
 
-                  {/* Личные данные */}
                   <section style={{ marginBottom: '30px' }}>
                     <h3 style={{
                       fontSize: '20px',
@@ -842,7 +925,6 @@ const ClientAccountPage = () => {
                     </h3>
 
                     {isEditing ? (
-                      // Режим редактирования
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(2, 1fr)',
@@ -1029,7 +1111,6 @@ const ClientAccountPage = () => {
                         </div>
                       </div>
                     ) : (
-                      // Режим просмотра
                       <div style={{
                         background: '#FFF8F0',
                         borderRadius: '20px',
@@ -1068,7 +1149,6 @@ const ClientAccountPage = () => {
                     )}
                   </section>
 
-                  {/* Кнопки сохранения/отмены */}
                   {isEditing && (
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
                       <button
@@ -1291,7 +1371,7 @@ const ClientAccountPage = () => {
                               gap: '8px',
                               margin: '0 0 15px 0'
                             }}>
-                              <span>🪪</span> Паспорт РФ
+                              <span>🪪</span> {passport.type === 'foreign' ? 'Загранпаспорт' : 'Паспорт РФ'}
                             </h5>
 
                             <div style={{
@@ -1315,14 +1395,27 @@ const ClientAccountPage = () => {
                                   : '—'}
                               </div>
 
-                              <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Код подразделения:</div>
-                              <div style={{ color: '#5D3A1A' }}>{passport.departmentCode || '—'}</div>
+                              {passport.type === 'foreign' && passport.dateOfExpiry && (
+                                <>
+                                  <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Срок действия:</div>
+                                  <div style={{ color: '#5D3A1A' }}>
+                                    {new Date(passport.dateOfExpiry).toLocaleDateString('ru-RU')}
+                                  </div>
+                                </>
+                              )}
+
+                              {passport.type === 'internal' && (
+                                <>
+                                  <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Код подразделения:</div>
+                                  <div style={{ color: '#5D3A1A' }}>{passport.departmentCode || '—'}</div>
+                                </>
+                              )}
 
                               <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Пол:</div>
-                              <div style={{ color: '#5D3A1A' }}>{'Мужской'}</div>
+                              <div style={{ color: '#5D3A1A' }}>{passport.gender || '—'}</div>
 
                               <div style={{ color: '#8B5A2B', fontWeight: '500' }}>Место рождения:</div>
-                              <div style={{ color: '#5D3A1A' }}>{'г. Владимир, Владимирская обл.'}</div>
+                              <div style={{ color: '#5D3A1A' }}>{passport.placeOfBirth || '—'}</div>
                             </div>
                           </div>
 
@@ -1497,7 +1590,6 @@ const ClientAccountPage = () => {
                           border: '2px solid #D2B48C',
                           position: 'relative'
                         }}>
-                          {/* Бейдж "Оформлен" */}
                           <div style={{
                             position: 'absolute',
                             top: '15px',
@@ -1521,7 +1613,6 @@ const ClientAccountPage = () => {
                             gridTemplateColumns: '200px 1fr',
                             gap: '25px'
                           }}>
-                            {/* Изображение тура */}
                             <div style={{
                               width: '100%',
                               height: '150px',
@@ -1540,7 +1631,6 @@ const ClientAccountPage = () => {
                               />
                             </div>
 
-                            {/* Информация о туре */}
                             <div>
                               <div style={{
                                 display: 'flex',
@@ -1609,7 +1699,6 @@ const ClientAccountPage = () => {
                                 )}
                               </div>
 
-                              {/* Кнопка просмотра */}
                               <Link to={`/catalog/tour/${tour.id}`} style={{ textDecoration: 'none' }}>
                                 <button style={{
                                   padding: '8px 20px',
@@ -1640,9 +1729,8 @@ const ClientAccountPage = () => {
                     </div>
                   )}
                 </div>
-
               ) : activeTab === 'admin' ? (
-                // Вкладка "Администратор"
+                // Вкладка "Администратор" — полный доступ
                 <div>
                   <h3 style={{
                     fontSize: '24px',
@@ -1655,73 +1743,97 @@ const ClientAccountPage = () => {
                     👨‍💼 Панель администратора
                   </h3>
 
-                  {/* Кнопки для управления формами */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '15px',
-                    marginBottom: '30px',
-                    flexWrap: 'wrap'
-                  }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowTourForm(!showTourForm);
-                        setShowHotelForm(false);
-                        setShowRoomForm(false);
-                      }}
-                      style={{
-                        padding: '12px 25px',
-                        background: showTourForm ? '#B76E3C' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
-                        color: '#FFF8F0',
-                        border: '2px solid #D2B48C',
-                        borderRadius: '25px',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s'
-                      }}
-                    >
-                      ➕ Добавить тур
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowHotelForm(!showHotelForm);
-                        setShowTourForm(false);
-                        setShowRoomForm(false);
-                      }}
-                      style={{
-                        padding: '12px 25px',
-                        background: showHotelForm ? '#B76E3C' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
-                        color: '#FFF8F0',
-                        border: '2px solid #D2B48C',
-                        borderRadius: '25px',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s'
-                      }}
-                    >
-                      🏨 Добавить отель
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowRoomForm(!showRoomForm);
-                        setShowTourForm(false);
-                        setShowHotelForm(false);
-                      }}
-                      style={{
-                        padding: '12px 25px',
-                        background: showRoomForm ? '#B76E3C' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
-                        color: '#FFF8F0',
-                        border: '2px solid #D2B48C',
-                        borderRadius: '25px',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s'
-                      }}
-                    >
-                      🛏️ Добавить номер
-                    </button>
+                  {/* Выбор режима работы */}
+                  <div style={{ marginBottom: '30px' }}>
+                    <p style={{ color: '#8B5A2B', marginBottom: '15px' }}>Выберите режим работы:</p>
+                    <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => {
+                          setShowTourForm(false);
+                          setShowHotelForm(false);
+                          setShowRoomForm(false);
+                        }}
+                        style={{
+                          padding: '12px 25px',
+                          background: !showTourForm && !showHotelForm && !showRoomForm ? '#B76E3C' : '#C0A080',
+                          color: '#FFF8F0',
+                          border: '2px solid #8B5A2B',
+                          borderRadius: '25px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <span>👥</span> Управление пользователями
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowTourForm(!showTourForm);
+                          setShowHotelForm(false);
+                          setShowRoomForm(false);
+                          setSelectedUserId(null);
+                          setViewingUserData(null);
+                        }}
+                        style={{
+                          padding: '12px 25px',
+                          background: showTourForm ? '#B76E3C' : '#C0A080',
+                          color: '#FFF8F0',
+                          border: '2px solid #8B5A2B',
+                          borderRadius: '25px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <span>✈️</span> Добавить тур
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowHotelForm(!showHotelForm);
+                          setShowTourForm(false);
+                          setShowRoomForm(false);
+                          setSelectedUserId(null);
+                          setViewingUserData(null);
+                        }}
+                        style={{
+                          padding: '12px 25px',
+                          background: showHotelForm ? '#B76E3C' : '#C0A080',
+                          color: '#FFF8F0',
+                          border: '2px solid #8B5A2B',
+                          borderRadius: '25px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <span>🏨</span> Добавить отель
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowRoomForm(!showRoomForm);
+                          setShowTourForm(false);
+                          setShowHotelForm(false);
+                          setSelectedUserId(null);
+                          setViewingUserData(null);
+                        }}
+                        style={{
+                          padding: '12px 25px',
+                          background: showRoomForm ? '#B76E3C' : '#C0A080',
+                          color: '#FFF8F0',
+                          border: '2px solid #8B5A2B',
+                          borderRadius: '25px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <span>🛏️</span> Добавить номер
+                      </button>
+                    </div>
                   </div>
 
                   {/* Форма добавления тура */}
@@ -1889,54 +2001,6 @@ const ClientAccountPage = () => {
                             }}
                           />
                         </div>
-                        <div>
-                          <label style={{ display: 'block', color: '#8B5A2B', marginBottom: '5px' }}>Включено в стоимость</label>
-                          <input
-                            type="text"
-                            value={newTour.included || ''}
-                            onChange={(e) => setNewTour({ ...newTour, included: e.target.value })}
-                            style={{
-                              width: '100%',
-                              padding: '10px',
-                              border: '2px solid #D2B48C',
-                              borderRadius: '10px',
-                              backgroundColor: '#FFF8F0',
-                              color: '#8B5A2B'
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', color: '#8B5A2B', marginBottom: '5px' }}>Дополнительно оплачивается</label>
-                          <input
-                            type="text"
-                            value={newTour.separately || ''}
-                            onChange={(e) => setNewTour({ ...newTour, separately: e.target.value })}
-                            style={{
-                              width: '100%',
-                              padding: '10px',
-                              border: '2px solid #D2B48C',
-                              borderRadius: '10px',
-                              backgroundColor: '#FFF8F0',
-                              color: '#8B5A2B'
-                            }}
-                          />
-                        </div>
-                        <div style={{ gridColumn: 'span 2' }}>
-                          <label style={{ display: 'block', color: '#8B5A2B', marginBottom: '5px' }}>Программа тура</label>
-                          <textarea
-                            value={newTour.program || ''}
-                            onChange={(e) => setNewTour({ ...newTour, program: e.target.value })}
-                            rows={4}
-                            style={{
-                              width: '100%',
-                              padding: '10px',
-                              border: '2px solid #D2B48C',
-                              borderRadius: '10px',
-                              backgroundColor: '#FFF8F0',
-                              color: '#8B5A2B'
-                            }}
-                          />
-                        </div>
                       </div>
                       <div style={{
                         display: 'flex',
@@ -1946,18 +2010,20 @@ const ClientAccountPage = () => {
                       }}>
                         <button
                           type="button"
-                          onClick={handleAddTour}
+                          onClick={handleAddTourAsync}
+                          disabled={loading}
                           style={{
                             padding: '12px 30px',
-                            background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                            background: loading ? '#999' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
                             color: '#FFF8F0',
                             border: '2px solid #D2B48C',
                             borderRadius: '25px',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s'
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.3s',
+                            opacity: loading ? 0.7 : 1
                           }}
                         >
-                          Сохранить тур
+                          {loading ? 'Сохранение...' : 'Сохранить тур'}
                         </button>
                         <button
                           type="button"
@@ -2030,11 +2096,11 @@ const ClientAccountPage = () => {
                               color: '#8B5A2B'
                             }}
                           >
-                            <option value={1}>★</option>
-                            <option value={2}>★★</option>
-                            <option value={3}>★★★</option>
-                            <option value={4}>★★★★</option>
-                            <option value={5}>★★★★★</option>
+                            <option value={1}>1 звезда</option>
+                            <option value={2}>2 звезды</option>
+                            <option value={3}>3 звезды</option>
+                            <option value={4}>4 звезды</option>
+                            <option value={5}>5 звезд</option>
                           </select>
                         </div>
                         <div>
@@ -2095,18 +2161,20 @@ const ClientAccountPage = () => {
                       }}>
                         <button
                           type="button"
-                          onClick={handleAddHotel}
+                          onClick={handleAddHotelAsync}
+                          disabled={loading}
                           style={{
                             padding: '12px 30px',
-                            background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                            background: loading ? '#999' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
                             color: '#FFF8F0',
                             border: '2px solid #D2B48C',
                             borderRadius: '25px',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s'
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.3s',
+                            opacity: loading ? 0.7 : 1
                           }}
                         >
-                          Сохранить отель
+                          {loading ? 'Сохранение...' : 'Сохранить отель'}
                         </button>
                         <button
                           type="button"
@@ -2223,18 +2291,20 @@ const ClientAccountPage = () => {
                       }}>
                         <button
                           type="button"
-                          onClick={handleAddRoom}
+                          onClick={handleAddRoomAsync}
+                          disabled={loading}
                           style={{
                             padding: '12px 30px',
-                            background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                            background: loading ? '#999' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
                             color: '#FFF8F0',
                             border: '2px solid #D2B48C',
                             borderRadius: '25px',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s'
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.3s',
+                            opacity: loading ? 0.7 : 1
                           }}
                         >
-                          Сохранить номер
+                          {loading ? 'Сохранение...' : 'Сохранить номер'}
                         </button>
                         <button
                           type="button"
@@ -2255,30 +2325,282 @@ const ClientAccountPage = () => {
                     </div>
                   )}
 
-                  {/* Список существующих объектов */}
-                  <div>
-                    <h4 style={{
-                      fontSize: '18px',
-                      color: '#8B5A2B',
-                      marginBottom: '15px',
-                      fontFamily: "'Cormorant Garamond', serif"
-                    }}>
-                      Существующие объекты
-                    </h4>
-                    <div style={{
-                      background: '#FFF8F0',
-                      borderRadius: '20px',
-                      padding: '20px',
-                      border: '2px solid #D2B48C'
-                    }}>
-                      <p><strong>Туров:</strong> {tours.length}</p>
-                      <p><strong>Отелей:</strong> {hotels.length}</p>
-                      <p><strong>Номеров:</strong> {hotelRooms.length}</p>
-                    </div>
-                  </div>
+                  {/* Управление пользователями (только если не выбраны формы добавления) */}
+                  {!showTourForm && !showHotelForm && !showRoomForm && (
+                    <>
+                      <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+                        <button
+                          onClick={() => {
+                            setSelectedUserType('clients');
+                            fetchAllClients();
+                            setSelectedUserId(null);
+                            setViewingUserData(null);
+                          }}
+                          style={{
+                            padding: '10px 20px',
+                            background: selectedUserType === 'clients' ? '#B76E3C' : '#C0A080',
+                            color: '#FFF8F0',
+                            border: '2px solid #8B5A2B',
+                            borderRadius: '20px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          👥 Клиенты
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedUserType('employees');
+                            fetchAllEmployees();
+                            setSelectedUserId(null);
+                            setViewingUserData(null);
+                          }}
+                          style={{
+                            padding: '10px 20px',
+                            background: selectedUserType === 'employees' ? '#B76E3C' : '#C0A080',
+                            color: '#FFF8F0',
+                            border: '2px solid #8B5A2B',
+                            borderRadius: '20px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          💼 Сотрудники
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
+                        <div style={{
+                          background: '#FFF8F0',
+                          borderRadius: '15px',
+                          padding: '15px',
+                          border: '2px solid #D2B48C',
+                          maxHeight: '500px',
+                          overflowY: 'auto'
+                        }}>
+                          <h4 style={{ color: '#8B5A2B', marginBottom: '15px' }}>
+                            {selectedUserType === 'clients' ? 'Клиенты' : 'Сотрудники'}
+                          </h4>
+                          {loading ? (
+                            <p style={{ color: '#8B5A2B', textAlign: 'center' }}>Загрузка...</p>
+                          ) : selectedUserType === 'clients' ? (
+                            allClients.map(client => (
+                              <div
+                                key={client.id}
+                                onClick={() => handleViewUser(client.id, 'clients')}
+                                style={{
+                                  padding: '10px',
+                                  marginBottom: '5px',
+                                  background: selectedUserId === client.id ? '#B76E3C' : 'transparent',
+                                  color: selectedUserId === client.id ? '#FFF8F0' : '#8B5A2B',
+                                  borderRadius: '10px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s'
+                                }}
+                              >
+                                {client.surName} {client.firstName}
+                              </div>
+                            ))
+                          ) : (
+                            allEmployees.map(employee => (
+                              <div
+                                key={employee.id}
+                                onClick={() => handleViewUser(employee.id, 'employees')}
+                                style={{
+                                  padding: '10px',
+                                  marginBottom: '5px',
+                                  background: selectedUserId === employee.id ? '#B76E3C' : 'transparent',
+                                  color: selectedUserId === employee.id ? '#FFF8F0' : '#8B5A2B',
+                                  borderRadius: '10px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s'
+                                }}
+                              >
+                                {employee.surName} {employee.firstName} - {employee.position}
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        <div style={{
+                          background: '#FFF8F0',
+                          borderRadius: '15px',
+                          padding: '20px',
+                          border: '2px solid #D2B48C'
+                        }}>
+                          {viewingUserData ? (
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                <h4 style={{ color: '#8B5A2B' }}>
+                                  {selectedUserType === 'clients' ? 'Клиент' : 'Сотрудник'}: {' '}
+                                  {(viewingUserData as Client).surName} {(viewingUserData as Client).firstName}
+                                </h4>
+                                <button
+                                  onClick={() => setIsEditingUser(!isEditingUser)}
+                                  style={{
+                                    padding: '8px 15px',
+                                    background: '#C0A080',
+                                    color: '#FFF8F0',
+                                    border: '1px solid #8B5A2B',
+                                    borderRadius: '15px',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {isEditingUser ? 'Отмена' : '✏️ Редактировать'}
+                                </button>
+                              </div>
+
+                              <div style={{ marginBottom: '20px' }}>
+                                <p><strong>Email:</strong> {viewingUserData.email}</p>
+                                <p><strong>Телефон:</strong> {viewingUserData.phoneNumber}</p>
+                                {selectedUserType === 'clients' && (
+                                  <>
+                                    <p><strong>Дата рождения:</strong> {(viewingUserData as Client).birthday}</p>
+                                    <p><strong>Возраст:</strong> {(viewingUserData as Client).age}</p>
+                                    <p><strong>Пол:</strong> {(viewingUserData as Client).gender}</p>
+                                    <p><strong>Логин:</strong> {(viewingUserData as Client).login}</p>
+                                  </>
+                                )}
+                                {selectedUserType === 'employees' && (
+                                  <p><strong>Должность:</strong> {(viewingUserData as Employee).position}</p>
+                                )}
+                              </div>
+
+                              {isEditingUser && (
+                                <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(210, 180, 140, 0.1)', borderRadius: '10px' }}>
+                                  <h5 style={{ color: '#8B5A2B', marginBottom: '15px' }}>Редактирование</h5>
+                                  <div style={{ display: 'grid', gap: '10px' }}>
+                                    <input
+                                      type="text"
+                                      placeholder="Фамилия"
+                                      value={(viewingUserData as Client).surName || ''}
+                                      onChange={(e) => setViewingUserData({ ...viewingUserData, surName: e.target.value } as any)}
+                                      style={{
+                                        padding: '8px',
+                                        border: '1px solid #D2B48C',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#FFF8F0'
+                                      }}
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Имя"
+                                      value={(viewingUserData as Client).firstName || ''}
+                                      onChange={(e) => setViewingUserData({ ...viewingUserData, firstName: e.target.value } as any)}
+                                      style={{
+                                        padding: '8px',
+                                        border: '1px solid #D2B48C',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#FFF8F0'
+                                      }}
+                                    />
+                                    <input
+                                      type="email"
+                                      placeholder="Email"
+                                      value={viewingUserData.email || ''}
+                                      onChange={(e) => setViewingUserData({ ...viewingUserData, email: e.target.value } as any)}
+                                      style={{
+                                        padding: '8px',
+                                        border: '1px solid #D2B48C',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#FFF8F0'
+                                      }}
+                                    />
+                                    <input
+                                      type="tel"
+                                      placeholder="Телефон"
+                                      value={viewingUserData.phoneNumber || ''}
+                                      onChange={(e) => setViewingUserData({ ...viewingUserData, phoneNumber: e.target.value } as any)}
+                                      style={{
+                                        padding: '8px',
+                                        border: '1px solid #D2B48C',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#FFF8F0'
+                                      }}
+                                    />
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          setLoading(true);
+                                          if (selectedUserType === 'clients') {
+                                            await updateClient(viewingUserData.id, viewingUserData as Client);
+                                          } else {
+                                            await updateEmployee(viewingUserData.id, viewingUserData as Employee);
+                                          }
+                                          setSaveStatus({
+                                            show: true,
+                                            message: 'Данные сохранены!',
+                                            type: 'success'
+                                          });
+                                          setIsEditingUser(false);
+                                          setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
+                                        } catch (error) {
+                                          console.error('Ошибка сохранения:', error);
+                                          setSaveStatus({
+                                            show: true,
+                                            message: 'Ошибка при сохранении',
+                                            type: 'error'
+                                          });
+                                        } finally {
+                                          setLoading(false);
+                                        }
+                                      }}
+                                      style={{
+                                        padding: '10px',
+                                        background: '#B76E3C',
+                                        color: '#FFF8F0',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Сохранить изменения
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
+                              {selectedUserType === 'clients' && (
+                                <div>
+                                  <h5 style={{ color: '#8B5A2B', marginBottom: '10px' }}>Бронирования:</h5>
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        setLoading(true);
+                                        const tickets = await getClientTickets(viewingUserData.id);
+                                        console.log('Билеты клиента:', tickets);
+                                        alert(`Найдено билетов: ${tickets.length}\n\n${tickets.map((t: any) => `ID: ${t.id}, Цена: ${t.price}₽`).join('\n')}`);
+                                      } catch (error) {
+                                        console.error('Ошибка загрузки билетов:', error);
+                                        alert('Ошибка загрузки билетов');
+                                      } finally {
+                                        setLoading(false);
+                                      }
+                                    }}
+                                    style={{
+                                      padding: '8px 15px',
+                                      background: '#B76E3C',
+                                      color: '#FFF8F0',
+                                      border: 'none',
+                                      borderRadius: '15px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    📋 Показать бронирования
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p style={{ color: '#8B5A2B', textAlign: 'center', padding: '40px' }}>
+                              Выберите пользователя для просмотра
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : activeTab === 'employee' ? (
-                // Вкладка "Сотрудник"
+                // Вкладка "Сотрудник" (Менеджер) — только добавление отелей и номеров, без просмотра клиентов
                 <div>
                   <h3 style={{
                     fontSize: '24px',
@@ -2291,54 +2613,52 @@ const ClientAccountPage = () => {
                     👨‍💻 Панель сотрудника
                   </h3>
 
-                  {/* Кнопки для управления формами */}
-                  <div style={{
-                    display: 'flex',
-                    gap: '15px',
-                    marginBottom: '30px',
-                    flexWrap: 'wrap'
-                  }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowHotelForm(!showHotelForm);
-                        setShowRoomForm(false);
-                      }}
-                      style={{
-                        padding: '12px 25px',
-                        background: showHotelForm ? '#B76E3C' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
-                        color: '#FFF8F0',
-                        border: '2px solid #D2B48C',
-                        borderRadius: '25px',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s'
-                      }}
-                    >
-                      🏨 Добавить отель
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowRoomForm(!showRoomForm);
-                        setShowHotelForm(false);
-                      }}
-                      style={{
-                        padding: '12px 25px',
-                        background: showRoomForm ? '#B76E3C' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
-                        color: '#FFF8F0',
-                        border: '2px solid #D2B48C',
-                        borderRadius: '25px',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s'
-                      }}
-                    >
-                      🛏️ Добавить номер
-                    </button>
+                  {/* Выбор режима работы */}
+                  <div style={{ marginBottom: '30px' }}>
+                    <p style={{ color: '#8B5A2B', marginBottom: '15px' }}>Выберите действие:</p>
+                    <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => {
+                          setShowHotelForm(!showHotelForm);
+                          setShowRoomForm(false);
+                        }}
+                        style={{
+                          padding: '12px 25px',
+                          background: showHotelForm ? '#B76E3C' : '#C0A080',
+                          color: '#FFF8F0',
+                          border: '2px solid #8B5A2B',
+                          borderRadius: '25px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <span>🏨</span> Добавить отель
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowRoomForm(!showRoomForm);
+                          setShowHotelForm(false);
+                        }}
+                        style={{
+                          padding: '12px 25px',
+                          background: showRoomForm ? '#B76E3C' : '#C0A080',
+                          color: '#FFF8F0',
+                          border: '2px solid #8B5A2B',
+                          borderRadius: '25px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <span>🛏️</span> Добавить номер
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Форма добавления отеля (для сотрудника) */}
+                  {/* Форма добавления отеля */}
                   {showHotelForm && (
                     <div style={{
                       background: '#FFF8F0',
@@ -2390,11 +2710,11 @@ const ClientAccountPage = () => {
                               color: '#8B5A2B'
                             }}
                           >
-                            <option value={1}>★</option>
-                            <option value={2}>★★</option>
-                            <option value={3}>★★★</option>
-                            <option value={4}>★★★★</option>
-                            <option value={5}>★★★★★</option>
+                            <option value={1}>1 звезда</option>
+                            <option value={2}>2 звезды</option>
+                            <option value={3}>3 звезды</option>
+                            <option value={4}>4 звезды</option>
+                            <option value={5}>5 звезд</option>
                           </select>
                         </div>
                         <div>
@@ -2455,18 +2775,20 @@ const ClientAccountPage = () => {
                       }}>
                         <button
                           type="button"
-                          onClick={handleAddHotel}
+                          onClick={handleAddHotelAsync}
+                          disabled={loading}
                           style={{
                             padding: '12px 30px',
-                            background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                            background: loading ? '#999' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
                             color: '#FFF8F0',
                             border: '2px solid #D2B48C',
                             borderRadius: '25px',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s'
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.3s',
+                            opacity: loading ? 0.7 : 1
                           }}
                         >
-                          Сохранить отель
+                          {loading ? 'Сохранение...' : 'Сохранить отель'}
                         </button>
                         <button
                           type="button"
@@ -2487,7 +2809,7 @@ const ClientAccountPage = () => {
                     </div>
                   )}
 
-                  {/* Форма добавления номера (для сотрудника) */}
+                  {/* Форма добавления номера */}
                   {showRoomForm && (
                     <div style={{
                       background: '#FFF8F0',
@@ -2583,18 +2905,20 @@ const ClientAccountPage = () => {
                       }}>
                         <button
                           type="button"
-                          onClick={handleAddRoom}
+                          onClick={handleAddRoomAsync}
+                          disabled={loading}
                           style={{
                             padding: '12px 30px',
-                            background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                            background: loading ? '#999' : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
                             color: '#FFF8F0',
                             border: '2px solid #D2B48C',
                             borderRadius: '25px',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s'
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.3s',
+                            opacity: loading ? 0.7 : 1
                           }}
                         >
-                          Сохранить номер
+                          {loading ? 'Сохранение...' : 'Сохранить номер'}
                         </button>
                         <button
                           type="button"
@@ -2615,26 +2939,21 @@ const ClientAccountPage = () => {
                     </div>
                   )}
 
-                  {/* Список существующих объектов */}
-                  <div>
-                    <h4 style={{
-                      fontSize: '18px',
-                      color: '#8B5A2B',
-                      marginBottom: '15px',
-                      fontFamily: "'Cormorant Garamond', serif"
-                    }}>
-                      Существующие объекты
-                    </h4>
+                  {/* Если ничего не выбрано — показать статистику */}
+                  {!showHotelForm && !showRoomForm && (
                     <div style={{
-                      background: '#FFF8F0',
-                      borderRadius: '20px',
+                      marginTop: '30px',
                       padding: '20px',
-                      border: '2px solid #D2B48C'
+                      background: '#FFF8F0',
+                      borderRadius: '15px',
+                      border: '2px solid #D2B48C',
+                      textAlign: 'center'
                     }}>
-                      <p><strong>Отелей:</strong> {hotels.length}</p>
-                      <p><strong>Номеров:</strong> {hotelRooms.length}</p>
+                      <p style={{ color: '#8B5A2B', fontSize: '16px' }}>
+                        Выберите действие: добавить отель или номер
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -2646,20 +2965,6 @@ const ClientAccountPage = () => {
           <p>Пожалуйста, зайдите в профиль или обратитесь в тех. поддержку</p>
         </div>
       )}
-      {/* Дополнительная информация */}
-      <div style={{
-        marginTop: '40px',
-        padding: '20px',
-        background: 'rgba(255, 248, 240, 0.5)',
-        borderRadius: '20px',
-        textAlign: 'center',
-        fontSize: '13px',
-        color: '#8B5A2B'
-      }}>
-        <p>
-          Ваши данные защищены и используются только для бронирования туров.
-        </p>
-      </div>
     </div>
   );
 };
