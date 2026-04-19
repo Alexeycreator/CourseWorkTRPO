@@ -128,17 +128,14 @@ const TourPage = () => {
         }
     };
 
+    // ИЗМЕНЕНА ФУНКЦИЯ handleBooking - убрана проверка авторизации
     const handleBooking = () => {
-        if (!isAuthenticated) {
-            if (window.confirm('Для бронирования тура необходимо авторизоваться. Перейти на страницу входа?')) {
-                navigate('/login', { state: { from: `/tour/${id}` } });
-            }
-            return;
-        }
-        if (!clientData || !passportData) {
+        // Проверка на наличие данных клиента (если пользователь авторизован)
+        if (isAuthenticated && (!clientData || !passportData)) {
             alert('Пожалуйста, обновите страницу или заполните данные в личном кабинете');
             return;
         }
+        // Открываем окно оплаты даже для неавторизованных пользователей
         setShowPayment(true);
     };
 
