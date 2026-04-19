@@ -110,7 +110,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     password: '',
     confirmPassword: '',
     agreeToNews: false,
-    agreeToPersonalData: false,
+    agreeToPersonalData: true,
     isReadOnly: false
   };
 
@@ -1175,11 +1175,17 @@ div:: -webkit - scrollbar - thumb:hover {
                 )}
               </div>
 
-              {/* Форма поиска */}
-              <form className="d-flex" style={{ marginRight: '10px', maxWidth: '250px' }}>
+              <form className="d-flex" style={{ marginRight: '10px', maxWidth: '250px' }} onSubmit={(e) => {
+                e.preventDefault();
+                const searchInput = (e.currentTarget.elements.namedItem('search') as HTMLInputElement)?.value;
+                if (searchInput) {
+                  window.location.href = `/catalog?search=${encodeURIComponent(searchInput)}`;
+                }
+              }}>
                 <input
                   className="form-control"
                   type="search"
+                  name="search"
                   placeholder="Поиск..."
                   aria-label="Search"
                   style={{
@@ -1896,9 +1902,11 @@ div:: -webkit - scrollbar - thumb:hover {
                       </h3>
 
                       <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(2, 1fr)',
-                        gap: '20px'
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%'
                       }}>
                         {/* Логин */}
                         <div>
@@ -1914,7 +1922,7 @@ div:: -webkit - scrollbar - thumb:hover {
                             style={{
                               width: '100%',
                               padding: '12px',
-                              border: `2px solid ${registrationFieldErrors.login ? '#dc3545' : '#D2B48C'} `,
+                              border: `2px solid ${registrationFieldErrors.login ? '#dc3545' : '#D2B48C'}`,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
@@ -1927,8 +1935,10 @@ div:: -webkit - scrollbar - thumb:hover {
                           )}
                         </div>
 
-                        {/* Пароль */}
-                        <div>
+                        <div></div> {/* Пустой div для сохранения сетки */}
+
+                        {/* Пароль - занимает всю ширину */}
+                        <div style={{ gridColumn: 'span 2' }}>
                           <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                             Пароль <span style={{ color: '#dc3545' }}>*</span>
                           </label>
@@ -1941,7 +1951,7 @@ div:: -webkit - scrollbar - thumb:hover {
                             style={{
                               width: '100%',
                               padding: '12px',
-                              border: `2px solid ${registrationFieldErrors.password ? '#dc3545' : '#D2B48C'} `,
+                              border: `2px solid ${registrationFieldErrors.password ? '#dc3545' : '#D2B48C'}`,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
@@ -1954,8 +1964,8 @@ div:: -webkit - scrollbar - thumb:hover {
                           )}
                         </div>
 
-                        {/* Подтверждение пароля */}
-                        <div>
+                        {/* Подтверждение пароля - занимает всю ширину */}
+                        <div style={{ gridColumn: 'span 2' }}>
                           <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
                             Подтвердите пароль <span style={{ color: '#dc3545' }}>*</span>
                           </label>
@@ -1968,7 +1978,7 @@ div:: -webkit - scrollbar - thumb:hover {
                             style={{
                               width: '100%',
                               padding: '12px',
-                              border: `2px solid ${registrationFieldErrors.confirmPassword ? '#dc3545' : '#D2B48C'} `,
+                              border: `2px solid ${registrationFieldErrors.confirmPassword ? '#dc3545' : '#D2B48C'}`,
                               borderRadius: '15px',
                               backgroundColor: '#FFF8F0',
                               color: '#8B5A2B',
@@ -1982,7 +1992,7 @@ div:: -webkit - scrollbar - thumb:hover {
                         </div>
 
                         {/* Чекбокс показа пароля */}
-                        <div style={{ display: 'flex', alignItems: 'center', paddingTop: '35px' }}>
+                        <div style={{ gridColumn: 'span 2' }}>
                           <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#8B5A2B', fontSize: '14px' }}>
                             <input
                               type="checkbox"
@@ -2003,33 +2013,28 @@ div:: -webkit - scrollbar - thumb:hover {
                         padding: '20px',
                         border: '2px solid #D2B48C'
                       }}>
-                        <div style={{ marginBottom: '15px' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8B5A2B', fontSize: '14px' }}>
-                            <input
-                              type="checkbox"
-                              name="agreeToNews"
-                              checked={registrationForm.agreeToNews}
-                              onChange={this.handleRegistrationChange}
-                            />
-                            Я согласен на получение новостей и специальных предложений
-                          </label>
-                        </div>
+                        {/* Удалите или закомментируйте блок с agreeToNews */}
 
                         <div style={{ marginBottom: '15px' }}>
                           <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#8B5A2B', fontSize: '14px' }}>
                             <input
                               type="checkbox"
                               name="agreeToPersonalData"
-                              checked={registrationForm.agreeToPersonalData}
-                              onChange={this.handleRegistrationChange}
+                              checked={true}
+                              disabled={true}
+                              style={{ cursor: 'not-allowed' }}
                             />
                             <span>Я согласен на обработку персональных данных <span style={{ color: '#dc3545' }}>*</span></span>
                           </label>
-                          {registrationFieldErrors.agreeToPersonalData && (
-                            <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px' }}>
-                              {registrationFieldErrors.agreeToPersonalData}
-                            </div>
-                          )}
+                          {/* Скрытое поле для отправки значения на сервер */}
+                          <input
+                            type="hidden"
+                            name="agreeToPersonalData"
+                            value="true"
+                          />
+                          <div style={{ fontSize: '12px', color: '#B76E3C', marginTop: '5px', marginLeft: '25px' }}>
+                            ⓘ Согласие на обработку персональных данных обязательно для регистрации
+                          </div>
                         </div>
 
                         <div>
@@ -2047,21 +2052,6 @@ div:: -webkit - scrollbar - thumb:hover {
                           </div>
                         </div>
                       </div>
-
-                      {/* Ошибка регистрации */}
-                      {registrationError && (
-                        <div style={{
-                          backgroundColor: '#ffebee',
-                          color: '#d32f2f',
-                          padding: '12px',
-                          borderRadius: '15px',
-                          marginTop: '20px',
-                          textAlign: 'center',
-                          border: '1px solid #ffcdd2'
-                        }}>
-                          {registrationError}
-                        </div>
-                      )}
                     </section>
 
                     {/* Кнопки навигации для второго шага */}
@@ -2145,12 +2135,6 @@ div:: -webkit - scrollbar - thumb:hover {
                       >
                         Отмена
                       </button>
-
-
-
-
-
-
                     </div>
                   </>
                 )}
