@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../Contexts/AuthContext';
 import { getTourById, Tour } from '../Services/ToursApi';
 import { getTicketById, Ticket } from '../Services/TicketsApi';
@@ -9,9 +10,11 @@ import { Address, getAddressById } from '../Services/AddressApi';
 import { getClientById } from '../Services/ClientApi';
 import { getPassportById, Passport } from '../Services/PassportApi';
 import TicketPayment from '../TicketPayment';
+import { Hotel } from '../Services/HotelsApi';
 
 const TourPage = () => {
     const { id } = useParams<{ id: string }>();
+    const location = useLocation();
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
@@ -37,6 +40,9 @@ const TourPage = () => {
     const [passportData, setPassportData] = useState<Passport | null>(null);
     const [addressData, setAddressData] = useState<Address | null>(null);
 
+    // Новое состояние для отеля
+    const [hotel, setHotel] = useState<Hotel | null>(null);
+
     const fetchTour = async () => {
         try {
             setLoading(true);
@@ -44,21 +50,32 @@ const TourPage = () => {
                 const tourData = await getTourById(Number(id));
                 let transferData = null;
                 let addressData = null;
-                
+
                 if (tourData.transfers_Id) {
                     transferData = await getTransferById(Number(tourData.transfers_Id));
                 }
                 if (tourData.id) {
                     addressData = await getAddressById(tourData.id);
                 }
-                
+
                 setSelectedTour(tourData);
                 setAddressTour(addressData);
                 setSelectedTourTransfer(transferData);
-                console.log("Tour: ", tourData);
-                console.log("TourTransfer: ", transferData);
-                console.log("TourAddress: ", addressData);
                 setErrorTour(null);
+
+                // --- ЗАГРУЗКА ОТЕЛЯ, если есть билет ---
+                if (tourData.tickets_Id) {
+                    try {
+                        const allHotelsResponse = await axios.get<Hotel[]>(`${API_URL}/api/Hotels`);
+                        const foundHotel = allHotelsResponse.data.find(h => h.tickets_Id === tourData.tickets_Id);
+                        setHotel(foundHotel || null);
+                    } catch (hotelErr) {
+                        console.error('Не удалось загрузить отели:', hotelErr);
+                        setHotel(null);
+                    }
+                } else {
+                    setHotel(null);
+                }
             }
         } catch (err: any) {
             console.error('Ошибка загрузки тура:', err);
@@ -99,6 +116,18 @@ const TourPage = () => {
         }
     }, [selectedTour]);
 
+    useEffect(() => {
+        if (location.state && (location.state as any).openBooking) {
+
+            const timer = setTimeout(() => {
+                setShowPayment(true);
+
+                window.history.replaceState({}, document.title);
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [location]);
+
     const calculateNights = (startDate: string, endDate: string): number => {
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -128,14 +157,11 @@ const TourPage = () => {
         }
     };
 
-    // ИЗМЕНЕНА ФУНКЦИЯ handleBooking - убрана проверка авторизации
     const handleBooking = () => {
-        // Проверка на наличие данных клиента (если пользователь авторизован)
         if (isAuthenticated && (!clientData || !passportData)) {
             alert('Пожалуйста, обновите страницу или заполните данные в личном кабинете');
             return;
         }
-        // Открываем окно оплаты даже для неавторизованных пользователей
         setShowPayment(true);
     };
 
@@ -224,7 +250,6 @@ const TourPage = () => {
         }}>
             <NavBar onCurrencyChange={handleCurrencyChange} />
 
-            {/* Фоновые иероглифы */}
             <div style={{ position: 'fixed', top: '10%', left: '2%', fontSize: '40px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>
             <div style={{ position: 'fixed', bottom: '10%', right: '3%', fontSize: '50px', opacity: 0.05, pointerEvents: 'none' }}>𓊹</div>
             <div style={{ position: 'fixed', top: '30%', right: '5%', fontSize: '35px', opacity: 0.05, pointerEvents: 'none' }}>𓋴</div>
@@ -340,6 +365,87 @@ const TourPage = () => {
                                     {selectedTour.description || selectedTour.details}
                                 </p>
                             </section>
+
+                            {/* Блок отеля */}
+                            {hotel && (
+                                <section style={{ marginBottom: '30px' }}>
+                                    <h2 style={{
+                                        fontSize: '24px',
+                                        color: '#8B5A2B',
+                                        marginBottom: '15px',
+                                        fontFamily: "'Cormorant Garamond', serif",
+                                        borderBottom: '2px solid #D2B48C',
+                                        paddingBottom: '8px'
+                                    }}>
+                                        🏨 Проживание в отеле
+                                    </h2>
+                                    <div style={{
+                                        background: '#FFF8F0',
+                                        borderRadius: '20px',
+                                        padding: '20px',
+                                        border: '2px solid #D2B48C',
+                                        display: 'flex',
+                                        gap: '20px',
+                                        alignItems: 'center',
+                                        flexWrap: 'wrap'
+                                    }}>
+                                        {hotel.imageHotel && (
+                                            <img
+                                                src={`${API_URL}/${hotel.imageHotel}`}
+                                                alt={hotel.name}
+                                                style={{
+                                                    width: '120px',
+                                                    height: '120px',
+                                                    objectFit: 'cover',
+                                                    borderRadius: '15px',
+                                                    border: '2px solid #D2B48C'
+                                                }}
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/120x120?text=Hotel';
+                                                }}
+                                            />
+                                        )}
+                                        <div style={{ flex: 1 }}>
+                                            <h3 style={{
+                                                fontSize: '20px',
+                                                color: '#8B5A2B',
+                                                marginBottom: '8px',
+                                                fontFamily: "'Cormorant Garamond', serif"
+                                            }}>
+                                                {hotel.name}
+                                            </h3>
+                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
+                                                <span style={{ color: '#B76E3C' }}>
+                                                    {'★'.repeat(hotel.stars)}{'☆'.repeat(5 - hotel.stars)}
+                                                </span>
+                                                <span style={{ color: '#B76E3C' }}>•</span>
+                                                <span style={{ color: '#B76E3C' }}>⏱ {hotel.timeOfStay} дней</span>
+                                            </div>
+                                            {hotel.details && (
+                                                <p style={{ color: '#5A3E2B', fontSize: '14px', marginBottom: '12px' }}>
+                                                    {hotel.details}
+                                                </p>
+                                            )}
+                                            <Link to={`/hotel/${hotel.id}`} style={{ textDecoration: 'none' }}>
+                                                <button style={{
+                                                    padding: '8px 20px',
+                                                    background: '#C0A080',
+                                                    color: '#FFF8F0',
+                                                    border: '2px solid #8B5A2B',
+                                                    borderRadius: '25px',
+                                                    cursor: 'pointer',
+                                                    fontSize: '14px',
+                                                    transition: 'all 0.3s'
+                                                }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.background = '#8B5A2B'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.background = '#C0A080'}>
+                                                    Подробнее об отеле →
+                                                </button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </section>
+                            )}
 
                             {selectedTour.included && selectedTour.included !== 'Не предусмотрено' && (
                                 <section style={{ marginBottom: '30px' }}>
@@ -497,22 +603,13 @@ const TourPage = () => {
                                         cursor: 'pointer',
                                         transition: 'all 0.3s'
                                     }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = 'scale(1.02)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = 'scale(1)';
-                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                 >
                                     Забронировать
                                 </button>
 
-                                <p style={{
-                                    textAlign: 'center',
-                                    fontSize: '12px',
-                                    color: '#B76E3C',
-                                    marginTop: '15px'
-                                }}>
+                                <p style={{ textAlign: 'center', fontSize: '12px', color: '#B76E3C', marginTop: '15px' }}>
                                     Бесплатная отмена за 14 дней до вылета
                                 </p>
                             </div>
@@ -531,12 +628,8 @@ const TourPage = () => {
                                 cursor: 'pointer',
                                 transition: 'all 0.3s'
                             }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'rgba(192, 160, 128, 0.1)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'transparent';
-                                }}>
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(192, 160, 128, 0.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                 ← Вернуться в каталог
                             </button>
                         </Link>
