@@ -1,98 +1,143 @@
-// HotelPage.tsx - исправленная версия
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import { getTours } from '../Services/ToursApi';
+import NavBar from '../Components/NavBar';
 
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+interface Hotel {
+    id: number;
+    name: string;
+    stars: number;
+    timeOfStay: number;
+    imageHotel: string;
+    details: string | null;
+    address_Id?: number | null;
+    tickets_Id?: number | null;
+    hotelRooms_Id?: number | null;
+}
 
-// Временные данные для демонстрации
-const hotelsData = [
-    {
-        id: 1,
-        name: 'Conrad Maldives Rangali',
-        stars: 5,
-        country: 'Мальдивы',
-        city: 'Мале',
-        address: 'Rangali Island, 20001, Мальдивы',
-        description: 'Роскошный курорт, расположенный на двух частных островах, соединенных мостом. Знаменит первым в мире подводным рестораном Ithaa. Курорт предлагает виллы с прямым выходом к океану и частными бассейнами.',
-        longDescription: 'Conrad Maldives Rangali — это воплощение райского отдыха на Мальдивах. Расположенный на двух эксклюзивных островах, курорт предлагает гостям уникальное сочетание роскоши и уединения. Здесь находится знаменитый подводный ресторан Ithaa, где вы сможете пообедать на глубине 5 метров под водой. Для гостей доступны виллы на воде и на пляже с собственными бассейнами и прямым доступом к лагуне.',
-        images: [
-            'https://images.unsplash.com/photo-1573843981279-9a27c1c3e2a9?w=800',
-            'https://images.unsplash.com/photo-1540202404-a2f3c7b1b5e0?w=800',
-            'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?w=800',
-            'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800'
-        ],
-        rating: 4.9,
-        reviews: 342,
-        timeOfStay: '14:00',
-        amenities: [
-            'Бесплатный Wi-Fi',
-            'Спа-центр',
-            '5 ресторанов',
-            'Бассейн',
-            'Фитнес-центр',
-            'Водные виды спорта',
-            'Дайвинг-центр',
-            'Подводный ресторан'
-        ],
-        rooms: [
-            {
-                id: 101,
-                name: 'Пляжная вилла',
-                description: 'Просторная вилла с прямым выходом на пляж',
-                price: 65000,
-                area: '85 м²',
-                capacity: '2 взрослых',
-                image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400'
-            },
-            {
-                id: 102,
-                name: 'Вилла на воде',
-                description: 'Роскошная вилла над лагуной с панорамными окнами',
-                price: 85000,
-                area: '110 м²',
-                capacity: '2 взрослых + 1 ребенок',
-                image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400'
-            },
-            {
-                id: 103,
-                name: 'Президентский люкс',
-                description: 'Двухуровневая вилла с частным бассейном',
-                price: 150000,
-                area: '250 м²',
-                capacity: '4 взрослых',
-                image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400'
-            }
-        ]
-    },
-    // ... остальные отели
-];
+interface Address {
+    id: number;
+    country: string;
+    region: string;
+    city: string;
+    street: string;
+    house: string;
+    apartment?: number | null;
+}
+
+interface HotelRoom {
+    id: number;
+    nameRoom: string;
+    details: string | null;
+    floor: number;
+    imageRoom: string | null;
+}
 
 const HotelPage = () => {
     const { id } = useParams<{ id: string }>();
-    const [activeImage, setActiveImage] = useState(0);
+    const navigate = useNavigate();
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
+    const [hotel, setHotel] = useState<Hotel | null>(null);
+    const [address, setAddress] = useState<Address | null>(null);
+    const [room, setRoom] = useState<HotelRoom | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [associatedTourId, setAssociatedTourId] = useState<number | null>(null);
 
-    const hotel = hotelsData.find(h => h.id === Number(id));
+    useEffect(() => {
+        const fetchHotelData = async () => {
+            if (!id) return;
+            try {
+                setLoading(true);
+                const hotelResponse = await axios.get<Hotel>(`${API_URL}/api/Hotels/${id}`);
+                const hotelData = hotelResponse.data;
+                setHotel(hotelData);
 
-    if (!hotel) {
+                const addressId = (hotelData as any).address_Id ?? (hotelData as any).Address_Id;
+                if (addressId) {
+                    const addressResponse = await axios.get<Address>(`${API_URL}/api/Addresses/${addressId}`);
+                    setAddress(addressResponse.data);
+                }
+
+                const roomId = (hotelData as any).hotelRooms_Id ?? (hotelData as any).HotelRooms_Id;
+                if (roomId) {
+                    const roomResponse = await axios.get<HotelRoom>(`${API_URL}/api/HotelRooms/${roomId}`);
+                    setRoom(roomResponse.data);
+                }
+
+                if (hotelData.tickets_Id) {
+                    const allTours = await getTours();
+                    const foundTour = allTours.find(tour => tour.tickets_Id === hotelData.tickets_Id);
+                    if (foundTour) setAssociatedTourId(foundTour.id);
+                }
+
+                setError(null);
+            } catch (err) {
+                console.error(err);
+                setError('Не удалось загрузить данные об отеле');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchHotelData();
+    }, [id, API_URL]);
+
+    const handleBookClick = () => {
+        if (associatedTourId) {
+            navigate(`/catalog/tour/${associatedTourId}`, { state: { openBooking: true } });
+        } else {
+            alert('Не удалось найти тур, связанный с этим отелем.');
+        }
+    };
+
+    if (loading) {
         return (
             <div style={{
                 background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
                 minHeight: '100vh',
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'center',
-                padding: '20px'
+                alignItems: 'center',
+                paddingTop: '70px'
             }}>
+                <NavBar />
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}>🐪</div>
+                    <style>{`
+                        @keyframes pulse {
+                            0% { opacity: 0.6; transform: scale(1); }
+                            50% { opacity: 1; transform: scale(1.1); }
+                            100% { opacity: 0.6; transform: scale(1); }
+                        }
+                    `}</style>
+                    <h2 style={{ color: '#8B5A2B' }}>Загрузка информации об отеле...</h2>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !hotel) {
+        return (
+            <div style={{
+                background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
+                minHeight: '100vh',
+                padding: '20px',
+                paddingTop: '70px'
+            }}>
+                <NavBar />
                 <div style={{
-                    background: 'rgba(255, 248, 240, 0.8)',
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: '40px',
-                    padding: '50px',
+                    maxWidth: '600px',
+                    margin: '100px auto',
                     textAlign: 'center',
+                    background: 'rgba(255, 248, 240, 0.9)',
+                    borderRadius: '30px',
+                    padding: '40px',
                     border: '2px solid #C0A080'
                 }}>
-                    <div style={{ fontSize: '60px', marginBottom: '20px' }}>🏨</div>
+                    <div style={{ fontSize: '48px', marginBottom: '20px' }}>🏨</div>
                     <h2 style={{ color: '#8B5A2B', fontSize: '32px', marginBottom: '20px' }}>
-                        Отель не найден
+                        {error || 'Отель не найден'}
                     </h2>
                     <Link to="/catalog">
                         <button style={{
@@ -101,7 +146,6 @@ const HotelPage = () => {
                             color: '#FFF8F0',
                             border: '2px solid #8B5A2B',
                             borderRadius: '30px',
-                            fontSize: '16px',
                             cursor: 'pointer'
                         }}>
                             Вернуться к турам
@@ -112,18 +156,15 @@ const HotelPage = () => {
         );
     }
 
-    const formatPrice = (price: number) => {
-        return price.toLocaleString('ru-RU') + ' ₽';
-    };
-
     return (
         <div style={{
             background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
             minHeight: '100vh',
             padding: '20px',
-            paddingTop: '70px'
+            paddingTop: '80px'
         }}>
-            {/* Фоновые иероглифы */}
+            <NavBar />
+
             <div style={{ position: 'fixed', top: '10%', left: '2%', fontSize: '40px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>
             <div style={{ position: 'fixed', bottom: '10%', right: '3%', fontSize: '50px', opacity: 0.05, pointerEvents: 'none' }}>𓊹</div>
 
@@ -149,7 +190,6 @@ const HotelPage = () => {
                     <span>{hotel.name}</span>
                 </div>
 
-                {/* Основной контент */}
                 <div style={{
                     background: 'rgba(255, 248, 240, 0.8)',
                     backdropFilter: 'blur(10px)',
@@ -158,7 +198,7 @@ const HotelPage = () => {
                     boxShadow: '0 20px 40px rgba(139, 69, 19, 0.15)',
                     border: '2px solid #C0A080'
                 }}>
-                    {/* Заголовок и звезды */}
+                    {/* Заголовок */}
                     <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -188,263 +228,200 @@ const HotelPage = () => {
                                     {'★'.repeat(hotel.stars)}{'☆'.repeat(5 - hotel.stars)}
                                 </div>
                                 <span>•</span>
-                                <span>⭐ {hotel.rating} ({hotel.reviews} отзывов)</span>
-                                <span>•</span>
-                                <span>📍 {hotel.country}, {hotel.city}</span>
+                                <span>📍 {address?.country || 'Страна не указана'}, {address?.city || 'Город не указан'}</span>
+                                {hotel.timeOfStay && (
+                                    <>
+                                        <span>•</span>
+                                        <span>⏱ {hotel.timeOfStay} дней</span>
+                                    </>
+                                )}
                             </div>
-                        </div>
-                        <div style={{
-                            background: '#C0A080',
-                            color: '#FFF8F0',
-                            padding: '10px 20px',
-                            borderRadius: '30px',
-                            fontSize: '16px'
-                        }}>
-                            ⏰ Заезд с {hotel.timeOfStay}
                         </div>
                     </div>
 
-                    {/* Галерея */}
+                    {/* Изображение отеля */}
                     <div style={{ marginBottom: '40px' }}>
                         <div style={{
                             width: '100%',
                             height: '450px',
                             borderRadius: '20px',
                             overflow: 'hidden',
-                            marginBottom: '15px',
-                            border: '2px solid #D2B48C'
+                            border: '2px solid #D2B48C',
+                            background: '#F0E5D5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                         }}>
                             <img
-                                src={hotel.images[activeImage]}
+                                src={`${API_URL}/${hotel.imageHotel}`}
                                 alt={hotel.name}
                                 style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover'
+                                    maxWidth: '100%',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain'
+                                }}
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x450?text=No+Image';
                                 }}
                             />
                         </div>
-                        <div style={{
-                            display: 'flex',
-                            gap: '10px',
-                            overflowX: 'auto',
-                            padding: '5px 0'
-                        }}>
-                            {hotel.images.map((img, index) => (
-                                <div
-                                    key={index}
-                                    onClick={() => setActiveImage(index)}
+                    </div>
+
+                    {/* Две колонки */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 350px',
+                        gap: '40px'
+                    }}>
+                        {/* Левая колонка - описание и номер */}
+                        <div>
+                            <section style={{ marginBottom: '30px' }}>
+                                <h2 style={{
+                                    fontSize: '28px',
+                                    color: '#8B5A2B',
+                                    marginBottom: '15px',
+                                    fontFamily: "'Cormorant Garamond', serif",
+                                    borderBottom: '2px solid #D2B48C',
+                                    paddingBottom: '10px'
+                                }}>
+                                    📝 Об отеле
+                                </h2>
+                                <p style={{
+                                    fontSize: '16px',
+                                    lineHeight: '1.8',
+                                    color: '#5A3E2B'
+                                }}>
+                                    {hotel.details || 'Описание отсутствует'}
+                                </p>
+                                {address && (
+                                    <p style={{
+                                        marginTop: '15px',
+                                        fontSize: '15px',
+                                        color: '#B76E3C',
+                                        fontStyle: 'italic'
+                                    }}>
+                                        📍 Адрес: {address.country}, {address.city}, {address.street} {address.house}
+                                        {address.apartment ? `, кв. ${address.apartment}` : ''}
+                                    </p>
+                                )}
+                            </section>
+
+                            {/* Блок номера с ограничением ширины */}
+                            {room && (
+                                <section style={{ maxWidth: '300px' }}>
+                                    <h2 style={{
+                                        fontSize: '28px',
+                                        color: '#8B5A2B',
+                                        marginBottom: '15px',
+                                        fontFamily: "'Cormorant Garamond', serif",
+                                        borderBottom: '2px solid #D2B48C',
+                                        paddingBottom: '10px'
+                                    }}>
+                                        🛏️ Номер отеля
+                                    </h2>
+                                    <div style={{
+                                        background: '#FFF8F0',
+                                        borderRadius: '20px',
+                                        padding: '20px',
+                                        border: '2px solid #D2B48C'
+                                    }}>
+                                        {room.imageRoom && (
+                                            <img
+                                                src={`${API_URL}/${room.imageRoom}`}
+                                                alt={room.nameRoom}
+                                                style={{
+                                                    width: '100%',
+                                                    maxHeight: '200px',
+                                                    objectFit: 'cover',
+                                                    borderRadius: '15px',
+                                                    marginBottom: '15px',
+                                                    border: '2px solid #D2B48C'
+                                                }}
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=No+Image';
+                                                }}
+                                            />
+                                        )}
+                                        <h3 style={{
+                                            fontSize: '22px',
+                                            color: '#8B5A2B',
+                                            marginBottom: '8px',
+                                            fontFamily: "'Cormorant Garamond', serif"
+                                        }}>
+                                            {room.nameRoom}
+                                        </h3>
+                                        <p style={{ color: '#B76E3C', marginBottom: '10px' }}>
+                                            Этаж: {room.floor}
+                                        </p>
+                                        <p style={{ color: '#5A3E2B', fontSize: '14px', lineHeight: '1.6' }}>
+                                            {room.details || 'Подробности отсутствуют'}
+                                        </p>
+                                        <Link to={`/hotel-room/${hotel.id}/${room.id}`} style={{ textDecoration: 'none' }}>
+                                            <button style={{
+                                                marginTop: '15px',
+                                                padding: '8px 20px',
+                                                background: '#C0A080',
+                                                color: '#FFF8F0',
+                                                border: '2px solid #8B5A2B',
+                                                borderRadius: '25px',
+                                                cursor: 'pointer',
+                                                fontSize: '14px',
+                                                transition: 'all 0.3s'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = '#8B5A2B'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = '#C0A080'}>
+                                                Подробнее о номере →
+                                            </button>
+                                        </Link>
+                                    </div>
+                                </section>
+                            )}
+                        </div>
+
+                        {/* Правая колонка - бронирование */}
+                        <div>
+                            <div style={{
+                                background: '#FFF8F0',
+                                borderRadius: '20px',
+                                padding: '25px',
+                                border: '2px solid #D2B48C',
+                                position: 'sticky',
+                                top: '90px',
+                                textAlign: 'center'
+                            }}>
+                                <h3 style={{
+                                    fontSize: '22px',
+                                    color: '#8B5A2B',
+                                    marginBottom: '20px',
+                                    fontFamily: "'Cormorant Garamond', serif"
+                                }}>
+                                    Забронировать
+                                </h3>
+                                <p style={{ color: '#B76E3C', marginBottom: '15px' }}>
+                                    Нажмите, чтобы перейти к бронированию тура
+                                </p>
+                                <button
+                                    onClick={handleBookClick}
                                     style={{
-                                        width: '100px',
-                                        height: '70px',
-                                        borderRadius: '10px',
-                                        overflow: 'hidden',
+                                        width: '100%',
+                                        padding: '12px',
+                                        background: '#B76E3C',
+                                        color: '#FFF8F0',
+                                        border: '2px solid #8B5A2B',
+                                        borderRadius: '30px',
                                         cursor: 'pointer',
-                                        border: activeImage === index ? '3px solid #B76E3C' : '2px solid transparent',
-                                        opacity: activeImage === index ? 1 : 0.7,
+                                        fontSize: '16px',
                                         transition: 'all 0.3s'
                                     }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = '#8B5A2B'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = '#B76E3C'}
                                 >
-                                    <img
-                                        src={img}
-                                        alt={`${hotel.name} ${index + 1}`}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover'
-                                        }}
-                                    />
-                                </div>
-                            ))}
+                                    Забронировать тур
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Описание отеля */}
-                    <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{
-                            fontSize: '28px',
-                            color: '#8B5A2B',
-                            marginBottom: '15px',
-                            fontFamily: "'Cormorant Garamond', serif",
-                            borderBottom: '2px solid #D2B48C',
-                            paddingBottom: '10px'
-                        }}>
-                            📝 Об отеле
-                        </h2>
-                        <p style={{
-                            fontSize: '16px',
-                            lineHeight: '1.8',
-                            color: '#5A3E2B',
-                            marginBottom: '15px'
-                        }}>
-                            {hotel.description}
-                        </p>
-                        <p style={{
-                            fontSize: '16px',
-                            lineHeight: '1.8',
-                            color: '#5A3E2B'
-                        }}>
-                            {hotel.longDescription}
-                        </p>
-                        <p style={{
-                            marginTop: '15px',
-                            fontSize: '15px',
-                            color: '#B76E3C',
-                            fontStyle: 'italic'
-                        }}>
-                            📍 Адрес: {hotel.address}
-                        </p>
-                    </section>
-
-                    {/* Удобства */}
-                    <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{
-                            fontSize: '28px',
-                            color: '#8B5A2B',
-                            marginBottom: '15px',
-                            fontFamily: "'Cormorant Garamond', serif",
-                            borderBottom: '2px solid #D2B48C',
-                            paddingBottom: '10px'
-                        }}>
-                            🛎️ Удобства и услуги
-                        </h2>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                            gap: '15px'
-                        }}>
-                            {hotel.amenities.map((amenity, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        background: '#FFF8F0',
-                                        border: '1px solid #D2B48C',
-                                        borderRadius: '20px',
-                                        padding: '10px 15px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '10px'
-                                    }}
-                                >
-                                    <span style={{ color: '#B76E3C' }}>✓</span>
-                                    <span style={{ color: '#5A3E2B', fontSize: '14px' }}>{amenity}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* Номера отеля */}
-                    <section style={{ marginBottom: '40px' }}>
-                        <h2 style={{
-                            fontSize: '28px',
-                            color: '#8B5A2B',
-                            marginBottom: '15px',
-                            fontFamily: "'Cormorant Garamond', serif",
-                            borderBottom: '2px solid #D2B48C',
-                            paddingBottom: '10px'
-                        }}>
-                            🛏️ Номера отеля
-                        </h2>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                            gap: '20px'
-                        }}>
-                            {hotel.rooms.map((room) => (
-                                <Link
-                                    to={`/hotel-room/${hotel.id}/${room.id}`}
-                                    key={room.id}
-                                    style={{ textDecoration: 'none' }}
-                                >
-                                    <div style={{
-                                        background: '#FFF8F0',
-                                        border: '2px solid #D2B48C',
-                                        borderRadius: '20px',
-                                        overflow: 'hidden',
-                                        transition: 'all 0.3s',
-                                        cursor: 'pointer',
-                                        height: '100%'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(-5px)';
-                                        e.currentTarget.style.boxShadow = '0 10px 25px rgba(183, 110, 60, 0.2)';
-                                        e.currentTarget.style.borderColor = '#B76E3C';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = 'none';
-                                        e.currentTarget.style.borderColor = '#D2B48C';
-                                    }}>
-                                        {room.image && (
-                                            <div style={{
-                                                height: '160px',
-                                                overflow: 'hidden'
-                                            }}>
-                                                <img
-                                                    src={room.image}
-                                                    alt={room.name}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        objectFit: 'cover'
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
-                                        <div style={{ padding: '15px' }}>
-                                            <h3 style={{
-                                                fontSize: '20px',
-                                                color: '#8B5A2B',
-                                                marginBottom: '8px',
-                                                fontFamily: "'Cormorant Garamond', serif"
-                                            }}>
-                                                {room.name}
-                                            </h3>
-                                            <p style={{
-                                                color: '#B76E3C',
-                                                fontSize: '14px',
-                                                marginBottom: '10px'
-                                            }}>
-                                                {room.description}
-                                            </p>
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                marginBottom: '10px',
-                                                fontSize: '14px',
-                                                color: '#5A3E2B'
-                                            }}>
-                                                <span>👥 {room.capacity}</span>
-                                                <span>📐 {room.area}</span>
-                                            </div>
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                marginTop: '10px'
-                                            }}>
-                                                <span style={{
-                                                    fontSize: '22px',
-                                                    fontWeight: '700',
-                                                    color: '#8B5A2B'
-                                                }}>
-                                                    {formatPrice(room.price)}
-                                                </span>
-                                                <span style={{
-                                                    fontSize: '14px',
-                                                    color: '#B76E3C'
-                                                }}>
-                                                    Подробнее →
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* Кнопка "Вернуться к турам" */}
                     <div style={{ textAlign: 'center', marginTop: '40px' }}>
                         <Link to="/catalog">
                             <button style={{
@@ -457,12 +434,8 @@ const HotelPage = () => {
                                 cursor: 'pointer',
                                 transition: 'all 0.3s'
                             }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'rgba(192, 160, 128, 0.1)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'transparent';
-                                }}>
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(192, 160, 128, 0.1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                 ← Вернуться к турам
                             </button>
                         </Link>
