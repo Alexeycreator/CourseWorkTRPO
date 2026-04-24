@@ -344,7 +344,8 @@ const CatalogToursPage = () => {
                   }}
                 />
 
-                <div className="card-body" style={{ padding: '20px' }}>
+                {/* ИЗМЕНЕНИЕ: card-body теперь flex-контейнер, занимает всё доступное пространство */}
+                <div className="card-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h3 style={{
                       margin: 0,
@@ -381,7 +382,8 @@ const CatalogToursPage = () => {
                     </span>
                   </div>
 
-                  <div className="d-flex gap-2 mt-3">
+                  {/* ИЗМЕНЕНИЕ: контейнер кнопки прижат к низу с помощью marginTop: 'auto' */}
+                  <div className="d-flex gap-2" style={{ marginTop: 'auto' }}>
                     <Link to={`/catalog/tour/${tour.id}`} style={{ flex: 1, textDecoration: 'none' }}>
                       <button
                         style={{
