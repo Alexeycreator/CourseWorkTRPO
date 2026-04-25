@@ -415,7 +415,7 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
                         <div style={{ color: '#5D3A1A' }}>{tour.type}</div>
                       </div>
                       <div>
-                        <div style={{ color: '#8B5A2B', fontSize: '12px', marginBottom: '3px' }}>Направление</div>
+                        <div style={{ color: '#8B5A2B', fontSize: '12px', marginBottom: '3px' }}>Даты</div>
                         <div style={{ color: '#5D3A1A' }}>{tour.startDot} → {tour.endDot}</div>
                       </div>
                     </>
@@ -441,95 +441,6 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
                 </div>
               </div>
 
-              {/* Даты тура */}
-              <div style={{
-                background: '#FFF8F0',
-                borderRadius: '20px',
-                padding: '20px',
-                border: '2px solid #D2B48C',
-                marginBottom: '25px'
-              }}>
-                <h3 style={{
-                  fontSize: '18px',
-                  color: '#B76E3C',
-                  marginBottom: '15px',
-                  fontFamily: "'Cormorant Garamond', serif",
-                  borderBottom: '1px solid #D2B48C',
-                  paddingBottom: '8px'
-                }}>
-                  📅 Даты поездки
-                </h3>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '20px'
-                }}>
-                  <div>
-                    <label style={{ display: 'block', color: '#8B5A2B', marginBottom: '5px', fontSize: '14px' }}>
-                      Дата начала *
-                    </label>
-                    <input
-                      type="date"
-                      value={departureDate}
-                      min={getDateString(new Date())}
-                      onChange={(e) => {
-                        setDepartureDate(e.target.value);
-                        if (errors.departureDate) {
-                          setErrors(prev => {
-                            const newErrors = { ...prev };
-                            delete newErrors.departureDate;
-                            return newErrors;
-                          });
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        border: `2px solid ${errors.departureDate ? '#dc3545' : '#D2B48C'}`,
-                        borderRadius: '10px',
-                        backgroundColor: '#FFF8F0',
-                        color: '#5D3A1A',
-                        fontSize: '14px'
-                      }}
-                    />
-                    {errors.departureDate && (
-                      <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.departureDate}</div>
-                    )}
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', color: '#8B5A2B', marginBottom: '5px', fontSize: '14px' }}>
-                      Дата окончания *
-                    </label>
-                    <input
-                      type="date"
-                      value={arrivalDate}
-                      min={departureDate || getDateString(new Date())}
-                      onChange={(e) => {
-                        setArrivalDate(e.target.value);
-                        if (errors.arrivalDate) {
-                          setErrors(prev => {
-                            const newErrors = { ...prev };
-                            delete newErrors.arrivalDate;
-                            return newErrors;
-                          });
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        border: `2px solid ${errors.arrivalDate ? '#dc3545' : '#D2B48C'}`,
-                        borderRadius: '10px',
-                        backgroundColor: '#FFF8F0',
-                        color: '#5D3A1A',
-                        fontSize: '14px'
-                      }}
-                    />
-                    {errors.arrivalDate && (
-                      <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '3px' }}>{errors.arrivalDate}</div>
-                    )}
-                  </div>
-                </div>
-              </div>
 
               {/* Личные данные */}
               <div style={{
