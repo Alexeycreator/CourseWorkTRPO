@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../Contexts/AuthContext";
 import { getClientPassport, getClients, authApi, UserData } from "../Services/IndexAuth";
-import { getAddressByPassportId, getClientsByPassportId, getPassportById, Passport, updatePassport } from "../Services/PassportApi";
+import { getAddressByPassportId, getClientsByPassportId, getPassportById, Passport, updatePassport, createPassport, deletePassport } from "../Services/PassportApi";
 import { Client, getClientById, updateClient, getClientTickets } from "../Services/ClientApi";
 import { Address, getAddressById, getAddresses } from "../Services/AddressApi";
 import EditDocumentModal, { DocumentFormData, AddressFormData, CombinedDocumentData } from '../EditDocumentModal';
@@ -10,7 +10,7 @@ import { getEmployees, Employee, updateEmployee, getEmployeeById } from "../Serv
 import { createTour } from "../Services/ToursApi";
 import { createHotel } from "../Services/HotelsApi";
 import { createHotelRoom } from "../Services/HotelRoomsApi";
-
+import { createAddress, updateAddress, deleteAddress } from "../Services/AddressApi";
 // Обновленные интерфейсы согласно моделям
 interface Tour {
   id?: number;
@@ -231,7 +231,17 @@ const ClientAccountPage = () => {
 
       if (modalMode === 'edit' && modalData && modalData.index !== undefined && modalData.index >= 0) {
         const index = modalData.index;
+        const existingPassport = passportsData[index];
+        const existingAddress = addressesData[index];
 
+        // 1. Обновляем паспорт (используем существующую функцию updatePassport)
+        await updatePassport(existingPassport.id, {
+          seria: parseInt(passportData.seria, 10),
+          number: parseInt(passportData.number, 10),
+          type: passportData.type
+        });
+
+        // Обновляем локальное состояние паспорта
         const updatedPassports = [...passportsData];
         updatedPassports[index] = {
           ...updatedPassports[index],
@@ -246,8 +256,22 @@ const ClientAccountPage = () => {
         };
         setPassportsData(updatedPassports);
 
-        const updatedAddresses = [...addressesData];
-        if (updatedAddresses[index]) {
+        // 2. Обновляем адрес (если существует)
+        if (existingAddress && existingAddress.id) {
+          try {
+            await updateAddress(existingAddress.id, {
+              country: addressData.country,
+              region: addressData.country,
+              city: addressData.city,
+              street: addressData.street,
+              house: addressData.house,
+              apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null
+            });
+          } catch (err) {
+            console.warn('Не удалось обновить адрес:', err);
+          }
+
+          const updatedAddresses = [...addressesData];
           updatedAddresses[index] = {
             ...updatedAddresses[index],
             country: addressData.country,
@@ -256,27 +280,45 @@ const ClientAccountPage = () => {
             house: addressData.house,
             apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null
           };
-        } else if (addressData.city || addressData.street || addressData.house) {
-          updatedAddresses[index] = {
-            id: Date.now(),
-            region: '',
-            country: addressData.country,
-            city: addressData.city,
-            street: addressData.street,
-            house: addressData.house,
-            apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null
-          };
+          setAddressesData(updatedAddresses);
         }
-        setAddressesData(updatedAddresses);
 
         setSaveStatus({
           show: true,
-          message: 'Документы успешно обновлены!',
+          message: 'Документ успешно обновлён!',
           type: 'success'
         });
-      } else if (modalMode === 'add') {
-        const createdPassport = {
-          id: Date.now(),
+      }
+      else if (modalMode === 'add') {
+        // 1. Создаём паспорт через прямой POST с ВСЕМИ полями
+        const passportResponse = await fetch('http://localhost:5050/api/Passports', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            seria: parseInt(passportData.seria, 10),
+            number: parseInt(passportData.number, 10),
+            type: passportData.type,
+            issuedBy: passportData.issuedBy,
+            dateOfIssue: passportData.dateOfIssue,
+            departmentCode: passportData.departmentCode,
+            gender: (passportData as any).gender,
+            placeOfBirth: (passportData as any).placeOfBirth
+          })
+        });
+
+        if (!passportResponse.ok) {
+          const errorData = await passportResponse.json();
+          throw new Error(errorData.message || 'Ошибка создания паспорта');
+        }
+
+        const createdPassport = await passportResponse.json();
+
+        // Формируем полный объект паспорта
+        const fullPassport = {
+          ...createdPassport,
           seria: parseInt(passportData.seria, 10),
           number: parseInt(passportData.number, 10),
           issuedBy: passportData.issuedBy,
@@ -287,28 +329,83 @@ const ClientAccountPage = () => {
           placeOfBirth: (passportData as any).placeOfBirth
         };
 
-        const createdAddress = {
+        // 2. Создаём адрес в БД (если заполнен)
+        let createdAddress: Address | null = null;
+        if (addressData.city || addressData.street || addressData.house) {
+          try {
+            const addressResponse = await fetch('http://localhost:5050/api/Addresses', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({
+                country: addressData.country,
+                region: addressData.country,
+                city: addressData.city,
+                street: addressData.street,
+                house: addressData.house,
+                apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null,
+                passport_Id: createdPassport.id
+              })
+            });
+
+            if (addressResponse.ok) {
+              createdAddress = await addressResponse.json();
+            }
+          } catch (err) {
+            console.warn('Не удалось создать адрес:', err);
+          }
+        }
+
+        // 3. Обновляем клиента
+        if (userData && !userData.passport_Id) {
+          try {
+            await updateClient(userData.id, {
+              surName: userData.surName,
+              firstName: userData.firstName,
+              middleName: userData.middleName,
+              phoneNumber: userData.phoneNumber,
+              email: userData.email,
+              login: userData.login,
+              gender: userData.gender,
+              birthday: userData.birthday,
+              age: userData.age,
+              passport_Id: createdPassport.id
+            });
+            setUserData(prev => prev ? { ...prev, passport_Id: createdPassport.id } : null);
+          } catch (err) {
+            console.warn('Не удалось обновить клиента:', err);
+          }
+        }
+
+        // 4. Обновляем локальные состояния
+        setPassportsData(prev => [...prev, fullPassport]);
+        setAddressesData(prev => [...prev, createdAddress || {
           id: Date.now(),
-          region: '',
+          region: addressData.country,
           country: addressData.country,
           city: addressData.city,
           street: addressData.street,
           house: addressData.house,
-          apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null
-        };
-
-        setPassportsData(prev => [...prev, createdPassport]);
-        setAddressesData(prev => [...prev, createdAddress]);
+          apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null,
+          passport_Id: createdPassport.id
+        }]);
 
         setSaveStatus({
           show: true,
-          message: 'Новый документ успешно добавлен!',
+          message: 'Новый документ успешно добавлен в базу данных!',
           type: 'success'
         });
       }
 
       setIsModalOpen(false);
       setModalData(null);
+
+      // Перезагружаем данные с сервера для синхронизации
+      setTimeout(() => {
+        fetchUser();
+      }, 500);
 
       setTimeout(() => {
         setSaveStatus({ show: false, message: '', type: '' });
@@ -318,10 +415,9 @@ const ClientAccountPage = () => {
       console.error('Ошибка при сохранении документов:', error);
       setSaveStatus({
         show: true,
-        message: error.response?.data?.message || 'Ошибка при сохранении документов',
+        message: error.response?.data?.message || error.message || 'Ошибка при сохранении документов',
         type: 'error'
       });
-
       setTimeout(() => {
         setSaveStatus({ show: false, message: '', type: '' });
       }, 3000);
@@ -671,6 +767,171 @@ const ClientAccountPage = () => {
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
     }
   };
+
+
+  //Функции для удаления документов
+  // Добавьте эти функции в ClientAccountPage.tsx
+
+  // 1. Функция для удаления паспорта через API
+  const deletePassportFromDb = async (passportId: number): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/Passports/${passportId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Ошибка при удалении паспорта');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Ошибка удаления паспорта:', error);
+      throw error;
+    }
+  };
+
+  // 2. Функция для удаления адреса через API
+  const deleteAddressFromDb = async (addressId: number): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/Addresses/${addressId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      // Если адрес не найден - это не ошибка, просто адреса не было
+      if (response.status === 404) {
+        return true;
+      }
+
+      if (!response.ok) {
+        throw new Error('Ошибка при удалении адреса');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Ошибка удаления адреса:', error);
+      // Не прерываем удаление, если адрес не удалился
+      return true;
+    }
+  };
+
+  // 3. Функция для обновления клиента (удаление ссылки на паспорт)
+  const removePassportFromClient = async (clientId: number): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/Clients/${clientId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          passport_Id: null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка при обновлении клиента');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Ошибка обновления клиента:', error);
+      throw error;
+    }
+  };
+
+  // Функция для удаления документа
+  const handleDeleteDocument = async (passport: Passport, address: Address | undefined, index: number) => {
+    // Подтверждение удаления
+    if (!window.confirm(`Вы уверены, что хотите удалить паспорт #${index + 1}? Это действие нельзя отменить.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // ВАЖНО: Сначала обновляем клиента - УБИРАЕМ ССЫЛКУ НА ПАСПОРТ
+      if (userData?.passport_Id === passport.id) {
+        try {
+          await updateClient(userData.id, {
+            surName: userData.surName,
+            firstName: userData.firstName,
+            middleName: userData.middleName,
+            phoneNumber: userData.phoneNumber,
+            email: userData.email,
+            login: userData.login,
+            gender: userData.gender,
+            birthday: userData.birthday,
+            age: userData.age,
+            passport_Id: null  // ← Убираем ссылку на паспорт
+          });
+          console.log('Ссылка на паспорт удалена у клиента');
+
+          // Обновляем локальное состояние клиента
+          setUserData(prev => prev ? { ...prev, passport_Id: null } : null);
+        } catch (err) {
+          console.error('Не удалось обновить клиента:', err);
+          throw new Error('Не удалось удалить связь с клиентом. Удаление отменено.');
+        }
+      }
+
+      // Небольшая задержка, чтобы сервер обработал обновление клиента
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 2. Удаляем адрес (если есть)
+      if (address && address.id) {
+        try {
+          await deleteAddress(address.id);
+          console.log('Адрес удалён');
+        } catch (err) {
+          console.warn('Адрес не найден или уже удалён:', err);
+        }
+      }
+
+      // 3. Теперь удаляем сам паспорт (он уже не связан с клиентом)
+      await deletePassport(passport.id);
+      console.log('Паспорт удалён');
+
+      // 4. Обновляем локальные состояния
+      const newPassportsData = [...passportsData];
+      newPassportsData.splice(index, 1);
+      setPassportsData(newPassportsData);
+
+      const newAddressesData = [...addressesData];
+      newAddressesData.splice(index, 1);
+      setAddressesData(newAddressesData);
+
+      setSaveStatus({
+        show: true,
+        message: 'Паспорт успешно удалён!',
+        type: 'success'
+      });
+
+      // 5. Перезагружаем данные
+      await fetchUser();
+
+    } catch (error: any) {
+      console.error('Ошибка при удалении паспорта:', error);
+      setSaveStatus({
+        show: true,
+        message: error.message || 'Ошибка при удалении паспорта',
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+      setTimeout(() => {
+        setSaveStatus({ show: false, message: '', type: '' });
+      }, 3000);
+    }
+  };
+
 
   const handleAddRoomAsync = async () => {
     if (!newRoom.nameRoom || !newRoom.floor) {
@@ -1327,36 +1588,73 @@ const ClientAccountPage = () => {
                             }}>
                               <span>📄</span> Документ #{index + 1}
                             </h4>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleEditDocument(passport, addressesData[index], index)}
+                                style={{
+                                  padding: '8px 20px',
+                                  background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                                  color: '#FFF8F0',
+                                  border: '2px solid #D2B48C',
+                                  borderRadius: '20px',
+                                  fontSize: '14px',
+                                  fontWeight: '500',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  transition: 'all 0.3s',
+                                  boxShadow: '0 2px 8px rgba(183, 110, 60, 0.2)'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'scale(1.05)';
+                                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(183, 110, 60, 0.3)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'scale(1)';
+                                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(183, 110, 60, 0.2)';
+                                }}
+                              >
+                                <span>✏️</span> Редактировать документ
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => handleEditDocument(passport, addressesData[index], index)}
-                              style={{
-                                padding: '8px 20px',
-                                background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
-                                color: '#FFF8F0',
-                                border: '2px solid #D2B48C',
-                                borderRadius: '20px',
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                transition: 'all 0.3s',
-                                boxShadow: '0 2px 8px rgba(183, 110, 60, 0.2)'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'scale(1.05)';
-                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(183, 110, 60, 0.3)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(183, 110, 60, 0.2)';
-                              }}
-                            >
-                              <span>✏️</span> Редактировать
-                            </button>
+                              <button
+                                type="button"
+                                //onClick={() => handleDeleteDocument(passport, addressesData[index], index)}
+                                disabled={loading}
+                                style={{
+                                  padding: '8px 20px',
+                                  background: 'linear-gradient(135deg, #dc3545, #c82333)',
+                                  color: '#FFF8F0',
+                                  border: '2px solid #D2B48C',
+                                  borderRadius: '20px',
+                                  fontSize: '14px',
+                                  fontWeight: '500',
+                                  cursor: loading ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  transition: 'all 0.3s',
+                                  boxShadow: '0 2px 8px rgba(220, 53, 69, 0.2)',
+                                  opacity: loading ? 0.7 : 1
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!loading) {
+                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.3)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!loading) {
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(220, 53, 69, 0.2)';
+                                  }
+                                }}
+                              >
+                                <span>🗑️</span> {loading ? 'Удаление...' : 'Удалить'}
+                              </button>
+                            </div>
                           </div>
 
                           <div style={{ marginBottom: addressesData[index] ? '25px' : '0' }}>
