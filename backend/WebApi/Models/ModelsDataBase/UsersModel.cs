@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace WebApi.Models.ModelsDataBase;
 
 [Table("Clients")]
-public sealed class ClientsModel
+public sealed class UsersModel
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -39,20 +39,25 @@ public sealed class ClientsModel
     public string Password { get; set; }
 
     [MaxLength(2000)] public string PasswordHash { get; set; }
+    [Required] public string Position { get; set; } = $"Пользователь";
+    [Required] public string Role { get; set; } = $"user";
 
-    public bool IsReadOnly { get; set; } = false;
-
-    [Column("Passport_Id")]
+    [Column("PassportId")]
     [ForeignKey("Passport")]
-    public int? Passport_Id { get; set; }
+    public int? PassportId { get; set; }
 
-    [DeleteBehavior(DeleteBehavior.Cascade)]
+    [DeleteBehavior(DeleteBehavior.SetNull)]
     [JsonIgnore]
     public PassportsModel? Passport { get; set; }
 
-    [JsonIgnore] public ICollection<TicketsModel>? Tickets { get; set; }
+    [Column("TicketsId")]
+    [ForeignKey("Ticket")]
+    public int? TicketsId { get; set; }
 
-    // НОВЫЕ ПОЛЯ ДЛЯ JWT ТОКЕНОВ
+    [DeleteBehavior(DeleteBehavior.SetNull)]
+    [JsonIgnore]
+    public TicketsModel? Ticket { get; set; }
+
     [MaxLength(500)] public string? RefreshToken { get; set; } // Для refresh token
     public DateTime? RefreshTokenExpiryTime { get; set; } // Время истечения refresh token
     public DateTime? LastLoginAt { get; set; } // Время последнего входа

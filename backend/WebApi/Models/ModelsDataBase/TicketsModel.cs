@@ -19,16 +19,7 @@ public sealed class TicketsModel
     [Required] public DateTime DepartureTime { get; set; }
     [Required] public DateTime ArrivalTime { get; set; }
     [Required] public DateTime DateSale { get; set; }
-    public bool IsReadOnly { get; set; } = false;
-
-    [Column("Client_Id")]
-    [ForeignKey("Client")]
-    public int? Client_Id { get; set; }
-
-    [DeleteBehavior(DeleteBehavior.SetNull)]
-    [JsonIgnore]
-    public ClientsModel? Client { get; set; }
 
     [JsonIgnore] public ICollection<CurrencyRates_TicketsModel>? CurrencyRatesTickets { get; set; }
-    [JsonIgnore] public ICollection<EmployeesModel>? Employees { get; set; }
+    [JsonIgnore] public ICollection<UsersModel>? Users { get; set; }
 }

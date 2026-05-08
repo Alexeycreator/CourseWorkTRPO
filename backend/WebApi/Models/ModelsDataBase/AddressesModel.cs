@@ -18,15 +18,14 @@ public sealed class AddressesModel
     [MaxLength(100)] public string? Street { get; set; }
     [MaxLength(100)] public string? House { get; set; }
     public int? Apartment { get; set; }
-    public bool IsReadOnly { get; set; } = false;
-
-    [Column("Passport_Id")]
+    
+    [Column("PassportId")]
     [ForeignKey("Passport")]
-    public int? Passport_Id { get; set; }
+    public int? PassportId { get; set; }
 
-    [Column("Tours_Id")]
+    [Column("ToursId")]
     [ForeignKey("Tours")]
-    public int? Tours_Id { get; set; }
+    public int? ToursId { get; set; }
 
     [DeleteBehavior(DeleteBehavior.Restrict)]
     [JsonIgnore]

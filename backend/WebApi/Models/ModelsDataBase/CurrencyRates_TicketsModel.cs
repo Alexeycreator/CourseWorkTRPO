@@ -12,16 +12,14 @@ public sealed class CurrencyRates_TicketsModel
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; private set; }
 
-    [Column("CurrencyRates_Id")]
+    [Column("CurrencyRatesId")]
     [ForeignKey("CurrencyRate")]
-    public int? CurrencyRates_Id { get; set; }
+    public int? CurrencyRatesId { get; set; }
 
-    [Column("Tickets_Id")]
+    [Column("TicketsId")]
     [ForeignKey("Ticket")]
-    public int? Tickets_Id { get; set; }
-
-    public bool IsReadOnly { get; set; } = false;
-
+    public int? TicketsId { get; set; }
+    
     [DeleteBehavior(DeleteBehavior.SetNull)]
     [JsonIgnore]
     public CurrencyRatesModel? CurrencyRate { get; set; }

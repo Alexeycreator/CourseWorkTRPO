@@ -16,7 +16,7 @@ public sealed class ToursModel
     [Required] [MaxLength(100)] public string StartDot { get; set; }
     [Required] [MaxLength(100)] public string EndDot { get; set; }
     [Required] [MaxLength(4000)] public string Details { get; set; }
-    [Required] [MaxLength(1000)] public string ImageTour { get; private set; }
+    [Required] [MaxLength(1000)] public string ImageTour { get; set; }
     [Required] [MaxLength(4000)] public string Description { get; set; }
     [Required] [MaxLength(2000)] public string Separately { get; set; } = "Не предусмотрено";
     [Required] [MaxLength(2000)] public string Included { get; set; } = "Не предусмотрено";
@@ -26,19 +26,17 @@ public sealed class ToursModel
 
     [Required]
     [Column(TypeName = "decimal(18, 2)")]
-    public double Price { get; private set; }
-
-    public bool IsReadOnly { get; set; } = false;
-
-    [Column("Tickets_Id")]
+    public double Price { get; set; }
+    
+    [Column("TicketsId")]
     [ForeignKey("Ticket")]
-    public int? Tickets_Id { get; set; }
+    public int? TicketsId { get; set; }
 
-    [Column("Transfers_Id")]
+    [Column("TransfersId")]
     [ForeignKey("Transfer")]
-    public int? Transfers_Id { get; set; }
+    public int? TransfersId { get; set; }
 
-    [DeleteBehavior(DeleteBehavior.Restrict)]
+    [DeleteBehavior(DeleteBehavior.SetNull)]
     [JsonIgnore]
     public TicketsModel? Ticket { get; set; }
 
