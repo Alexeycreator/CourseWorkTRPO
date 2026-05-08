@@ -18,7 +18,7 @@ public class CurrencyRatesTicketsController(ServerDbContext dbContext) : Control
     [HttpGet("{id}")]
     public async Task<ActionResult<IEnumerable<CurrencyRates_TicketsModel>>> GetCurrencyRatesTicket(int id)
     {
-        var transfer = await dbContext.Transfers.FindAsync(id);
+        var transfer = await dbContext.CurrencyRatesTickets.FindAsync(id);
         if (transfer == null)
         {
             return NotFound(new
