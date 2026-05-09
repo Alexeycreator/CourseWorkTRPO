@@ -11,6 +11,12 @@ const api = axios.create({
     },
 });
 
+export interface AddressMainInfoDto {
+    id: number;
+    country?: string | null;
+    city?: string | null;
+};
+
 export interface Address {
     id: number;
     country: string;
