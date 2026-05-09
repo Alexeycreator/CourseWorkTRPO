@@ -60,10 +60,6 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int?>("ToursId")
-                        .HasColumnType("int")
-                        .HasColumnName("ToursId");
-
                     b.HasKey("Id");
 
                     b.HasIndex("City")
@@ -82,8 +78,6 @@ namespace WebApi.Migrations
 
                     b.HasIndex("Street")
                         .HasDatabaseName("IX_Addresses_Street");
-
-                    b.HasIndex("ToursId");
 
                     b.HasIndex("Country", "City", "Region", "Street", "House")
                         .HasDatabaseName("IX_Addresses_FullAddress");
@@ -227,12 +221,11 @@ namespace WebApi.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<int>("HotelRoomsId")
+                    b.Property<int?>("HotelRoomsId")
                         .HasColumnType("int")
                         .HasColumnName("HotelRoomsId");
 
                     b.Property<string>("ImageHotel")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
@@ -248,7 +241,7 @@ namespace WebApi.Migrations
                         .HasColumnType("int")
                         .HasColumnName("TicketsId");
 
-                    b.Property<int>("TimeOfStay")
+                    b.Property<int?>("TimeOfStay")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -471,6 +464,37 @@ namespace WebApi.Migrations
                     b.ToTable("Tours");
                 });
 
+            modelBuilder.Entity("WebApi.Models.ModelsDataBase.Tours_Hotels_AddressesModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AddressesId")
+                        .HasColumnType("int")
+                        .HasColumnName("AddressesId");
+
+                    b.Property<int?>("HotelsId")
+                        .HasColumnType("int")
+                        .HasColumnName("HotelsId");
+
+                    b.Property<int?>("ToursId")
+                        .HasColumnType("int")
+                        .HasColumnName("ToursId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddressesId");
+
+                    b.HasIndex("HotelsId");
+
+                    b.HasIndex("ToursId");
+
+                    b.ToTable("Tours_Hotels_Addresses");
+                });
+
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.TransfersModel", b =>
                 {
                     b.Property<int>("Id")
@@ -647,7 +671,7 @@ namespace WebApi.Migrations
                     b.HasIndex("SurName", "FirstName", "MiddleName")
                         .HasDatabaseName("IX_Users_FullName");
 
-                    b.ToTable("Clients");
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.AddressesModel", b =>
@@ -657,14 +681,7 @@ namespace WebApi.Migrations
                         .HasForeignKey("PassportId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("WebApi.Models.ModelsDataBase.ToursModel", "Tours")
-                        .WithMany("Addresses")
-                        .HasForeignKey("ToursId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Passport");
-
-                    b.Navigation("Tours");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.CurrencyRates_TicketsModel", b =>
@@ -694,8 +711,7 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.HotelRoomsModel", "HotelRoom")
                         .WithMany("Hotels")
                         .HasForeignKey("HotelRoomsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
                         .WithMany()
@@ -724,6 +740,30 @@ namespace WebApi.Migrations
                     b.Navigation("Ticket");
 
                     b.Navigation("Transfer");
+                });
+
+            modelBuilder.Entity("WebApi.Models.ModelsDataBase.Tours_Hotels_AddressesModel", b =>
+                {
+                    b.HasOne("WebApi.Models.ModelsDataBase.AddressesModel", "Address")
+                        .WithMany()
+                        .HasForeignKey("AddressesId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WebApi.Models.ModelsDataBase.HotelsModel", "Hotel")
+                        .WithMany("ToursHotels")
+                        .HasForeignKey("HotelsId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WebApi.Models.ModelsDataBase.ToursModel", "Tour")
+                        .WithMany("ToursHotels")
+                        .HasForeignKey("ToursId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Address");
+
+                    b.Navigation("Hotel");
+
+                    b.Navigation("Tour");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.UsersModel", b =>
@@ -758,6 +798,11 @@ namespace WebApi.Migrations
                     b.Navigation("Hotels");
                 });
 
+            modelBuilder.Entity("WebApi.Models.ModelsDataBase.HotelsModel", b =>
+                {
+                    b.Navigation("ToursHotels");
+                });
+
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.PassportsModel", b =>
                 {
                     b.Navigation("Addresses");
@@ -774,7 +819,7 @@ namespace WebApi.Migrations
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.ToursModel", b =>
                 {
-                    b.Navigation("Addresses");
+                    b.Navigation("ToursHotels");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.TransfersModel", b =>

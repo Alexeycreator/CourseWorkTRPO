@@ -6,7 +6,7 @@ namespace WebApi.Methods.DataBase;
 public sealed class ServerDbContext(DbContextOptions<ServerDbContext> options) : DbContext(options)
 {
     public DbSet<AddressesModel> Addresses { get; set; }
-    public DbSet<UsersModel> Clients { get; set; }
+    public DbSet<UsersModel> Users { get; set; }
     public DbSet<CurrencyRates_TicketsModel> CurrencyRatesTickets { get; set; }
     public DbSet<CurrencyRatesModel> CurrencyRates { get; set; }
     public DbSet<TicketsModel> Tickets { get; set; }
@@ -15,6 +15,7 @@ public sealed class ServerDbContext(DbContextOptions<ServerDbContext> options) :
     public DbSet<PassportsModel> Passports { get; set; }
     public DbSet<ToursModel> Tours { get; set; }
     public DbSet<TransfersModel> Transfers { get; set; }
+    public DbSet<Tours_Hotels_AddressesModel> ToursHotels { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
