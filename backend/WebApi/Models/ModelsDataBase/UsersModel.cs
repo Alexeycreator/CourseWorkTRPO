@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebApi.Models.ModelsDataBase;
 
-[Table("Clients")]
+[Table("Users")]
 public sealed class UsersModel
 {
     [Key]
@@ -39,7 +39,7 @@ public sealed class UsersModel
     public string Password { get; set; }
 
     [MaxLength(2000)] public string PasswordHash { get; set; }
-    [Required] public string Position { get; set; } = $"Пользователь";
+    [Required] public string? Position { get; set; } = $"Пользователь";
     [Required] public string Role { get; set; } = $"user";
 
     [Column("PassportId")]
