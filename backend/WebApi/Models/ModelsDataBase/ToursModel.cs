@@ -44,5 +44,5 @@ public sealed class ToursModel
     [JsonIgnore]
     public TransfersModel? Transfer { get; set; }
 
-    [JsonIgnore] public ICollection<AddressesModel>? Addresses { get; set; }
+    [JsonIgnore] public ICollection<Tours_Hotels_AddressesModel>? ToursHotels { get; set; }
 }

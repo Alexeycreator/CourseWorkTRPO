@@ -27,6 +27,14 @@ export interface Hotel {
     hotelRoom?: HotelRoom | null;
 }
 
+export interface HotelMainInfoDto {
+    id: number;
+    stars?: number | null;
+    countNight?: number | null;
+    description?: number | null;
+    imageHotel?: string | null;
+};
+
 export const getHotels = async (): Promise<Hotel[]> => {
     const response = await api.get<Hotel[]>('/Hotel');
     return response.data;

@@ -23,17 +23,9 @@ public sealed class AddressesModel
     [ForeignKey("Passport")]
     public int? PassportId { get; set; }
 
-    [Column("ToursId")]
-    [ForeignKey("Tours")]
-    public int? ToursId { get; set; }
-
     [DeleteBehavior(DeleteBehavior.Restrict)]
     [JsonIgnore]
     public PassportsModel? Passport { get; set; }
-
-    [DeleteBehavior(DeleteBehavior.SetNull)]
-    [JsonIgnore]
-    public ToursModel? Tours { get; set; }
 
     [JsonIgnore] public ICollection<HotelsModel>? Hotels { get; set; }
 }
