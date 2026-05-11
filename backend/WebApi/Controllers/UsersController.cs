@@ -46,25 +46,25 @@ public sealed class UsersController(
 
         return Ok(clients);
     }
-    
+
     [HttpPost("register")]
     public async Task<ActionResult<UserResponseDto>> RegisterAsync(CreateUserDto createDto)
     {
         try
         {
-            if (await dbContext.Users.AnyAsync(c => c.Login == createDto.Login))
+            if (await dbContext.Users.AnyAsync(u => u.Login == createDto.Login))
             {
                 loggerUsersController.Error($"Логин ({createDto.Login}) уже существует");
                 return Conflict(new { message = "Логин уже существует" });
             }
 
-            if (await dbContext.Users.AnyAsync(c => c.Email == createDto.Email))
+            if (await dbContext.Users.AnyAsync(u => u.Email == createDto.Email))
             {
                 loggerUsersController.Error($"Email ({createDto.Email}) уже существует");
                 return Conflict(new { message = "Email уже существует" });
             }
 
-            if (await dbContext.Users.AnyAsync(c => c.PhoneNumber == createDto.PhoneNumber))
+            if (await dbContext.Users.AnyAsync(u => u.PhoneNumber == createDto.PhoneNumber))
             {
                 loggerUsersController.Error($"Телефон ({createDto.PhoneNumber}) уже существует");
                 return Conflict(new { message = "Телефон уже существует" });
@@ -75,19 +75,19 @@ public sealed class UsersController(
 
             var user = new UsersModel
             {
-                MiddleName = createDto.MiddleName,
-                FirstName = createDto.FirstName,
                 SurName = createDto.SurName,
+                FirstName = createDto.FirstName,
+                MiddleName = createDto.MiddleName,
                 Gender = createDto.Gender,
                 Birthday = createDto.Birthday,
-                Age = createDto.Age,
+                Age = CalculateAge(createDto.Birthday),
                 PhoneNumber = createDto.PhoneNumber,
                 Email = createDto.Email,
                 Login = createDto.Login,
                 Password = createDto.Password,
                 PasswordHash = hashedPassword,
-                Role = createDto.Role,
-                Position = createDto.Position,
+                Role = DefaultRoleOrPosition('r'),
+                Position = DefaultRoleOrPosition('p'),
                 LoginAttempts = 0,
             };
 
@@ -521,5 +521,22 @@ public sealed class UsersController(
         loggerUsersController.Info($"Изменена позиция пользователя на {user.Position}");
 
         return user;
+    }
+
+    private string DefaultRoleOrPosition(char type)
+    {
+        string respText = "";
+        switch (type)
+        {
+            case 'r':
+                respText = "user";
+                break;
+            case 'p':
+                respText = "Пользователь";
+                break;
+            default: break;
+        }
+
+        return respText;
     }
 }
