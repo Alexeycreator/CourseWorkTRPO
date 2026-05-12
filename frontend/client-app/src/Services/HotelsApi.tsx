@@ -1,5 +1,6 @@
 /* eslint-disable no-throw-literal */
 import axios from "axios";
+import { AddressMainInfoDto } from "./AddressApi";
 
 const API_URL = "http://localhost:5050/api";
 
@@ -16,6 +17,7 @@ export interface CreateHotelDto {
     stars: number;
     imageHotel?: string | null;
     details?: string | null;
+    hotelRoomId?: number | null;
 }
 
 // DTO для обновления отеля
@@ -34,18 +36,15 @@ export interface HotelMainInfoDto {
 }
 
 // Информация об адресе
-export interface ResponseInfoAddressHotelOrRoomDto {
-    id: number;
-    country?: string | null;
+export interface ResponseInfoAddressHotelOrRoomDto extends AddressMainInfoDto {
     region?: string | null;
-    city?: string | null;
     street?: string | null;
     house?: string | null;
     apartment?: string | null;
 }
 
 // Информация о комнате
-export interface RespMainInfoHotelRooms {
+export interface ResponseMainInfoHotelRooms {
     id: number;
     nameRoom?: string | null;
     details?: string | null;
@@ -57,15 +56,12 @@ export interface RespMainInfoHotelRooms {
 // Полный DTO ответа с информацией об отеле
 export interface ResponseHotelDto extends HotelMainInfoDto {
     address?: ResponseInfoAddressHotelOrRoomDto | null;
-    mainInfo?: RespMainInfoHotelRooms[] | null;
+    mainInfo?: ResponseMainInfoHotelRooms[] | null;
 }
 
 export const createHotel = async (userId: number, request: CreateHotelDto): Promise<void> => {
     try {
-        const response = await api.post('/Hotels/create-hotel', request, {
-            params: { userId }
-        });
-        return response.data;
+        await api.post(`/Hotels/create-hotel?userId=${userId}`, request);
     }
     catch (error: any) {
         if (error.response) {
@@ -87,10 +83,7 @@ export const createHotel = async (userId: number, request: CreateHotelDto): Prom
 // UPDATE - обновление отеля
 export const updateHotel = async (userId: number, request: UpdateHotelDto): Promise<void> => {
     try {
-        const response = await api.put('/Hotels/update-hotel', request, {
-            params: { userId }
-        });
-        return response.data;
+        await api.put(`/Hotels/update-hotel?userId=${userId}`, request);
     }
     catch (error: any) {
         if (error.response) {
@@ -112,13 +105,7 @@ export const updateHotel = async (userId: number, request: UpdateHotelDto): Prom
 // DELETE - удаление отеля
 export const deleteHotel = async (hotelId: number, userId: number): Promise<void> => {
     try {
-        const response = await api.delete('/Hotels/delete-hotel', {
-            params: {
-                hotelId,
-                userId
-            }
-        });
-        return response.data;
+        await api.delete(`/Hotels/delete-hotel?hotelId=${hotelId}&userId=${userId}`);
     }
     catch (error: any) {
         if (error.response) {
@@ -140,9 +127,7 @@ export const deleteHotel = async (hotelId: number, userId: number): Promise<void
 // GET - получение информации об отеле по tourId
 export const getCurrentHotelInfo = async (tourId: number): Promise<ResponseHotelDto[]> => {
     try {
-        const response = await api.get<ResponseHotelDto[]>('/Hotels/get-current-hotel-info', {
-            params: { tourId }
-        });
+        const response = await api.get<ResponseHotelDto[]>(`/Hotels/get-current-hotel-info?tourId=${tourId}`);
         return response.data;
     }
     catch (error: any) {

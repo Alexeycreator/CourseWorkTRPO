@@ -78,6 +78,7 @@ public sealed class HotelsController(ServerDbContext dbContext) : ControllerBase
                 ImageHotel = request.ImageHotel,
                 Stars = request.Stars,
                 Details = request.Details,
+                HotelRoomsId = request.HotelRoomId
             };
 
             await dbContext.AddAsync(newHotel);
@@ -142,6 +143,11 @@ public sealed class HotelsController(ServerDbContext dbContext) : ControllerBase
                 hotel.Stars = request.Stars;
             }
 
+            if (request.HotelRoomId != hotel.HotelRoomsId)
+            {
+                hotel.HotelRoomsId = request.HotelRoomId;
+            }
+
             await dbContext.SaveChangesAsync();
 
             return Ok();
@@ -198,107 +204,95 @@ public sealed class HotelsController(ServerDbContext dbContext) : ControllerBase
         try
         {
             loggerHotelsController.Info($"Задействован метод получения информации об отеле...");
-            return await FillingHotelInfo(tourId);
+            var hotel = await dbContext.Hotels.FindAsync(tourId);
+            if (hotel == null)
+            {
+                return NotFound(new { message = $"Данных об отеле нет" });
+            }
+
+            var tourHotelAddress = await dbContext.ToursHotelsAddresses.Where(tha => tha.ToursId == tourId)
+                .Include(tha => tha.Hotel)
+                .ThenInclude(hotelsModel => hotelsModel.HotelRoom)
+                .Include(toursHotelsAddressesModel => toursHotelsAddressesModel.Tour).FirstOrDefaultAsync();
+            if (tourHotelAddress != null)
+            {
+                if (tourHotelAddress.Tour != null)
+                {
+                    ResponseHotelDto responseCurrentHotel = new ResponseHotelDto()
+                    {
+                        Id = hotel.Id,
+                        Name = hotel.Name,
+                        ImageHotel = hotel.ImageHotel,
+                        Stars = hotel.Stars,
+                        Description = hotel.Details,
+                        CountNight = CalculateCountNight(Convert.ToDateTime(tourHotelAddress.Tour.EndDot),
+                            Convert.ToDateTime(tourHotelAddress.Tour.StartDot))
+                    };
+
+                    var address = await dbContext.Addresses.FindAsync(tourHotelAddress.AddressesId);
+                    if (address != null)
+                    {
+                        ResponseInfoAddressHotelOrRoomDto responseCurrentHotelAddress =
+                            new ResponseInfoAddressHotelOrRoomDto()
+                            {
+                                Id = address.Id,
+                                Region = address.Region,
+                                Country = address.Country,
+                                City = address.City,
+                                Street = address.Street,
+                                House = address.House,
+                                Apartment = address.Apartment
+                            };
+                        var hotelRooms = await dbContext.HotelRooms.Include(hr => hr.Hotels.Where(h => h.Id == tourId))
+                            .ToListAsync();
+                        List<ResponseMainInfoHotelRooms> respInfoHotelRoom = new List<ResponseMainInfoHotelRooms>();
+                        if (hotelRooms.Count > 0)
+                        {
+                            foreach (var hr in hotelRooms)
+                            {
+                                var idHotelRoom = hr.Id;
+                                var nameHotelRoom = hr.NameRoom;
+                                var typeHotelRoom = hr.TypeRoom;
+                                var imageHotelRoom = hr.ImageRoom;
+                                var floorHotelRoom = hr.Floor;
+                                var detailsHotelRoom = hr.Details;
+
+                                respInfoHotelRoom.Add(new ResponseMainInfoHotelRooms()
+                                {
+                                    Id = idHotelRoom,
+                                    NameRoom = nameHotelRoom,
+                                    TypeRoom = typeHotelRoom,
+                                    ImageRoom = imageHotelRoom,
+                                    Floor = floorHotelRoom,
+                                    Details = detailsHotelRoom,
+                                });
+                            }
+                        }
+
+                        ResponseHotelDto respHotelInfo = new ResponseHotelDto()
+                        {
+                            Id = responseCurrentHotel.Id,
+                            CountNight = responseCurrentHotel.CountNight,
+                            Stars = responseCurrentHotel.Stars,
+                            Description = responseCurrentHotel.Description,
+                            Name = responseCurrentHotel.Name,
+                            ImageHotel = responseCurrentHotel.ImageHotel,
+                            Address = responseCurrentHotelAddress,
+                            MainInfo = respInfoHotelRoom,
+                        };
+
+                        return Ok(respHotelInfo);
+                    }
+                }
+            }
+
+            return BadRequest(new { message = $"Что-то пошло не так. Обратитесь к администратору" });
         }
         catch (Exception ex)
         {
             loggerHotelsController.Error($"Внутренняя ошибка сервера: {ex.Message}");
             return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
         }
-    }
-
-    private async Task<HotelsModel?> FindHotels(int? hotelId)
-    {
-        var hotel = await dbContext.Hotels.FindAsync(hotelId);
-        if (hotel == null)
-        {
-            loggerHotelsController.Error($"Данных об отелях нет");
-        }
-
-        return hotel;
-    }
-
-    private async Task<IActionResult> FillingHotelInfo(int hotelId)
-    {
-        loggerHotelsController.Info($"Обработка отелей...");
-        List<ResponseHotelDto> respHotelInfo = new List<ResponseHotelDto>();
-        var tourHotelAddress = await dbContext.ToursHotelsAddresses.Where(tha => tha.ToursId == hotelId)
-            .Include(toursHotelsAddressesModel => toursHotelsAddressesModel.Hotel)
-            .ThenInclude(hotelsModel => hotelsModel.HotelRoom).FirstOrDefaultAsync();
-        if (tourHotelAddress == null)
-        {
-            loggerHotelsController.Error($"У данного тура нет информации об отелях");
-            return NotFound(new { message = $"У данного тура нет информации об отелях" });
-        }
-
-        ResponseInfoAddressHotelOrRoomDto responseInfoAddress = new ResponseInfoAddressHotelOrRoomDto();
-        List<RespMainInfoHotelRooms> respInfoHotelRoom = new List<RespMainInfoHotelRooms>();
-        HotelMainInfoDto respInfoHotel = new ResponseHotelDto();
-
-        if (tourHotelAddress.Hotel != null)
-        {
-            var hotel = await FindHotels(tourHotelAddress.HotelsId);
-            if (hotel == null)
-            {
-                loggerHotelsController.Error($"Такого отеля (id = {hotel?.Id}) нет");
-                return NotFound(new { message = $"Такого отеля нет" });
-            }
-
-            if (tourHotelAddress.Hotel.HotelRoom != null)
-            {
-                var hotelRoom = await dbContext.HotelRooms.Where(hr => hr.Id == tourHotelAddress.Hotel.HotelRoomsId)
-                    .ToListAsync();
-                var tourCountNight = await dbContext.Tours.FindAsync(tourHotelAddress.ToursId);
-                var address = await dbContext.Addresses.FindAsync(tourHotelAddress.AddressesId);
-
-                if (address != null)
-                {
-                    responseInfoAddress.Id = address.Id;
-                    responseInfoAddress.Country = address.Country;
-                    responseInfoAddress.Region = address.Region;
-                    responseInfoAddress.City = address.City;
-                    responseInfoAddress.Street = address.Street;
-                    responseInfoAddress.House = address.House;
-                    responseInfoAddress.Apartment = address.Apartment;
-                }
-
-
-                if (tourCountNight != null)
-                {
-                    respInfoHotel.Id = hotel.Id;
-                    respInfoHotel.Name = hotel.Name;
-                    respInfoHotel.Stars = hotel.Stars;
-                    respInfoHotel.ImageHotel = hotel.ImageHotel;
-                    respInfoHotel.Description = hotel.Details;
-                    respInfoHotel.CountNight = CalculateCountNight(Convert.ToDateTime(tourCountNight.EndDot),
-                        Convert.ToDateTime(tourCountNight.StartDot));
-                }
-            }
-            else
-            {
-                loggerHotelsController.Error($"Информации о номерах отеля нет");
-                return BadRequest(new { message = $"Информации о номерах отеля нет" });
-            }
-        }
-        else
-        {
-            loggerHotelsController.Error($"Информации об отеле нет");
-            return BadRequest(new { message = $"Информации об отеле нет" });
-        }
-
-        respHotelInfo.Add(new ResponseHotelDto()
-        {
-            Id = respInfoHotel.Id,
-            Name = respInfoHotel.Name,
-            Stars = respInfoHotel.Stars,
-            ImageHotel = respInfoHotel.ImageHotel,
-            Description = respInfoHotel.Description,
-            CountNight = respInfoHotel.CountNight,
-            Address = responseInfoAddress,
-            MainInfo = respInfoHotelRoom
-        });
-
-        return Ok(respHotelInfo);
     }
 
     private int CalculateCountNight(DateTime end, DateTime start)
