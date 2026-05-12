@@ -24,12 +24,38 @@ export interface UpdateTicketsDto extends CreateTicketsDto {
     id: number;
 };
 
+export interface Tickets {
+    id: number;
+    price: number;
+    departureTime: Date;
+    arrivalTime: Date;
+    dateSale: Date;
+};
+
+export const getTicketById = async (id: number): Promise<Tickets> => {
+    try {
+        const response = await api.get<Tickets>(`/Tickets/${id}`);
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
+};
 export const createTicket = async (userId: number, request: CreateTicketsDto): Promise<void> => {
     try {
-        const response = await api.post('/Tickets/create-ticket', request, {
-            params: { userId }
-        });
-        return response.data;
+        await api.post(`/Tickets/create-ticket?userId=${userId}`, request);
     }
     catch (error: any) {
         if (error.response) {
@@ -50,10 +76,7 @@ export const createTicket = async (userId: number, request: CreateTicketsDto): P
 
 export const updateTicket = async (userId: number, request: UpdateTicketsDto): Promise<void> => {
     try {
-        const response = await api.put('/Tickets/update-ticket', request, {
-            params: { userId }
-        });
-        return response.data;
+        await api.put(`/Tickets/update-ticket?userId=${userId}`, request);
     }
     catch (error: any) {
         if (error.response) {
@@ -74,13 +97,7 @@ export const updateTicket = async (userId: number, request: UpdateTicketsDto): P
 
 export const deleteTicket = async (ticketId: number, userId: number): Promise<void> => {
     try {
-        const response = await api.delete('/Tickets/delete-ticket', {
-            params: {
-                ticketId,
-                userId
-            }
-        });
-        return response.data;
+        await api.delete(`/Tickets/delete-ticket?ticketId=${ticketId}&userid=${userId}`);
     }
     catch (error: any) {
         if (error.response) {

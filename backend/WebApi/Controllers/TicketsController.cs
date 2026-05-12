@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NLog;
 using WebApi.Methods.DataBase;
+using WebApi.Models.DTOs.Hotels;
 using WebApi.Models.DTOs.Tickets;
 using WebApi.Models.ModelsDataBase;
 
@@ -36,6 +37,7 @@ public sealed class TicketsController(ServerDbContext dbContext) : ControllerBas
         return Ok(ticket);
     }
 
+    [HttpGet("get-info-user-ticket")]
     [HttpPost("create-ticket")]
     public async Task<IActionResult> CreatePassportData(int userId, CreateTicketsDto? request)
     {

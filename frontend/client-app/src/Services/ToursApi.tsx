@@ -14,6 +14,7 @@ const api = axios.create({
 });
 
 // каждая модель соответсвует модели DTO или БД на сервере
+// Базовый DTO для тура
 export interface ToursDto {
     id: number;
     imageTour?: string | null;
@@ -24,58 +25,33 @@ export interface ToursDto {
     type?: string | null;
     price?: number | null;
     countNights?: number | null;
-};
+}
 
-export interface CurrentTourDto {
-    id: number;
-    imageTour?: string | null;
-    nameTour?: string | null;
-    details?: string | null;
-    startDot?: string | null;
-    endDot?: string | null;
-    type?: string | null;
-    price?: number | null;
-    countNights?: number | null;
+// DTO для горящего тура (наследуется от ToursDto)
+export interface HotToursDto extends ToursDto {
+    oldPrice?: number | null;
+    nowPrice?: number | null;
+}
+
+// Полный DTO для тура с детальной информацией
+export interface CurrentTourDto extends ToursDto {
+    addresses?: AddressMainInfoDto[] | null;
+    hotels?: HotelMainInfoDto[] | null;
     description?: string | null;
     separately?: string | null;
     included?: string | null;
     program?: string | null;
-    hotel?: HotelMainInfoDto[] | null;
-    address?: AddressMainInfoDto[] | null;
-};
+}
 
-export interface HotToursDto {
-    id: number;
-    imageTour?: string | null;
-    nameTour?: string | null;
-    details?: string | null;
-    startDot?: string | null;
-    endDot?: string | null;
-    type?: string | null;
-    price?: number | null;
-    countNights?: number | null;
-    oldPrice?: number | null;
-    nowPrice?: number | null;
-};
-
-export interface CurrentHotTourDto {
-    id: number;
-    imageTour?: string | null;
-    nameTour?: string | null;
-    details?: string | null;
-    startDot?: string | null;
-    endDot?: string | null;
-    type?: string | null;
-    oldPrice?: number | null;
-    nowPrice?: number | null;
-    countNights?: number | null;
+// Полный DTO для горящего тура с детальной информацией
+export interface CurrentHotTourDto extends HotToursDto {
+    addresses?: AddressMainInfoDto[] | null;
+    hotels?: HotelMainInfoDto[] | null;
     description?: string | null;
     separately?: string | null;
     included?: string | null;
     program?: string | null;
-    hotel?: HotelMainInfoDto[] | null;
-    address?: AddressMainInfoDto[] | null;
-};
+}
 
 // Базовый DTO для создания тура
 export interface CreateTourDto {
@@ -93,7 +69,7 @@ export interface CreateTourDto {
     imageTour: string;
 }
 
-// DTO для обновления тура
+// DTO для обновления тура (наследуется от CreateTourDto)
 export interface UpdateTourDto extends CreateTourDto {
     id: number;
 }
@@ -189,10 +165,7 @@ export const getCurrentHotTour = async (hotTourId: number): Promise<CurrentHotTo
 
 export const createTour = async (userId: number, request: CreateTourDto): Promise<void> => {
     try {
-        const response = await api.post('/Tours/create-tour', request, {
-            params: { userId }
-        });
-        return response.data;
+        await api.post(`/Tours/create-tour?userId=${userId}`, request);
     }
     catch (error: any) {
         if (error.response) {
@@ -214,10 +187,7 @@ export const createTour = async (userId: number, request: CreateTourDto): Promis
 // UPDATE - обновление тура
 export const updateTour = async (userId: number, request: UpdateTourDto): Promise<void> => {
     try {
-        const response = await api.put('/Tours/update-tour', request, {
-            params: { userId }
-        });
-        return response.data;
+        await api.put(`/Tours/update-tour?userId=${userId}`, request);
     }
     catch (error: any) {
         if (error.response) {
@@ -239,13 +209,7 @@ export const updateTour = async (userId: number, request: UpdateTourDto): Promis
 // DELETE - удаление тура
 export const deleteTour = async (tourId: number, userId: number): Promise<void> => {
     try {
-        const response = await api.delete('/Tours/delete-tour', {
-            params: { 
-                tourId,
-                userId 
-            }
-        });
-        return response.data;
+        await api.delete(`/Tours/delete-tour?tourId=${tourId}&userId=${userId}`);
     }
     catch (error: any) {
         if (error.response) {

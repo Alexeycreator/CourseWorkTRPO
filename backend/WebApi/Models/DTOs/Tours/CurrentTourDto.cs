@@ -5,8 +5,8 @@ namespace WebApi.Models.DTOs.HotTours;
 
 public class CurrentTourDto : ToursDto
 {
-    public AddressMainInfoDto? Address { get; set; }
-    public HotelMainInfoDto? Hotel { get; set; }
+    public List<AddressMainInfoDto>? Addresses { get; set; }
+    public List<HotelMainInfoDto>? Hotels { get; set; }
     public string? Description { get; set; }
     public string? Separately { get; set; }
     public string? Included { get; set; }

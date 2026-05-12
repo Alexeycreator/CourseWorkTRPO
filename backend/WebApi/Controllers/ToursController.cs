@@ -101,7 +101,7 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
 
     private async Task<IActionResult> FillingMainTours()
     {
-        var tours = await GetToursDataBase();
+        var tours = await dbContext.Tours.ToListAsync();
         List<ToursDto> toursDto = new List<ToursDto>();
         loggerToursController.Info($"Обработка туров...");
 
@@ -145,125 +145,81 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
 
     private async Task<IActionResult> FillingCurrentMainTour(int tourId)
     {
-        var tour = GetTourDataBase(tourId).Result;
+        var tour = await dbContext.Tours.FindAsync(tourId);
         if (tour == null)
         {
             loggerToursController.Error($"Данных об этом туре (id = {tourId}) нет");
             return NotFound(new { message = $"Данных об этом туре нет" });
         }
 
-        var tourHotelsAddresses = await dbContext.ToursHotelsAddresses.FindAsync(tourId);
-        if (tourHotelsAddresses != null)
+        var tourHotelsAddresses = await dbContext.ToursHotelsAddresses
+            .Where(tha => tha.ToursId == tourId)
+            .Include(tha => tha.Hotel)
+            .Include(tha => tha.Address)
+            .ToListAsync();
+
+        if (!tourHotelsAddresses.Any())
         {
-            var hotel = GetHotelDataBase(tourHotelsAddresses.HotelsId).Result;
-            var address = GetAddressDataBase(tourHotelsAddresses.AddressesId).Result;
-            if (hotel != null && address != null)
+            loggerToursController.Error($"Данные для формирования отелей отсутствуют");
+            return BadRequest(new { message = $"Данные для формирования отелей отсутствуют" });
+        }
+
+        var countNight = CalculateCountNight(Convert.ToDateTime(tour.EndDot), Convert.ToDateTime(tour.StartDot));
+
+        var hotelsList = tourHotelsAddresses
+            .Where(tha => tha.Hotel != null && tha.Address != null)
+            .Select(tha => new HotelMainInfoDto()
             {
-                loggerToursController.Info($"Формирование данных об отеле...");
-                var hotelDto = new HotelMainInfoDto()
-                {
-                    Id = hotel.Id,
-                    Name = hotel.Name,
-                    Stars = hotel.Stars,
-                    Description = hotel.Details,
-                    ImageHotel = hotel.ImageHotel,
-                    CountNight = CalculateCountNight(Convert.ToDateTime(tour.EndDot), Convert.ToDateTime(tour.StartDot))
-                };
+                Id = tha.Hotel.Id,
+                Name = tha.Hotel.Name,
+                Stars = tha.Hotel.Stars,
+                Description = tha.Hotel.Details,
+                ImageHotel = tha.Hotel.ImageHotel,
+                CountNight = countNight
+            })
+            .ToList();
 
-                var addressDto = new AddressMainInfoDto()
-                {
-                    Id = address.Id,
-                    City = address.City,
-                    Country = address.Country,
-                };
+        var addressesList = tourHotelsAddresses
+            .Where(tha => tha.Address != null)
+            .Select(tha => new AddressMainInfoDto()
+            {
+                Id = tha.Address.Id,
+                City = tha.Address.City,
+                Country = tha.Address.Country,
+            })
+            .ToList();
 
-                loggerToursController.Info($"Заполнение данных о туре для отправки клиенту...");
-                var currentTourDto = new CurrentTourDto()
-                {
-                    Id = tour.Id,
-                    ImageTour = tour.ImageTour,
-                    NameTour = tour.Name,
-                    Details = tour.Details,
-                    StartDot = tour.StartDot,
-                    EndDot = tour.EndDot,
-                    Type = tour.Type,
-                    Price = tour.Price,
-                    CountNights =
-                        CalculateCountNight(Convert.ToDateTime(tour.EndDot), Convert.ToDateTime(tour.StartDot)),
-                    Description = ParsingStringData(tour.Description),
-                    Separately = ParsingStringData(tour.Separately),
-                    Included = ParsingStringData(tour.Included),
-                    Program = ParsingStringData(tour.Program),
-                    Hotel = hotelDto,
-                    Address = addressDto,
-                };
-                loggerToursController.Info($"Данные о туре успешно заполнены. Отправка клиенту...");
-
-                return Ok(currentTourDto);
-            }
-
-            loggerToursController.Error($"Не получилось извлечь данные");
-            return BadRequest(new { message = $"Не получилось извлечь данные" });
-        }
-        else
+        if (!hotelsList.Any())
         {
-            loggerToursController.Error($"Данные для формирования отеля отсутствуют");
-            return BadRequest(new { message = $"Данные для формирования отеля отсутствуют" });
+            loggerToursController.Error($"Не удалось загрузить ни одного отеля для тура {tourId}");
+            return BadRequest(new { message = $"Не удалось загрузить информацию об отелях" });
         }
-    }
 
-    private int CalculateCountNight(DateTime end, DateTime start)
-    {
-        return end.Day - start.Day;
-    }
-
-    private async Task<List<ToursModel>> GetToursDataBase()
-    {
-        var tours = await dbContext.Tours.ToListAsync();
-        if (tours.Count <= 0)
+        var currentTourDto = new CurrentTourDto()
         {
-            loggerToursController.Error($"Данных о турах нет");
-        }
+            Id = tour.Id,
+            ImageTour = tour.ImageTour,
+            NameTour = tour.Name,
+            Details = tour.Details,
+            StartDot = tour.StartDot,
+            EndDot = tour.EndDot,
+            Type = tour.Type,
+            Price = tour.Price,
+            CountNights = countNight,
+            Description = ParsingStringData(tour.Description),
+            Separately = ParsingStringData(tour.Separately),
+            Included = ParsingStringData(tour.Included),
+            Program = ParsingStringData(tour.Program),
+            Hotels = hotelsList,
+            Addresses = addressesList
+        };
 
-        return tours;
-    }
-
-    private async Task<ToursModel?> GetTourDataBase(int tourId)
-    {
-        var tours = await dbContext.Tours.FindAsync(tourId);
-        if (tours == null)
-        {
-            loggerToursController.Error($"Данных о турах нет");
-        }
-
-        return tours;
-    }
-
-    private async Task<HotelsModel?> GetHotelDataBase(int? hotelId)
-    {
-        var hotel = await dbContext.Hotels.FindAsync(hotelId);
-        if (hotel == null)
-        {
-            loggerToursController.Error($"Данные об отеле отсутсвуют");
-        }
-
-        return hotel;
-    }
-
-    private async Task<AddressesModel?> GetAddressDataBase(int? addressId)
-    {
-        var address = await dbContext.Addresses.FindAsync(addressId);
-        if (addressId == null)
-        {
-            loggerToursController.Error($"Данные об адресе отсутсвуют");
-        }
-
-        return address;
+        return Ok(currentTourDto);
     }
 
     private async Task<IActionResult> FillingHotTours()
     {
-        var tours = await GetToursDataBase();
+        var tours = await dbContext.Tours.ToListAsync();
         List<HotToursDto> hotToursDto = new List<HotToursDto>();
         loggerToursController.Info($"Обработка туров...");
 
@@ -317,7 +273,7 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
 
     private async Task<IActionResult> FillingCurrentHotTour(int hotTourId)
     {
-        var hotTour = GetTourDataBase(hotTourId).Result;
+        var hotTour = await dbContext.Tours.FindAsync(hotTourId);
         if (hotTour == null)
         {
             loggerToursController.Error($"Данных об этом туре (id = {hotTourId}) нет");
@@ -330,104 +286,69 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
             return BadRequest(new { message = $"Тур не является 'горящим'" });
         }
 
-        var tourHotelsAddresses = await dbContext.ToursHotelsAddresses.FindAsync(hotTourId);
-        if (tourHotelsAddresses != null)
+        var tourHotelsAddresses = await dbContext.ToursHotelsAddresses
+            .Where(tha => tha.ToursId == hotTourId)
+            .Include(tha => tha.Hotel)
+            .Include(tha => tha.Address)
+            .ToListAsync();
+
+        if (!tourHotelsAddresses.Any())
         {
-            var hotel = GetHotelDataBase(tourHotelsAddresses.HotelsId).Result;
-            var address = GetAddressDataBase(tourHotelsAddresses.AddressesId).Result;
-            if (hotel != null && address != null)
+            loggerToursController.Error($"Данные для формирования отелей отсутствуют");
+            return BadRequest(new { message = $"Данные для формирования отелей отсутствуют" });
+        }
+
+        var countNight = CalculateCountNight(Convert.ToDateTime(hotTour.EndDot), Convert.ToDateTime(hotTour.StartDot));
+        var hotelsList = tourHotelsAddresses
+            .Where(tha => tha.Hotel != null && tha.Address != null)
+            .Select(tha => new HotelMainInfoDto()
             {
-                loggerToursController.Info($"Формирование данных об отеле...");
-                var hotelDto = new HotelMainInfoDto()
-                {
-                    Id = hotel.Id,
-                    Stars = hotel.Stars,
-                    Name = hotel.Name,
-                    Description = hotel.Details,
-                    ImageHotel = hotel.ImageHotel,
-                    CountNight = CalculateCountNight(Convert.ToDateTime(hotTour.EndDot),
-                        Convert.ToDateTime(hotTour.StartDot))
-                };
+                Id = tha.Hotel.Id,
+                Stars = tha.Hotel.Stars,
+                Name = tha.Hotel.Name,
+                Description = tha.Hotel.Details,
+                ImageHotel = tha.Hotel.ImageHotel,
+                CountNight = countNight
+            })
+            .ToList();
 
-                var addressDto = new AddressMainInfoDto()
-                {
-                    Id = address.Id,
-                    City = address.City,
-                    Country = address.Country,
-                };
-
-                loggerToursController.Info($"Заполнение данных о туре для отправки клиенту...");
-                var currentHotTourDto = new CurrentHotTourDto()
-                {
-                    Id = hotTour.Id,
-                    ImageTour = hotTour.ImageTour,
-                    NameTour = hotTour.Name,
-                    Details = hotTour.Details,
-                    StartDot = hotTour.StartDot,
-                    EndDot = hotTour.EndDot,
-                    Type = hotTour.Type,
-                    CountNights =
-                        CalculateCountNight(Convert.ToDateTime(hotTour.EndDot), Convert.ToDateTime(hotTour.StartDot)),
-                    Description = ParsingStringData(hotTour.Description),
-                    Separately = ParsingStringData(hotTour.Separately),
-                    Included = ParsingStringData(hotTour.Included),
-                    Program = ParsingStringData(hotTour.Program),
-                    Hotel = hotelDto,
-                    Address = addressDto,
-                    OldPrice = hotTour.Price,
-                    NowPrice = CalculateDiscountPrice(hotTour.Price)
-                };
-                loggerToursController.Info($"Данные о туре успешно заполнены. Отправка клиенту...");
-
-                return Ok(currentHotTourDto);
-            }
-
-            loggerToursController.Error($"Не получилось извлечь данные");
-            return BadRequest(new { message = $"Не получилось извлечь данные" });
-        }
-        else
-        {
-            loggerToursController.Error($"Данные для формирования отеля отсутствуют");
-            return BadRequest(new { message = $"Данные для формирования отеля отсутствуют" });
-        }
-    }
-
-    private double CalculateDiscountPrice(double price)
-    {
-        return price - price * 0.20;
-    }
-
-    private string ParsingStringData(string text)
-    {
-        if (string.IsNullOrEmpty(text))
-        {
-            throw new ArgumentNullException(nameof(text), "Текст не может быть null или пустым");
-        }
-
-        const char separator = ';';
-        if (!text.Contains(separator))
-        {
-            return text;
-        }
-
-        StringBuilder parsingBuilder = new StringBuilder();
-        string[] parts = text.Split(separator);
-
-        for (int i = 0; i < parts.Length; i++)
-        {
-            string trimmedPart = parts[i].Trim();
-            if (!string.IsNullOrEmpty(trimmedPart))
+        var addressesList = tourHotelsAddresses
+            .Where(tha => tha.Address != null)
+            .Select(tha => new AddressMainInfoDto()
             {
-                parsingBuilder.Append(trimmedPart);
+                Id = tha.Address.Id,
+                City = tha.Address.City,
+                Country = tha.Address.Country,
+            })
+            .ToList();
 
-                if (i < parts.Length - 1)
-                {
-                    parsingBuilder.AppendLine();
-                }
-            }
+        if (!hotelsList.Any())
+        {
+            loggerToursController.Error($"Не удалось загрузить ни одного отеля для горящего тура {hotTourId}");
+            return BadRequest(new { message = $"Не удалось загрузить информацию об отелях" });
         }
 
-        return parsingBuilder.ToString();
+        var currentHotTourDto = new CurrentHotTourDto()
+        {
+            Id = hotTour.Id,
+            ImageTour = hotTour.ImageTour,
+            NameTour = hotTour.Name,
+            Details = hotTour.Details,
+            StartDot = hotTour.StartDot,
+            EndDot = hotTour.EndDot,
+            Type = hotTour.Type,
+            CountNights = countNight,
+            Description = ParsingStringData(hotTour.Description),
+            Separately = ParsingStringData(hotTour.Separately),
+            Included = ParsingStringData(hotTour.Included),
+            Program = ParsingStringData(hotTour.Program),
+            Hotels = hotelsList,
+            Addresses = addressesList, // Все адреса отелей в туре
+            OldPrice = hotTour.Price,
+            NowPrice = CalculateDiscountPrice(hotTour.Price)
+        };
+
+        return Ok(currentHotTourDto);
     }
 
     [HttpPost("create-tour")]
@@ -660,5 +581,48 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
             loggerToursController.Error($"Внутренняя ошибка сервера: {ex.Message}");
             return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
         }
+    }
+
+    private int CalculateCountNight(DateTime end, DateTime start)
+    {
+        return end.Day - start.Day;
+    }
+
+    private double CalculateDiscountPrice(double price)
+    {
+        return price - price * 0.20;
+    }
+
+    private string ParsingStringData(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            throw new ArgumentNullException(nameof(text), "Текст не может быть null или пустым");
+        }
+
+        const char separator = ';';
+        if (!text.Contains(separator))
+        {
+            return text;
+        }
+
+        StringBuilder parsingBuilder = new StringBuilder();
+        string[] parts = text.Split(separator);
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            string trimmedPart = parts[i].Trim();
+            if (!string.IsNullOrEmpty(trimmedPart))
+            {
+                parsingBuilder.Append(trimmedPart);
+
+                if (i < parts.Length - 1)
+                {
+                    parsingBuilder.AppendLine();
+                }
+            }
+        }
+
+        return parsingBuilder.ToString();
     }
 }
