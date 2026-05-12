@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Client } from './Services/ClientApi';
+import { Client } from './Services/UsersApi';
 import { Passport } from './Services/PassportApi';
 import { Address } from './Services/AddressApi';
 
