@@ -1,6 +1,5 @@
 import axios from "axios";
 import { Passport } from "./PassportApi";
-import { Hotel } from "./HotelsApi";
 
 const API_URL = "http://localhost:5050/api";
 
@@ -10,6 +9,12 @@ const api = axios.create({
         'Content-Type': 'application/json',
     },
 });
+
+export interface AddressMainInfoDto {
+    id: number;
+    country?: string | null;
+    city?: string | null;
+};
 
 export interface Address {
     id: number;
@@ -21,7 +26,6 @@ export interface Address {
     apartment?: number | null;
     passport_Id?: number | null;
     passport?: Passport | null;
-    hotels?: Hotel[] | null;
 }
 
 // Получить все адреса
@@ -55,39 +59,3 @@ export const getAddressById = async (id: number): Promise<Address> => {
         }
     }
 };
-
-// Создать адрес
-export const createAddress = async (addressData: {
-    country: string;
-    region: string;
-    city: string;
-    street?: string | null;
-    house?: string | null;
-    apartment?: number | null;
-    passport_Id?: number | null;
-    tours_Id?: number | null;
-}): Promise<Address> => {
-    const response = await api.post<Address>('/Addresses', addressData);
-    return response.data;
-};
-
-// Обновить адрес
-export const updateAddress = async (id: number, addressData: {
-    country: string;
-    region: string;
-    city: string;
-    street: string;
-    house: string;
-    apartment?: number | null;
-    passport_Id?: number | null;
-}): Promise<Address> => {
-    const response = await api.put<Address>(`/Addresses/${id}`, addressData);
-    return response.data;
-};
-
-// Удалить адрес
-export const deleteAddress = async (id: number): Promise<void> => {
-    await api.delete(`/Addresses/${id}`);
-};
-
-export default api;

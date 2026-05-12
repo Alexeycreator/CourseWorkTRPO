@@ -1,0 +1,93 @@
+/* eslint-disable no-throw-literal */
+import React from "react";
+import axios from "axios";
+
+const API_URL = "http://localhost:5050/api";
+
+const api = axios.create({
+    baseURL: API_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+export interface User {
+    id: number;
+    surName: string;
+    firstName: string;
+    middleName?: string | null;
+    gender: string;
+    birthday: Date;
+    age: number;
+    position: string;
+    role: string;
+    phoneNumber: string;
+    email: string;
+    login: string;
+};
+
+export const getUsers = async (): Promise<User[]> => {
+    const response = await api.get<User[]>('/Users');
+    return response.data;
+};
+
+export const getUserById = async (id: number): Promise<User> => {
+    try {
+        const response = await api.get<User>(`/Users/${id}`);
+        return response.data;
+    } catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
+};
+
+export const updateRoleUser = async (userId: number, newRole: string): Promise<void> => {
+    try {
+        await api.put<User>(`/Users/update-role-user?userId=${userId}&newRole=${newRole}`);
+    } catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
+};
+
+export const deleteUser = async (userId: number): Promise<void> => {
+    try {
+        await api.delete<User>(`/Users/${userId}`);
+    } catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
+};

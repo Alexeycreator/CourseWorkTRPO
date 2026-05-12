@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NLog;
 using WebApi.Methods.DataBase;
+using WebApi.Models.DTOs.Addresses;
+using WebApi.Models.DTOs.Hotels;
+using WebApi.Models.DTOs.Hotels.HotelRooms;
 using WebApi.Models.ModelsDataBase;
 
 namespace WebApi.Controllers;
@@ -9,6 +13,8 @@ namespace WebApi.Controllers;
 [Route("api/[controller]")]
 public sealed class HotelsController(ServerDbContext dbContext) : ControllerBase
 {
+    private Logger loggerHotelsController = LogManager.GetCurrentClassLogger();
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<HotelsModel>>> GetHotels()
     {
@@ -32,114 +38,271 @@ public sealed class HotelsController(ServerDbContext dbContext) : ControllerBase
         return Ok(hotel);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<HotelsModel>> CreateHotel(HotelsModel hotel)
+    [HttpPost("create-hotel")]
+    public async Task<IActionResult> CreateHotel(int userId, [FromBody] CreateHotelDto? request)
     {
-        var errorMessage = new List<string>();
-        if (string.IsNullOrWhiteSpace(hotel.Name))
+        try
         {
-            errorMessage.Add($"Название отеля обязательно для заполнения");
-        }
-
-        if (string.IsNullOrWhiteSpace(hotel.Stars.ToString()))
-        {
-            errorMessage.Add($"Количество звезд отеля обязательно для заполнения");
-        }
-
-        if (string.IsNullOrWhiteSpace(hotel.ImageHotel))
-        {
-            errorMessage.Add($"Фото отеля обязательно для заполнения");
-        }
-
-        if (errorMessage.Any())
-        {
-            return BadRequest(new
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null)
             {
-                StatusCode = 400,
-                Message = "Ошибка валидации",
-                Errors = errorMessage,
-                Timestamp = DateTime.UtcNow,
-            });
-        }
+                return NotFound(new { message = $"Такого пользователя нет" });
+            }
 
-        var existsHotel = await dbContext.Hotels.AnyAsync(h => h.Name == hotel.Name);
-
-        if (existsHotel)
-        {
-            return Conflict(new
+            if (user.Role != "admin")
             {
-                StatusCode = 409,
-                Message = "Такой отель уже существует!",
-                ExistingClient = new
+                if (user.Role != "employee")
                 {
-                    hotel.Name
-                },
-                Timestamp = DateTime.UtcNow
-            });
+                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
+                }
+            }
+
+            if (request == null)
+            {
+                return BadRequest(new { message = "Данные пустые" });
+            }
+
+            if (string.IsNullOrEmpty(request.Name))
+            {
+                return BadRequest(new { message = $"Название отеля обязательное поле" });
+            }
+
+            if (request.Stars <= 0)
+            {
+                return BadRequest(new { message = $"Звезды отеля обязательное поле" });
+            }
+
+            var newHotel = new HotelsModel()
+            {
+                Name = request.Name,
+                ImageHotel = request.ImageHotel,
+                Stars = request.Stars,
+                Details = request.Details,
+            };
+
+            await dbContext.AddAsync(newHotel);
+            await dbContext.SaveChangesAsync();
+
+            return Ok();
         }
-
-        dbContext.Hotels.Add(hotel);
-        await dbContext.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetHotels), new { id = hotel.Id }, hotel);
+        catch (Exception ex)
+        {
+            loggerHotelsController.Error($"Внутренняя ошибка сервера: {ex.Message}");
+            return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
+        }
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateHotel(int id, HotelsModel hotel)
+    [HttpPut("update-hotel")]
+    public async Task<IActionResult> UpdateHotel(int userId, [FromBody] UpdateHotelDto? request)
     {
-        var existsHotel = await dbContext.Hotels.FindAsync(id);
-        if (existsHotel == null)
+        try
         {
-            return NotFound(new
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null)
             {
-                StatusCode = 404,
-                Error = "NotFound",
-                Message = $"Отеля не существует!",
-                Timestamp = DateTime.UtcNow,
-            });
-        }
+                return NotFound(new { message = $"Такого пользователя нет" });
+            }
 
-        if (existsHotel.IsReadOnly)
+            if (user.Role != "admin")
+            {
+                if (user.Role != "employee")
+                {
+                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
+                }
+            }
+
+            if (request == null)
+            {
+                return BadRequest(new { message = "Данные пустые" });
+            }
+
+            var hotel = await dbContext.Hotels.FindAsync(request.Id);
+            if (hotel == null)
+            {
+                return BadRequest(new { message = $"Такого отеля нет" });
+            }
+
+            if (!string.IsNullOrEmpty(request.Name))
+            {
+                hotel.Name = request.Name;
+            }
+
+            if (!string.IsNullOrEmpty(request.ImageHotel))
+            {
+                hotel.ImageHotel = request.ImageHotel;
+            }
+
+            if (!string.IsNullOrEmpty(request.Details))
+            {
+                hotel.Details = request.Details;
+            }
+
+            if (request.Stars > 0)
+            {
+                hotel.Stars = request.Stars;
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            return Ok();
+        }
+        catch (Exception ex)
         {
-            return StatusCode(403, new
-            {
-                StatusCode = 403,
-                Error = "Forbidden",
-                Message = "Этот отель защищен от изменений",
-                Timestamp = DateTime.UtcNow
-            });
+            loggerHotelsController.Error($"Внутренняя ошибка сервера: {ex.Message}");
+            return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
         }
-
-        dbContext.Entry(hotel).State = EntityState.Modified;
-        await dbContext.SaveChangesAsync();
-
-        return NoContent();
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteHotel(int id)
+    [HttpDelete("delete-hotel")]
+    public async Task<IActionResult> DeleteHotel(int hotelId, int userId)
     {
-        var hotel = await dbContext.Hotels.FirstOrDefaultAsync(e => e.Id == id);
+        try
+        {
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = $"Такого пользователя нет" });
+            }
+
+            if (user.Role != "admin")
+            {
+                if (user.Role != "employee")
+                {
+                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
+                }
+            }
+
+            var hotel = await dbContext.Hotels.FindAsync(hotelId);
+            if (hotel == null)
+            {
+                return NotFound(new { message = $"Такого отеля нет" });
+            }
+
+
+            dbContext.Hotels.Remove(hotel);
+            await dbContext.SaveChangesAsync();
+
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            loggerHotelsController.Error($"Внутренняя ошибка сервера: {ex.Message}");
+            return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
+        }
+    }
+
+
+    [HttpGet("get-current-hotel-info")]
+    public async Task<IActionResult> GetCurrentHotelInfo(int tourId)
+    {
+        try
+        {
+            loggerHotelsController.Info($"Задействован метод получения информации об отеле...");
+            return await FillingHotelInfo(tourId);
+        }
+        catch (Exception ex)
+        {
+            loggerHotelsController.Error($"Внутренняя ошибка сервера: {ex.Message}");
+            return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
+        }
+    }
+
+    private async Task<HotelsModel?> FindHotels(int? hotelId)
+    {
+        var hotel = await dbContext.Hotels.FindAsync(hotelId);
         if (hotel == null)
         {
-            return NotFound(new
-            {
-                StatusCode = 404,
-                Error = "NotFound",
-                Message = $"Такого отеля не существует!",
-                Timestamp = DateTime.UtcNow,
-            });
+            loggerHotelsController.Error($"Данных об отелях нет");
         }
 
-        dbContext.Hotels.Remove(hotel);
-        await dbContext.SaveChangesAsync();
+        return hotel;
+    }
 
-        return Ok(new
+    private async Task<IActionResult> FillingHotelInfo(int hotelId)
+    {
+        loggerHotelsController.Info($"Обработка отелей...");
+        List<ResponseHotelDto> respHotelInfo = new List<ResponseHotelDto>();
+        var tourHotelAddress = await dbContext.ToursHotelsAddresses.Where(tha => tha.ToursId == hotelId)
+            .Include(toursHotelsAddressesModel => toursHotelsAddressesModel.Hotel)
+            .ThenInclude(hotelsModel => hotelsModel.HotelRoom).FirstOrDefaultAsync();
+        if (tourHotelAddress == null)
         {
-            StatusCode = 200,
-            Message = "Отель успешно удален",
-            DeletedId = id,
-            Timestamp = DateTime.UtcNow
+            loggerHotelsController.Error($"У данного тура нет информации об отелях");
+            return NotFound(new { message = $"У данного тура нет информации об отелях" });
+        }
+
+        ResponseInfoAddressHotelOrRoomDto responseInfoAddress = new ResponseInfoAddressHotelOrRoomDto();
+        List<RespMainInfoHotelRooms> respInfoHotelRoom = new List<RespMainInfoHotelRooms>();
+        HotelMainInfoDto respInfoHotel = new ResponseHotelDto();
+
+        if (tourHotelAddress.Hotel != null)
+        {
+            var hotel = await FindHotels(tourHotelAddress.HotelsId);
+            if (hotel == null)
+            {
+                loggerHotelsController.Error($"Такого отеля (id = {hotel?.Id}) нет");
+                return NotFound(new { message = $"Такого отеля нет" });
+            }
+
+            if (tourHotelAddress.Hotel.HotelRoom != null)
+            {
+                var hotelRoom = await dbContext.HotelRooms.Where(hr => hr.Id == tourHotelAddress.Hotel.HotelRoomsId)
+                    .ToListAsync();
+                var tourCountNight = await dbContext.Tours.FindAsync(tourHotelAddress.ToursId);
+                var address = await dbContext.Addresses.FindAsync(tourHotelAddress.AddressesId);
+
+                if (address != null)
+                {
+                    responseInfoAddress.Id = address.Id;
+                    responseInfoAddress.Country = address.Country;
+                    responseInfoAddress.Region = address.Region;
+                    responseInfoAddress.City = address.City;
+                    responseInfoAddress.Street = address.Street;
+                    responseInfoAddress.House = address.House;
+                    responseInfoAddress.Apartment = address.Apartment;
+                }
+
+
+                if (tourCountNight != null)
+                {
+                    respInfoHotel.Id = hotel.Id;
+                    respInfoHotel.Name = hotel.Name;
+                    respInfoHotel.Stars = hotel.Stars;
+                    respInfoHotel.ImageHotel = hotel.ImageHotel;
+                    respInfoHotel.Description = hotel.Details;
+                    respInfoHotel.CountNight = CalculateCountNight(Convert.ToDateTime(tourCountNight.EndDot),
+                        Convert.ToDateTime(tourCountNight.StartDot));
+                }
+            }
+            else
+            {
+                loggerHotelsController.Error($"Информации о номерах отеля нет");
+                return BadRequest(new { message = $"Информации о номерах отеля нет" });
+            }
+        }
+        else
+        {
+            loggerHotelsController.Error($"Информации об отеле нет");
+            return BadRequest(new { message = $"Информации об отеле нет" });
+        }
+
+        respHotelInfo.Add(new ResponseHotelDto()
+        {
+            Id = respInfoHotel.Id,
+            Name = respInfoHotel.Name,
+            Stars = respInfoHotel.Stars,
+            ImageHotel = respInfoHotel.ImageHotel,
+            Description = respInfoHotel.Description,
+            CountNight = respInfoHotel.CountNight,
+            Address = responseInfoAddress,
+            MainInfo = respInfoHotelRoom
         });
+
+        return Ok(respHotelInfo);
+    }
+
+    private int CalculateCountNight(DateTime end, DateTime start)
+    {
+        return end.Day - start.Day;
     }
 }

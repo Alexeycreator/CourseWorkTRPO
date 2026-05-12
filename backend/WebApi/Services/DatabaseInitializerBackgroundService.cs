@@ -54,7 +54,8 @@ public sealed class DatabaseInitializerBackgroundService : BackgroundService
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        loggerDatabaseInitializerBackgroundService.Info("Сервис фонового добавления данных по умолчанию в БД останавливается");
+        loggerDatabaseInitializerBackgroundService.Info(
+            "Сервис фонового добавления данных по умолчанию в БД останавливается");
         await base.StopAsync(cancellationToken);
     }
 
@@ -79,6 +80,7 @@ public sealed class DatabaseInitializerBackgroundService : BackgroundService
             foreach (var (tableName, scriptPath) in tableScripts)
             {
                 await EnsureTableDataAsync(tableName, scriptPath, dbContext);
+                await Task.Delay(TimeSpan.FromSeconds(10));
             }
         }
         catch (Exception ex)

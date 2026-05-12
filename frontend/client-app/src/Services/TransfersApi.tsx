@@ -1,5 +1,4 @@
 import axios from "axios";
-import { Tour } from "./ToursApi";
 
 const API_URL = "http://localhost:5050/api";
 
@@ -16,7 +15,6 @@ export interface Transfer {
     arrival: string;
     departure: string;
     details: string | null;
-    tours?: Tour[] | null;
 }
 
 export const getTransfers = async (): Promise<Transfer[]> => {
@@ -48,32 +46,3 @@ export const getTransferById = async (id: number): Promise<Transfer> => {
         }
     }
 };
-
-export const createTransfer = async (transferData: {
-    name: string;
-    route: string;
-    details?: string | null;
-}): Promise<Transfer> => {
-    const response = await api.post<Transfer>('/Transfers', transferData);
-    return response.data;
-};
-
-export const updateTransfer = async (id: number, transferData: {
-    name: string;
-    route: string;
-    details?: string | null;
-}): Promise<Transfer> => {
-    const response = await api.put<Transfer>(`/Transfers/${id}`, transferData);
-    return response.data;
-};
-
-export const deleteTransfer = async (id: number): Promise<void> => {
-    await api.delete(`/Transfers/${id}`);
-};
-
-export const getToursByTransferId = async (transferId: number): Promise<Tour[]> => {
-    const response = await api.get<Tour[]>(`/Transfers/${transferId}/tours`);
-    return response.data;
-};
-
-export default api;

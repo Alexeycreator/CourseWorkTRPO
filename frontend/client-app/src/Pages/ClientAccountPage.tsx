@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../Contexts/AuthContext";
 import { getClientPassport, getClients, authApi, UserData } from "../Services/IndexAuth";
 import { getAddressByPassportId, getClientsByPassportId, getPassportById, Passport, updatePassport, createPassport, deletePassport } from "../Services/PassportApi";
-import { Client, getClientById, updateClient, getClientTickets } from "../Services/ClientApi";
+import { Client, getClientById, updateClient, getClientTickets } from "../Services/UsersApi";
 import { Address, getAddressById, getAddresses } from "../Services/AddressApi";
 import EditDocumentModal, { DocumentFormData, AddressFormData, CombinedDocumentData } from '../EditDocumentModal';
 import { Link } from 'react-router-dom';

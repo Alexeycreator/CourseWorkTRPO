@@ -12,12 +12,10 @@ public sealed class HotelRoomsModel
     public int Id { get; set; }
 
     [Required] [MaxLength(100)] public string NameRoom { get; set; }
-
     [MaxLength(1000)] public string? Details { get; set; }
     [Required] public int Floor { get; set; }
-
     [MaxLength(1000)] public string? ImageRoom { get; set; }
-    public bool IsReadOnly { get; set; } = false;
+    [Required] [MaxLength(50)] public string TypeRoom { get; set; }
 
     [JsonIgnore] public ICollection<HotelsModel>? Hotels { get; set; }
 }

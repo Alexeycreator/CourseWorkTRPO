@@ -95,10 +95,12 @@ builder.Services.AddDbContext<ServerDbContext>(options => options.UseSqlServer(c
 
 builder.Services.AddHostedService<CurrencyRateBackgroundService>(provaider =>
     new CurrencyRateBackgroundService(connectionString));
-builder.Services.AddHostedService<DatabaseInitializerBackgroundService>(provaider =>
-    new DatabaseInitializerBackgroundService(connectionString));
+// builder.Services.AddHostedService<DatabaseInitializerBackgroundService>(provaider =>
+//     new DatabaseInitializerBackgroundService(connectionString));
 builder.Services.AddHostedService<DatabaseBackupBackgroundService>(provaider =>
     new DatabaseBackupBackgroundService(connectionString));
+// builder.Services.AddHostedService<HotToursBackgroundService>(provaider =>
+//     new HotToursBackgroundService(connectionString));
 
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();

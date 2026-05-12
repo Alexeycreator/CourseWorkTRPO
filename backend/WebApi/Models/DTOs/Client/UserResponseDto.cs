@@ -1,6 +1,6 @@
 namespace WebApi.Models.DTOs.Client;
 
-public sealed class ClientResponseDto
+public sealed class UserResponseDto
 {
     public int Id { get; set; }
     public string SurName { get; set; }
@@ -9,9 +9,9 @@ public sealed class ClientResponseDto
     public string PhoneNumber { get; set; }
     public string Email { get; set; }
     public string Login { get; set; }
-    public int? Passport_Id { get; set; }
-    public bool IsReadOnly { get; set; }
     public string Gender { get; set; }
     public DateOnly Birthday { get; set; }
     public int Age { get; set; }
+    public string? Position { get; set; }
+    public string? Role { get; set; }
 }

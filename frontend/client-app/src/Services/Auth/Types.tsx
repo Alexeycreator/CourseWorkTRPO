@@ -6,14 +6,14 @@ export interface LoginRequest {
 export interface RegisterRequest {
     surName: string;
     firstName: string;
-    middleName?: string | null;
+    middleName: string | null;
     phoneNumber: string;
     email: string;
     login: string;
     password: string;
 }
 
-// Данные пользователя (без пароля!) - соответствует ClientResponseDto на сервере
+// Данные пользователя (без пароля!) - соответствует UserResponseDto на сервере
 export interface UserData {
     id: number;
     surName: string;
@@ -22,11 +22,11 @@ export interface UserData {
     phoneNumber: string;
     email: string;
     login: string;
-    passport_Id: number | null;
-    isReadOnly: boolean;
     gender: string;
     age: number;
     birthday: string;
+    role: string;
+    position: string;
     // Пароля здесь НЕТ!
 }
 

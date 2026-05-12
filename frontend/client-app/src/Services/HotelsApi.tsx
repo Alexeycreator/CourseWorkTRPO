@@ -1,7 +1,5 @@
+/* eslint-disable no-throw-literal */
 import axios from "axios";
-import { Address } from "./AddressApi";
-import { Ticket } from "./TicketsApi";
-import { HotelRoom } from "./HotelRoomsApi";
 
 const API_URL = "http://localhost:5050/api";
 
@@ -12,67 +10,154 @@ const api = axios.create({
     },
 });
 
-export interface Hotel {
-    id: number;
+// Базовый DTO для создания отеля
+export interface CreateHotelDto {
     name: string;
     stars: number;
-    timeOfStay: number;
-    imageHotel: string;
-    details: string | null;
-    address_Id?: number | null;
-    tickets_Id?: number | null;
-    hotelRooms_Id?: number | null;
-    address?: Address | null;
-    ticket?: Ticket | null;
-    hotelRoom?: HotelRoom | null;
+    imageHotel?: string | null;
+    details?: string | null;
 }
 
-export const getHotels = async (): Promise<Hotel[]> => {
-    const response = await api.get<Hotel[]>('/Hotel');
-    return response.data;
-};
+// DTO для обновления отеля
+export interface UpdateHotelDto extends CreateHotelDto {
+    id: number;
+}
 
-// Получить отель по ID
-export const getHotelById = async (id: number): Promise<Hotel> => {
-    const response = await api.get<Hotel>(`/Hotel/${id}`);
-    return response.data;
-};
+// Основная информация об отеле
+export interface HotelMainInfoDto {
+    id: number;
+    name?: string | null;
+    stars?: number | null;
+    countNight?: number | null;
+    description?: string | null;
+    imageHotel?: string | null;
+}
 
-export const createHotel = async (hotelData: {
-    name: string;
-    stars: number;
-    timeOfStay: number;
-    imageHotel: string;
+// Информация об адресе
+export interface ResponseInfoAddressHotelOrRoomDto {
+    id: number;
+    country?: string | null;
+    region?: string | null;
+    city?: string | null;
+    street?: string | null;
+    house?: string | null;
+    apartment?: string | null;
+}
+
+// Информация о комнате
+export interface RespMainInfoHotelRooms {
+    id: number;
+    nameRoom?: string | null;
     details?: string | null;
-    address_Id?: number | null;
-    tickets_Id?: number | null;
-    hotelRooms_Id: number;
-}): Promise<Hotel> => {
-    const response = await api.post<Hotel>('/Hotel', hotelData);
-    return response.data;
+    floor?: number | null;
+    imageRoom?: string | null;
+    typeRoom?: string | null;
+}
+
+// Полный DTO ответа с информацией об отеле
+export interface ResponseHotelDto extends HotelMainInfoDto {
+    address?: ResponseInfoAddressHotelOrRoomDto | null;
+    mainInfo?: RespMainInfoHotelRooms[] | null;
+}
+
+export const createHotel = async (userId: number, request: CreateHotelDto): Promise<void> => {
+    try {
+        const response = await api.post('/Hotels/create-hotel', request, {
+            params: { userId }
+        });
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
 };
 
-export const updateHotel = async (id: number, hotelData: {
-    name: string;
-    stars: number;
-    timeOfStay: number;
-    imageHotel: string;
-    details?: string | null;
-    address_Id?: number | null;
-    tickets_Id?: number | null;
-    hotelRooms_Id: number;
-}): Promise<Hotel> => {
-    const response = await api.put<Hotel>(`/Hotel/${id}`, hotelData);
-    return response.data;
+// UPDATE - обновление отеля
+export const updateHotel = async (userId: number, request: UpdateHotelDto): Promise<void> => {
+    try {
+        const response = await api.put('/Hotels/update-hotel', request, {
+            params: { userId }
+        });
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
 };
 
-export const deleteHotel = async (id: number): Promise<void> => {
-    await api.delete(`/Hotel/${id}`);
+// DELETE - удаление отеля
+export const deleteHotel = async (hotelId: number, userId: number): Promise<void> => {
+    try {
+        const response = await api.delete('/Hotels/delete-hotel', {
+            params: {
+                hotelId,
+                userId
+            }
+        });
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
 };
 
-export const getHotelsByRoomId = async (roomId: number): Promise<Hotel[]> => {
-    const response = await api.get<Hotel[]>(`/HotelRoom/${roomId}/hotels`);
-    return response.data;
+// GET - получение информации об отеле по tourId
+export const getCurrentHotelInfo = async (tourId: number): Promise<ResponseHotelDto[]> => {
+    try {
+        const response = await api.get<ResponseHotelDto[]>('/Hotels/get-current-hotel-info', {
+            params: { tourId }
+        });
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
 };
-
-export default api;

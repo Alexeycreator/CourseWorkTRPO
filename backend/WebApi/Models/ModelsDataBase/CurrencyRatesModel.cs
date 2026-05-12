@@ -21,7 +21,6 @@ public sealed class CurrencyRatesModel
     public double Rate { get; set; }
 
     [Required] [MaxLength(25)] public string DateReceipt { get; set; }
-    public bool IsReadOnly { get; set; } = false;
 
     [JsonIgnore] public ICollection<CurrencyRates_TicketsModel>? CurrencyRatesTickets { get; set; }
 }

@@ -7,7 +7,7 @@ import { getTicketById, Ticket } from '../Services/TicketsApi';
 import { getTransferById, Transfer } from '../Services/TransfersApi';
 import NavBar from '../Components/NavBar';
 import { Address, getAddressById } from '../Services/AddressApi';
-import { getClientById } from '../Services/ClientApi';
+import { getClientById } from '../Services/UsersApi';
 import { getPassportById, Passport } from '../Services/PassportApi';
 import TicketPayment from '../TicketPayment';
 import { Hotel } from '../Services/HotelsApi';

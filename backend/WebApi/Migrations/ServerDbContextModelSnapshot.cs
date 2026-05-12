@@ -47,12 +47,9 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("Passport_Id")
+                    b.Property<int?>("PassportId")
                         .HasColumnType("int")
-                        .HasColumnName("Passport_Id");
+                        .HasColumnName("PassportId");
 
                     b.Property<string>("Region")
                         .IsRequired()
@@ -63,128 +60,29 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int?>("Tours_Id")
-                        .HasColumnType("int")
-                        .HasColumnName("Tours_Id");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("Passport_Id")
-                        .HasDatabaseName("IX_Addresses_PassportId");
+                    b.HasIndex("City")
+                        .HasDatabaseName("IX_Addresses_City");
 
-                    b.HasIndex("Tours_Id");
+                    b.HasIndex("Country")
+                        .HasDatabaseName("IX_Addresses_Country");
+
+                    b.HasIndex("House")
+                        .HasDatabaseName("IX_Addresses_House");
+
+                    b.HasIndex("PassportId");
+
+                    b.HasIndex("Region")
+                        .HasDatabaseName("IX_Addresses_Region");
+
+                    b.HasIndex("Street")
+                        .HasDatabaseName("IX_Addresses_Street");
 
                     b.HasIndex("Country", "City", "Region", "Street", "House")
-                        .HasDatabaseName("IX_Addresses_Full");
+                        .HasDatabaseName("IX_Addresses_FullAddress");
 
                     b.ToTable("Addresses");
-                });
-
-            modelBuilder.Entity("WebApi.Models.ModelsDataBase.ClientsModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Age")
-                        .HasColumnType("int");
-
-                    b.Property<DateOnly>("Birthday")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Gender")
-                        .IsRequired()
-                        .HasMaxLength(25)
-                        .HasColumnType("nvarchar(25)");
-
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastLoginAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("LockoutEnd")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Login")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("LoginAttempts")
-                        .HasColumnType("int");
-
-                    b.Property<string>("MiddleName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("Passport_Id")
-                        .HasColumnType("int")
-                        .HasColumnName("Passport_Id");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
-
-                    b.Property<string>("RefreshToken")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("RefreshTokenExpiryTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SurName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Clients_Email");
-
-                    b.HasIndex("Login")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Clients_Login");
-
-                    b.HasIndex("Passport_Id")
-                        .HasDatabaseName("IX_Clients_PassportId");
-
-                    b.HasIndex("Password")
-                        .HasDatabaseName("IX_Clients_Password");
-
-                    b.HasIndex("PhoneNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Clients_PhoneNumber");
-
-                    b.HasIndex("SurName", "FirstName", "MiddleName")
-                        .HasDatabaseName("IX_Clients_FullName");
-
-                    b.ToTable("Clients");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.CurrencyRatesModel", b =>
@@ -208,9 +106,6 @@ namespace WebApi.Migrations
                     b.Property<int>("DigitalCode")
                         .HasColumnType("int");
 
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
                     b.Property<string>("LetterCode")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -226,6 +121,9 @@ namespace WebApi.Migrations
 
                     b.HasIndex("Currency")
                         .HasDatabaseName("IX_CurrencyRates_Currency");
+
+                    b.HasIndex("DateReceipt")
+                        .HasDatabaseName("IX_CurrencyRates_DateReceipt");
 
                     b.HasIndex("LetterCode")
                         .HasDatabaseName("IX_CurrencyRates_LetterCode");
@@ -244,92 +142,26 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CurrencyRates_Id")
+                    b.Property<int?>("CurrencyRatesId")
                         .HasColumnType("int")
-                        .HasColumnName("CurrencyRates_Id");
+                        .HasColumnName("CurrencyRatesId");
 
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("Tickets_Id")
+                    b.Property<int?>("TicketsId")
                         .HasColumnType("int")
-                        .HasColumnName("Tickets_Id");
+                        .HasColumnName("TicketsId");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CurrencyRates_Id")
+                    b.HasIndex("CurrencyRatesId")
                         .HasDatabaseName("IX_CurrencyRatesTickets_CurrencyRatesId");
 
-                    b.HasIndex("Tickets_Id")
+                    b.HasIndex("TicketsId")
                         .HasDatabaseName("IX_CurrencyRatesTickets_TicketsId");
 
-                    b.HasIndex("Tickets_Id", "CurrencyRates_Id")
+                    b.HasIndex("TicketsId", "CurrencyRatesId")
                         .HasDatabaseName("IX_CurrencyRatesTickets_TicketsCurrencyRatesId");
 
                     b.ToTable("CurrencyRates_Tickets");
-                });
-
-            modelBuilder.Entity("WebApi.Models.ModelsDataBase.EmployeesModel", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("MiddleName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
-
-                    b.Property<string>("Position")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("SurName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("Tickets_Id")
-                        .HasColumnType("int")
-                        .HasColumnName("Tickets_Id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Employees_Email");
-
-                    b.HasIndex("PhoneNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Employees_PhoneNumber");
-
-                    b.HasIndex("Tickets_Id")
-                        .HasDatabaseName("IX_Employees_TicketsId");
-
-                    b.HasIndex("SurName", "FirstName", "MiddleName")
-                        .HasDatabaseName("IX_Employees_FullName");
-
-                    b.ToTable("Employees");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.HotelRoomsModel", b =>
@@ -351,15 +183,26 @@ namespace WebApi.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
                     b.Property<string>("NameRoom")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("TypeRoom")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Details")
+                        .HasDatabaseName("IX_HotelRooms_Details");
+
+                    b.HasIndex("Floor")
+                        .HasDatabaseName("IX_HotelRooms_Floor");
+
+                    b.HasIndex("ImageRoom")
+                        .HasDatabaseName("IX_HotelRooms_ImageRoom");
 
                     b.HasIndex("NameRoom")
                         .HasDatabaseName("IX_HotelRooms_NameRoom");
@@ -375,25 +218,21 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("Address_Id")
+                    b.Property<int?>("AddressId")
                         .HasColumnType("int")
-                        .HasColumnName("Address_Id");
+                        .HasColumnName("AddressId");
 
                     b.Property<string>("Details")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<int>("HotelRooms_Id")
+                    b.Property<int?>("HotelRoomsId")
                         .HasColumnType("int")
-                        .HasColumnName("HotelRooms_Id");
+                        .HasColumnName("HotelRoomsId");
 
                     b.Property<string>("ImageHotel")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -403,29 +242,32 @@ namespace WebApi.Migrations
                     b.Property<int>("Stars")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Tickets_Id")
+                    b.Property<int?>("TicketsId")
                         .HasColumnType("int")
-                        .HasColumnName("Tickets_Id");
+                        .HasColumnName("TicketsId");
 
-                    b.Property<int>("TimeOfStay")
+                    b.Property<int?>("TimeOfStay")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Address_Id")
-                        .HasDatabaseName("IX_Hotels_AddressId");
+                    b.HasIndex("AddressId");
 
-                    b.HasIndex("HotelRooms_Id")
-                        .HasDatabaseName("IX_Hotels_HotelRoomsId");
+                    b.HasIndex("Details")
+                        .HasDatabaseName("IX_Hotels_Details");
+
+                    b.HasIndex("HotelRoomsId");
+
+                    b.HasIndex("ImageHotel")
+                        .HasDatabaseName("IX_Hotels_ImageHotel");
 
                     b.HasIndex("Name")
                         .HasDatabaseName("IX_Hotels_Name");
 
-                    b.HasIndex("Tickets_Id")
-                        .HasDatabaseName("IX_Hotels_TicketsId");
+                    b.HasIndex("Stars")
+                        .HasDatabaseName("IX_Hotels_Stars");
 
-                    b.HasIndex("Tickets_Id", "Address_Id", "HotelRooms_Id")
-                        .HasDatabaseName("IX_Hotels_TicketsAddressesRoomsId");
+                    b.HasIndex("TicketsId");
 
                     b.ToTable("Hotels");
                 });
@@ -446,9 +288,6 @@ namespace WebApi.Migrations
                         .HasMaxLength(25)
                         .HasColumnType("nvarchar(25)");
 
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
                     b.Property<string>("IssuedBy")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -466,6 +305,23 @@ namespace WebApi.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DateOfIssue")
+                        .HasDatabaseName("IX_Passports_DateOfIssue");
+
+                    b.HasIndex("DepartmentCode")
+                        .HasDatabaseName("IX_Passports_DepartmentCode");
+
+                    b.HasIndex("IssuedBy")
+                        .HasDatabaseName("IX_Passports_IssuedBy");
+
+                    b.HasIndex("Number")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Passports_Number");
+
+                    b.HasIndex("Seria")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Passports_Seria");
 
                     b.HasIndex("Type")
                         .HasDatabaseName("IX_Passports_Type");
@@ -488,26 +344,16 @@ namespace WebApi.Migrations
                     b.Property<DateTime>("ArrivalTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("Client_Id")
-                        .HasColumnType("int")
-                        .HasColumnName("Client_Id");
-
                     b.Property<DateTime>("DateSale")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("DepartureTime")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Client_Id")
-                        .HasDatabaseName("IX_Tickets_ClientId");
 
                     b.HasIndex("DateSale")
                         .HasDatabaseName("IX_Tickets_DateSale");
@@ -557,9 +403,6 @@ namespace WebApi.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -583,13 +426,13 @@ namespace WebApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int?>("Tickets_Id")
+                    b.Property<int?>("TicketsId")
                         .HasColumnType("int")
-                        .HasColumnName("Tickets_Id");
+                        .HasColumnName("TicketsId");
 
-                    b.Property<int?>("Transfers_Id")
+                    b.Property<int?>("TransfersId")
                         .HasColumnType("int")
-                        .HasColumnName("Transfers_Id");
+                        .HasColumnName("TransfersId");
 
                     b.Property<string>("Type")
                         .IsRequired()
@@ -598,22 +441,63 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Description")
+                        .HasDatabaseName("IX_Tours_Description");
+
+                    b.HasIndex("Details")
+                        .HasDatabaseName("IX_Tours_Details");
+
+                    b.HasIndex("HotTour")
+                        .HasDatabaseName("IX_Tours_HotTour");
+
+                    b.HasIndex("ImageTour")
+                        .HasDatabaseName("IX_Tours_ImageTour");
+
                     b.HasIndex("Name")
                         .HasDatabaseName("IX_Tours_Name");
 
-                    b.HasIndex("Tickets_Id")
-                        .HasDatabaseName("IX_Tours_TicketsId");
+                    b.HasIndex("Price")
+                        .HasDatabaseName("IX_Tours_Price");
 
-                    b.HasIndex("Transfers_Id")
-                        .HasDatabaseName("IX_Tours_TransfersId");
+                    b.HasIndex("TicketsId");
+
+                    b.HasIndex("TransfersId");
 
                     b.HasIndex("StartDot", "EndDot")
                         .HasDatabaseName("IX_Tours_Route");
 
-                    b.HasIndex("Tickets_Id", "Transfers_Id")
-                        .HasDatabaseName("IX_Tours_TicketsTransfersId");
-
                     b.ToTable("Tours");
+                });
+
+            modelBuilder.Entity("WebApi.Models.ModelsDataBase.Tours_Hotels_AddressesModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AddressesId")
+                        .HasColumnType("int")
+                        .HasColumnName("AddressesId");
+
+                    b.Property<int?>("HotelsId")
+                        .HasColumnType("int")
+                        .HasColumnName("HotelsId");
+
+                    b.Property<int?>("ToursId")
+                        .HasColumnType("int")
+                        .HasColumnName("ToursId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddressesId");
+
+                    b.HasIndex("HotelsId");
+
+                    b.HasIndex("ToursId");
+
+                    b.ToTable("Tours_Hotels_Addresses");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.TransfersModel", b =>
@@ -638,9 +522,6 @@ namespace WebApi.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -648,35 +529,162 @@ namespace WebApi.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Arrival")
+                        .HasDatabaseName("IX_Transfers_Arrival");
+
+                    b.HasIndex("Departure")
+                        .HasDatabaseName("IX_Transfers_Departure");
+
                     b.HasIndex("Name")
                         .HasDatabaseName("IX_Transfers_Name");
 
                     b.ToTable("Transfers");
                 });
 
+            modelBuilder.Entity("WebApi.Models.ModelsDataBase.UsersModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Age")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("Birthday")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasMaxLength(25)
+                        .HasColumnType("nvarchar(25)");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LockoutEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Login")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("LoginAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MiddleName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("PassportId")
+                        .HasColumnType("int")
+                        .HasColumnName("PassportId");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<string>("Position")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiryTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SurName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("TicketsId")
+                        .HasColumnType("int")
+                        .HasColumnName("TicketsId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Age")
+                        .HasDatabaseName("IX_Users_Age");
+
+                    b.HasIndex("Birthday")
+                        .HasDatabaseName("IX_Users_Birthday");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_Email");
+
+                    b.HasIndex("FirstName")
+                        .HasDatabaseName("IX_Users_FirstName");
+
+                    b.HasIndex("Gender")
+                        .HasDatabaseName("IX_Users_Gender");
+
+                    b.HasIndex("Login")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_Login");
+
+                    b.HasIndex("MiddleName")
+                        .HasDatabaseName("IX_Users_MiddleName");
+
+                    b.HasIndex("PassportId");
+
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_PhoneNumber");
+
+                    b.HasIndex("Position")
+                        .HasDatabaseName("IX_Users_Position");
+
+                    b.HasIndex("Role")
+                        .HasDatabaseName("IX_Users_Role");
+
+                    b.HasIndex("SurName")
+                        .HasDatabaseName("IX_Users_SurName");
+
+                    b.HasIndex("TicketsId");
+
+                    b.HasIndex("SurName", "FirstName", "MiddleName")
+                        .HasDatabaseName("IX_Users_FullName");
+
+                    b.ToTable("Users");
+                });
+
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.AddressesModel", b =>
                 {
                     b.HasOne("WebApi.Models.ModelsDataBase.PassportsModel", "Passport")
                         .WithMany("Addresses")
-                        .HasForeignKey("Passport_Id")
+                        .HasForeignKey("PassportId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("WebApi.Models.ModelsDataBase.ToursModel", "Tours")
-                        .WithMany("Addresses")
-                        .HasForeignKey("Tours_Id")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Passport");
-
-                    b.Navigation("Tours");
-                });
-
-            modelBuilder.Entity("WebApi.Models.ModelsDataBase.ClientsModel", b =>
-                {
-                    b.HasOne("WebApi.Models.ModelsDataBase.PassportsModel", "Passport")
-                        .WithMany("Clients")
-                        .HasForeignKey("Passport_Id")
-                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Passport");
                 });
@@ -685,25 +693,15 @@ namespace WebApi.Migrations
                 {
                     b.HasOne("WebApi.Models.ModelsDataBase.CurrencyRatesModel", "CurrencyRate")
                         .WithMany("CurrencyRatesTickets")
-                        .HasForeignKey("CurrencyRates_Id")
+                        .HasForeignKey("CurrencyRatesId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
                         .WithMany("CurrencyRatesTickets")
-                        .HasForeignKey("Tickets_Id")
+                        .HasForeignKey("TicketsId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CurrencyRate");
-
-                    b.Navigation("Ticket");
-                });
-
-            modelBuilder.Entity("WebApi.Models.ModelsDataBase.EmployeesModel", b =>
-                {
-                    b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
-                        .WithMany("Employees")
-                        .HasForeignKey("Tickets_Id")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Ticket");
                 });
@@ -712,18 +710,17 @@ namespace WebApi.Migrations
                 {
                     b.HasOne("WebApi.Models.ModelsDataBase.AddressesModel", "Address")
                         .WithMany("Hotels")
-                        .HasForeignKey("Address_Id")
+                        .HasForeignKey("AddressId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("WebApi.Models.ModelsDataBase.HotelRoomsModel", "HotelRoom")
                         .WithMany("Hotels")
-                        .HasForeignKey("HotelRooms_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("HotelRoomsId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
                         .WithMany()
-                        .HasForeignKey("Tickets_Id")
+                        .HasForeignKey("TicketsId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Address");
@@ -733,26 +730,16 @@ namespace WebApi.Migrations
                     b.Navigation("Ticket");
                 });
 
-            modelBuilder.Entity("WebApi.Models.ModelsDataBase.TicketsModel", b =>
-                {
-                    b.HasOne("WebApi.Models.ModelsDataBase.ClientsModel", "Client")
-                        .WithMany("Tickets")
-                        .HasForeignKey("Client_Id")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Client");
-                });
-
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.ToursModel", b =>
                 {
                     b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
                         .WithMany()
-                        .HasForeignKey("Tickets_Id")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("TicketsId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("WebApi.Models.ModelsDataBase.TransfersModel", "Transfer")
                         .WithMany("Tours")
-                        .HasForeignKey("Transfers_Id")
+                        .HasForeignKey("TransfersId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Ticket");
@@ -760,14 +747,50 @@ namespace WebApi.Migrations
                     b.Navigation("Transfer");
                 });
 
+            modelBuilder.Entity("WebApi.Models.ModelsDataBase.Tours_Hotels_AddressesModel", b =>
+                {
+                    b.HasOne("WebApi.Models.ModelsDataBase.AddressesModel", "Address")
+                        .WithMany()
+                        .HasForeignKey("AddressesId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WebApi.Models.ModelsDataBase.HotelsModel", "Hotel")
+                        .WithMany("ToursHotels")
+                        .HasForeignKey("HotelsId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WebApi.Models.ModelsDataBase.ToursModel", "Tour")
+                        .WithMany("ToursHotels")
+                        .HasForeignKey("ToursId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Address");
+
+                    b.Navigation("Hotel");
+
+                    b.Navigation("Tour");
+                });
+
+            modelBuilder.Entity("WebApi.Models.ModelsDataBase.UsersModel", b =>
+                {
+                    b.HasOne("WebApi.Models.ModelsDataBase.PassportsModel", "Passport")
+                        .WithMany("Clients")
+                        .HasForeignKey("PassportId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("WebApi.Models.ModelsDataBase.TicketsModel", "Ticket")
+                        .WithMany("Users")
+                        .HasForeignKey("TicketsId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Passport");
+
+                    b.Navigation("Ticket");
+                });
+
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.AddressesModel", b =>
                 {
                     b.Navigation("Hotels");
-                });
-
-            modelBuilder.Entity("WebApi.Models.ModelsDataBase.ClientsModel", b =>
-                {
-                    b.Navigation("Tickets");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.CurrencyRatesModel", b =>
@@ -778,6 +801,11 @@ namespace WebApi.Migrations
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.HotelRoomsModel", b =>
                 {
                     b.Navigation("Hotels");
+                });
+
+            modelBuilder.Entity("WebApi.Models.ModelsDataBase.HotelsModel", b =>
+                {
+                    b.Navigation("ToursHotels");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.PassportsModel", b =>
@@ -791,12 +819,12 @@ namespace WebApi.Migrations
                 {
                     b.Navigation("CurrencyRatesTickets");
 
-                    b.Navigation("Employees");
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.ToursModel", b =>
                 {
-                    b.Navigation("Addresses");
+                    b.Navigation("ToursHotels");
                 });
 
             modelBuilder.Entity("WebApi.Models.ModelsDataBase.TransfersModel", b =>

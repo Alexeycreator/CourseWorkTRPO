@@ -1,40 +1,48 @@
 import { UserData } from '../Auth/Types';
 
-// Для создания клиента (совпадает с RegisterRequest)
+// Для создания клиента (совпадает с CreateUserDto на сервере)
 export interface CreateClientRequest {
-    surName: string;
-    firstName: string;
-    middleName?: string | null;
-    phoneNumber: string;
-    email: string;
-    login: string;
-    password: string;
-    passport_Id?: number | null;
+    surName: string;      // Фамилия
+    firstName: string;       // Имя
+    middleName?: string | null; // Отчество
+    gender: string;          // Пол (обязательное поле)
+    birthday: string;        // Дата рождения (обязательное поле)
+    phoneNumber: string;     // Телефон
+    email: string;           // Email
+    login: string;           // Логин
+    password: string;        // Пароль
+    role: string;            // Роль (обязательное поле)
+    position: string;        // Должность (обязательное поле, теперь string, а не optional)
 }
 
 // Для обновления клиента
 export interface UpdateClientRequest {
-    surName?: string;
+    secondName?: string;
     firstName?: string;
-    middleName?: string | null;
+    surName?: string | null;
+    gender?: string;
+    birthday?: string;
     phoneNumber?: string;
     email?: string;
     login?: string;
     password?: string;
-    passport_Id?: number | null;
+    role?: string;
+    position?: string | null;
 }
 
-// Ответ с данными клиента (без пароля)
-export interface ClientResponse extends UserData {
-    // Наследуем все поля от UserData
-}
+// Остальные интерфейсы остаются без изменений
+export interface UserResponse extends UserData { }
 
-// Для поиска по фамилии
 export interface SearchClientsParams {
     surname: string;
 }
 
-// Для проверки уникальности
 export interface CheckUniqueResponse {
     isUnique: boolean;
+}
+
+export interface ChangePasswordRequest {
+    userId: number;
+    oldPassword: string;
+    newPassword: string;
 }

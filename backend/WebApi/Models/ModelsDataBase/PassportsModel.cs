@@ -18,8 +18,7 @@ public sealed class PassportsModel
     [Required] [MaxLength(500)] public string IssuedBy { get; set; }
     [Required] [MaxLength(25)] public string DepartmentCode { get; set; }
     [Required] public DateOnly DateOfIssue { get; set; }
-    public bool IsReadOnly { get; set; } = false;
 
     [JsonIgnore] public ICollection<AddressesModel>? Addresses { get; set; }
-    [JsonIgnore] public ICollection<ClientsModel>? Clients { get; set; }
+    [JsonIgnore] public ICollection<UsersModel>? Clients { get; set; }
 }

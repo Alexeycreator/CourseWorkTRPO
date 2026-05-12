@@ -6,5 +6,5 @@ public sealed class LoginResponseDto
 {
     public string Token { get; set; }
     public DateTime Expiry { get; set; }
-    public ClientResponseDto User { get; set; }
+    public UserResponseDto User { get; set; }
 }

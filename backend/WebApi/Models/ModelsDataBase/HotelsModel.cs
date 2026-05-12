@@ -15,22 +15,21 @@ public sealed class HotelsModel
 
     [Required] [MaxLength(100)] public string Name { get; set; }
     [Required] public int Stars { get; set; }
-    [Required] public int TimeOfStay { get; set; }
-    [Required] [MaxLength(1000)] public string ImageHotel { get; set; }
+    public int? TimeOfStay { get; set; }
+    [MaxLength(1000)] public string? ImageHotel { get; set; }
     [MaxLength(2000)] public string? Details { get; set; }
-    public bool IsReadOnly { get; set; } = false;
 
-    [Column("Address_Id")]
+    [Column("AddressId")]
     [ForeignKey("Address")]
-    public int? Address_Id { get; set; }
+    public int? AddressId { get; set; }
 
-    [Column("Tickets_Id")]
+    [Column("TicketsId")]
     [ForeignKey("Ticket")]
-    public int? Tickets_Id { get; set; }
+    public int? TicketsId { get; set; }
 
-    [Column("HotelRooms_Id")]
+    [Column("HotelRoomsId")]
     [ForeignKey("HotelRoom")]
-    public int HotelRooms_Id { get; set; }
+    public int? HotelRoomsId { get; set; }
 
     [DeleteBehavior(DeleteBehavior.SetNull)]
     [JsonIgnore]
@@ -43,4 +42,6 @@ public sealed class HotelsModel
     [DeleteBehavior(DeleteBehavior.Cascade)]
     [JsonIgnore]
     public HotelRoomsModel? HotelRoom { get; set; }
+
+    [JsonIgnore] public ICollection<Tours_Hotels_AddressesModel>? ToursHotels { get; set; }
 }

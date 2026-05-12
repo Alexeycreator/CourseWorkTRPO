@@ -15,7 +15,6 @@ public sealed class TransfersModel
     [Required] [MaxLength(100)] public string Arrival { get; set; }
     [Required] [MaxLength(100)] public string Departure { get; set; }
     [MaxLength(2000)] public string? Details { get; set; }
-    public bool IsReadOnly { get; set; } = false;
 
     [JsonIgnore] public ICollection<ToursModel>? Tours { get; set; }
 }
