@@ -1,6 +1,6 @@
 namespace WebApi.Models.DTOs.Hotels.HotelRooms;
 
-public sealed class RespMainInfoHotelRooms
+public sealed class ResponseMainInfoHotelRooms
 {
     public int Id { get; set; }
     public string? NameRoom { get; set; }

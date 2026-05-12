@@ -7,5 +7,5 @@ namespace WebApi.Models.DTOs.Hotels;
 public sealed class ResponseHotelDto : HotelMainInfoDto
 {
     public ResponseInfoAddressHotelOrRoomDto? Address { get; set; }
-    public List<RespMainInfoHotelRooms>? MainInfo { get; set; }
+    public List<ResponseMainInfoHotelRooms>? MainInfo { get; set; }
 }
