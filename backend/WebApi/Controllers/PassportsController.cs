@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NLog;
 using WebApi.Methods.DataBase;
+using WebApi.Models.DTOs.Addresses;
 using WebApi.Models.DTOs.Passports;
 using WebApi.Models.ModelsDataBase;
 
@@ -36,8 +37,8 @@ public sealed class PassportsController(ServerDbContext dbContext) : ControllerB
         return Ok(passport);
     }
 
-    [HttpPost("create-passport-data")]
-    public async Task<IActionResult> CreatePassportData(int userId, CreatePassportDto? request)
+    [HttpGet("get-info-passport")]
+    public async Task<IActionResult> GetInfoPassport(int userId)
     {
         try
         {
@@ -47,12 +48,62 @@ public sealed class PassportsController(ServerDbContext dbContext) : ControllerB
                 return NotFound(new { message = $"Такого пользователя нет" });
             }
 
-            if (user.Role != "admin")
+            var passportInfo = await dbContext.Passports
+                .FirstOrDefaultAsync(p => p.Clients.Any(c => c.Id == userId));
+
+            if (passportInfo == null)
             {
-                if (user.Role != "employee")
+                return NotFound(new { message = $"Паспорт для пользователя {userId} не найден" });
+            }
+
+            var address = await dbContext.Addresses
+                .FirstOrDefaultAsync(a => a.PassportId == passportInfo.Id);
+
+            ResponseInfoAddressHotelOrRoomDto respAddress = new ResponseInfoAddressHotelOrRoomDto();
+            if (address != null)
+            {
+                respAddress = new ResponseInfoAddressHotelOrRoomDto()
                 {
-                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
-                }
+                    Id = address.Id,
+                    Apartment = address.Apartment,
+                    City = address.City,
+                    Country = address.Country,
+                    House = address.House,
+                    Region = address.Region,
+                    Street = address.Street,
+                };
+            }
+
+            ResponsePassportInfoDto respPassport = new ResponsePassportInfoDto()
+            {
+                Id = passportInfo.Id,
+                DateOfIssue = passportInfo.DateOfIssue,
+                Seria = passportInfo.Seria,
+                Number = passportInfo.Number,
+                Type = passportInfo.Type,
+                IssuedBy = passportInfo.IssuedBy,
+                DepartmentCode = passportInfo.DepartmentCode,
+                Address = respAddress
+            };
+
+            return Ok(respPassport);
+        }
+        catch (Exception ex)
+        {
+            loggerPassportsController.Error($"Внутренняя ошибка сервера: {ex.Message}");
+            return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
+        }
+    }
+
+    [HttpPost("create-passport-data")]
+    public async Task<IActionResult> CreatePassportData(int userId, CreatePassportDto? request)
+    {
+        try
+        {
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = $"Такого пользователя нет" });
             }
 
             if (request == null)
@@ -98,6 +149,48 @@ public sealed class PassportsController(ServerDbContext dbContext) : ControllerB
             await dbContext.AddAsync(newPassport);
             await dbContext.SaveChangesAsync();
 
+            var passport = await dbContext.Passports.FindAsync(newPassport.Id);
+            if (passport != null)
+            {
+                if (user.PassportId == null || user.PassportId != newPassport.Id)
+                {
+                    user.PassportId = newPassport.Id;
+                }
+
+                if (request.Address != null)
+                {
+                    var existAddress = await dbContext.Addresses
+                        .Where(a => a.Country == request.Address.Country && a.Region == request.Address.Region &&
+                                    a.City == request.Address.City && a.Street == request.Address.Street &&
+                                    a.Apartment == request.Address.Apartment).FirstOrDefaultAsync();
+                    if (existAddress != null)
+                    {
+                        existAddress.PassportId = newPassport.Id;
+                    }
+                    else
+                    {
+                        var newAddress = new AddressesModel()
+                        {
+                            Country = request.Address.Country,
+                            Region = request.Address.Region,
+                            City = request.Address.City,
+                            Street = request.Address.Street,
+                            House = request.Address.House,
+                            Apartment = request.Address.Apartment,
+                            PassportId = newPassport.Id
+                        };
+
+                        await dbContext.AddAsync(newAddress);
+                    }
+                }
+            }
+            else
+            {
+                return BadRequest(new { message = $"Данных о паспорте нет" });
+            }
+
+            await dbContext.SaveChangesAsync();
+
             return Ok();
         }
         catch (Exception ex)
@@ -116,14 +209,6 @@ public sealed class PassportsController(ServerDbContext dbContext) : ControllerB
             if (user == null)
             {
                 return NotFound(new { message = $"Такого пользователя нет" });
-            }
-
-            if (user.Role != "admin")
-            {
-                if (user.Role != "employee")
-                {
-                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
-                }
             }
 
             if (request == null)
@@ -167,6 +252,76 @@ public sealed class PassportsController(ServerDbContext dbContext) : ControllerB
                 passport.Number = request.Number;
             }
 
+            var passportDb = await dbContext.Passports.FindAsync(request.PassportId);
+            if (passportDb != null)
+            {
+                if (user.PassportId == null || user.PassportId != request.PassportId)
+                {
+                    user.PassportId = request.PassportId;
+                }
+
+                if (request.Address != null)
+                {
+                    var existAddress = await dbContext.Addresses
+                        .Where(a => a.Country == request.Address.Country && a.Region == request.Address.Region &&
+                                    a.City == request.Address.City && a.Street == request.Address.Street &&
+                                    a.Apartment == request.Address.Apartment).FirstOrDefaultAsync();
+                    if (existAddress != null && existAddress.Country != request.Address.Country)
+                    {
+                        existAddress.Country = request.Address.Country;
+                    }
+
+                    if (existAddress != null && existAddress.City != request.Address.City)
+                    {
+                        existAddress.City = request.Address.City;
+                    }
+
+                    if (existAddress != null && existAddress.Region != request.Address.Region)
+                    {
+                        existAddress.Region = request.Address.Region;
+                    }
+
+                    if (existAddress != null && existAddress.Street != request.Address.Street)
+                    {
+                        existAddress.Street = request.Address.Street;
+                    }
+
+                    if (existAddress != null && existAddress.House != request.Address.House)
+                    {
+                        existAddress.House = request.Address.House;
+                    }
+
+                    if (existAddress != null && existAddress.Apartment != request.Address.Apartment)
+                    {
+                        existAddress.Apartment = request.Address.Apartment;
+                    }
+
+                    if (existAddress != null && existAddress.PassportId != request.Address.PassportId)
+                    {
+                        existAddress.PassportId = request.Address.PassportId;
+                    }
+                    else
+                    {
+                        var newAddress = new AddressesModel()
+                        {
+                            Country = request.Address.Country,
+                            Region = request.Address.Region,
+                            City = request.Address.City,
+                            Street = request.Address.Street,
+                            House = request.Address.House,
+                            Apartment = request.Address.Apartment,
+                            PassportId = request.PassportId
+                        };
+
+                        await dbContext.AddAsync(newAddress);
+                    }
+                }
+            }
+            else
+            {
+                return BadRequest(new { message = $"Данных о паспорте нет" });
+            }
+
             await dbContext.SaveChangesAsync();
 
             return Ok();
@@ -187,14 +342,6 @@ public sealed class PassportsController(ServerDbContext dbContext) : ControllerB
             if (user == null)
             {
                 return NotFound(new { message = $"Такого пользователя нет" });
-            }
-
-            if (user.Role != "admin")
-            {
-                if (user.Role != "employee")
-                {
-                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
-                }
             }
 
             var passport = await dbContext.Passports.FindAsync(passportId);
