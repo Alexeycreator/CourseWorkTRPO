@@ -30,13 +30,8 @@ export interface CreateHotelRoomsDto {
     typeRoom: string;
 };
 
-export interface UpdateHotelRoomsDto {
+export interface UpdateHotelRoomsDto extends CreateHotelRoomsDto {
     id: number;
-    nameRoom: string;
-    details?: string | null;
-    floor: number;
-    imageRoom?: string | null;
-    typeRoom: string;
 };
 
 export const getCurrentInfoHotelRoom = async (hotelRoomId: number): Promise<ResponseCurrentInfoHotelRoomDto> => {
