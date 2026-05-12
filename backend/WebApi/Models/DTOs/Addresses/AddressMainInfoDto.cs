@@ -1,6 +1,6 @@
 namespace WebApi.Models.DTOs.Addresses;
 
-public sealed class AddressMainInfoDto
+public class AddressMainInfoDto
 {
     public int Id { get; set; }
     public string? Country { get; set; }

@@ -3,7 +3,7 @@ using NLog;
 
 namespace WebApi.Services;
 
-public class DatabaseBackupBackgroundService : BackgroundService
+public sealed class DatabaseBackupBackgroundService : BackgroundService
 {
     private Logger loggerDatabaseBackupBackgroundService = LogManager.GetCurrentClassLogger();
     private readonly string dirPath = Path.Combine(Directory.GetCurrentDirectory(), "Backups");
@@ -78,11 +78,11 @@ public class DatabaseBackupBackgroundService : BackgroundService
             try
             {
                 await connection.OpenAsync();
-                loggerDatabaseBackupBackgroundService.Info($"Подключени к БД прошло успешно");
+                loggerDatabaseBackupBackgroundService.Info($"Подключение к БД прошло успешно");
                 databaseName = connection.Database;
                 backupPath = Path.Combine(dirPath, $"backup_{databaseName}_{backupDateTime}.bak");
                 typePath = "application";
-                await ExecutingBackupCommand(connection, backupPath, typePath);
+                await ExecutingBackupCommandAsync(connection, backupPath, typePath);
             }
             catch (SqlException ex)
             {
@@ -91,7 +91,7 @@ public class DatabaseBackupBackgroundService : BackgroundService
                 typePath = "default";
                 loggerDatabaseBackupBackgroundService.Error(
                     $"Ошибка при создании резервной копии по пути {backupPath}: {ex.Message}. Будет применен путь по умолчанию: {defaultBackupsPath}");
-                await ExecutingBackupCommand(connection, defaultBackupsPath, typePath);
+                await ExecutingBackupCommandAsync(connection, defaultBackupsPath, typePath);
             }
             catch (Exception ex)
             {
@@ -100,7 +100,8 @@ public class DatabaseBackupBackgroundService : BackgroundService
         }
     }
 
-    private async Task ExecutingBackupCommand(SqlConnection connection, string backupDatabasePath, string typeSavePath)
+    private async Task ExecutingBackupCommandAsync(SqlConnection connection, string backupDatabasePath,
+        string typeSavePath)
     {
         if (File.Exists(backupDatabasePath))
         {
@@ -111,10 +112,11 @@ public class DatabaseBackupBackgroundService : BackgroundService
             }
             catch (Exception ex)
             {
-                loggerDatabaseBackupBackgroundService.Error(ex, $"Не удалось удалить существующий файл. Возможно, файл заблокирован SQL Server.");
+                loggerDatabaseBackupBackgroundService.Error(ex,
+                    $"Не удалось удалить существующий файл. Возможно, файл заблокирован SQL Server.");
             }
         }
-        
+
         var command = new SqlCommand($@"
                     BACKUP DATABASE [{databaseName}] 
                     TO DISK = N'{backupDatabasePath}' 
