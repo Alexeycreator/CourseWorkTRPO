@@ -6,4 +6,6 @@ public class CreateTicketsDto
     public DateTime DepartureTime { get; set; }
     public DateTime ArrivalTime { get; set; }
     public DateTime DateSale { get; set; }
+    public int HotelRoomsId { get; set; }
+    public int TourId { get; set; }
 }

@@ -16,6 +16,8 @@ export interface CreateTicketsDto {
     departureTime: Date;
     arrivalTime: Date;
     dateSale: Date;
+    hotelRoomsId: number;
+    tourId: number;
 };
 
 export interface UpdateTicketsDto extends CreateTicketsDto {

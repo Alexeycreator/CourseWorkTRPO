@@ -12,7 +12,7 @@ namespace WebApi.Controllers;
 public sealed class TicketsController(ServerDbContext dbContext) : ControllerBase
 {
     private Logger loggerTicketsController = LogManager.GetCurrentClassLogger();
-    
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TicketsModel>>> GetTickets()
     {
@@ -35,8 +35,8 @@ public sealed class TicketsController(ServerDbContext dbContext) : ControllerBas
 
         return Ok(ticket);
     }
-    
-    [HttpPost("create-passport-data")]
+
+    [HttpPost("create-ticket")]
     public async Task<IActionResult> CreatePassportData(int userId, CreateTicketsDto? request)
     {
         try
@@ -76,6 +76,28 @@ public sealed class TicketsController(ServerDbContext dbContext) : ControllerBas
             await dbContext.AddAsync(newTicket);
             await dbContext.SaveChangesAsync();
 
+            if (request.HotelRoomsId <= 0)
+            {
+                return BadRequest(new { message = $"Номер не передан серверу" });
+            }
+
+            var hotel = await dbContext.Hotels.FirstOrDefaultAsync(h => h.HotelRoomsId == request.HotelRoomsId);
+            if (hotel == null)
+            {
+                return NotFound(new { message = $"Данных о номере нет" });
+            }
+
+            var tour = await dbContext.Tours.FindAsync(request.TourId);
+            var ticket = await dbContext.Tickets.OrderByDescending(t => t.Id).FirstAsync();
+            if (tour != null)
+            {
+                tour.TicketsId = ticket.Id;
+                hotel.TicketsId = ticket.Id;
+                user.TicketsId = ticket.Id;
+            }
+
+            await dbContext.SaveChangesAsync();
+
             return Ok();
         }
         catch (Exception ex)
@@ -85,7 +107,7 @@ public sealed class TicketsController(ServerDbContext dbContext) : ControllerBas
         }
     }
 
-    [HttpPut("update-passport")]
+    [HttpPut("update-ticket")]
     public async Task<IActionResult> UpdatePassport(int userId, UpdateTicketsDto? request)
     {
         try
@@ -135,6 +157,29 @@ public sealed class TicketsController(ServerDbContext dbContext) : ControllerBas
                 ticket.DateSale = request.DateSale;
             }
 
+            if (request.HotelRoomsId <= 0)
+            {
+                return BadRequest(new { message = $"Номер не передан серверу" });
+            }
+
+            var hotel = await dbContext.Hotels.FirstOrDefaultAsync(h => h.HotelRoomsId == request.HotelRoomsId);
+            if (hotel == null)
+            {
+                return NotFound(new { message = $"Данных о номере нет" });
+            }
+
+            hotel.TicketsId = ticket.Id;
+            user.TicketsId = ticket.Id;
+            var tour = await dbContext.Tours.FindAsync(request.TourId);
+            if (tour != null)
+            {
+                tour.TicketsId = ticket.Id;
+            }
+            else
+            {
+                return BadRequest(new { message = $"Тур не найден" });
+            }
+
             await dbContext.SaveChangesAsync();
 
             return Ok();
@@ -146,7 +191,7 @@ public sealed class TicketsController(ServerDbContext dbContext) : ControllerBas
         }
     }
 
-    [HttpDelete("delete-passport")]
+    [HttpDelete("delete-ticket")]
     public async Task<IActionResult> DeletePassport(int userId, int ticketId)
     {
         try
