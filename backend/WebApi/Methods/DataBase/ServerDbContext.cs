@@ -15,7 +15,7 @@ public sealed class ServerDbContext(DbContextOptions<ServerDbContext> options) :
     public DbSet<PassportsModel> Passports { get; set; }
     public DbSet<ToursModel> Tours { get; set; }
     public DbSet<TransfersModel> Transfers { get; set; }
-    public DbSet<Tours_Hotels_AddressesModel> ToursHotels { get; set; }
+    public DbSet<Tours_Hotels_AddressesModel> ToursHotelsAddresses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
