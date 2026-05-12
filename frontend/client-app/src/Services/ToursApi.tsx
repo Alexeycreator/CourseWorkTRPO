@@ -77,6 +77,27 @@ export interface CurrentHotTourDto {
     address?: AddressMainInfoDto[] | null;
 };
 
+// Базовый DTO для создания тура
+export interface CreateTourDto {
+    nameTour: string;
+    startDot: string; // DateOnly в ISO формате (YYYY-MM-DD)
+    endDot: string;
+    details: string;
+    typeTour: string;
+    hotTour: boolean;
+    price: number;
+    description: string;
+    program: string;
+    included: string;
+    separately: string;
+    imageTour: string;
+}
+
+// DTO для обновления тура
+export interface UpdateTourDto extends CreateTourDto {
+    id: number;
+}
+
 // каждый метод соответствует методам контроллера на сервере
 export const getMainTours = async (): Promise<ToursDto[]> => {
     try {
@@ -147,6 +168,83 @@ export const getHotTours = async (): Promise<HotToursDto[]> => {
 export const getCurrentHotTour = async (hotTourId: number): Promise<CurrentHotTourDto> => {
     try {
         const response = await api.get<CurrentHotTourDto>(`/Tours/get-current-hot-tour?hotTourId=${hotTourId}`);
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
+};
+
+export const createTour = async (userId: number, request: CreateTourDto): Promise<void> => {
+    try {
+        const response = await api.post('/Tours/create-tour', request, {
+            params: { userId }
+        });
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
+};
+
+// UPDATE - обновление тура
+export const updateTour = async (userId: number, request: UpdateTourDto): Promise<void> => {
+    try {
+        const response = await api.put('/Tours/update-tour', request, {
+            params: { userId }
+        });
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
+};
+
+// DELETE - удаление тура
+export const deleteTour = async (tourId: number, userId: number): Promise<void> => {
+    try {
+        const response = await api.delete('/Tours/delete-tour', {
+            params: { 
+                tourId,
+                userId 
+            }
+        });
         return response.data;
     }
     catch (error: any) {

@@ -152,7 +152,7 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
             return NotFound(new { message = $"Данных об этом туре нет" });
         }
 
-        var tourHotelsAddresses = await dbContext.ToursHotels.FindAsync(tourId);
+        var tourHotelsAddresses = await dbContext.ToursHotelsAddresses.FindAsync(tourId);
         if (tourHotelsAddresses != null)
         {
             var hotel = GetHotelDataBase(tourHotelsAddresses.HotelsId).Result;
@@ -163,6 +163,7 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
                 var hotelDto = new HotelMainInfoDto()
                 {
                     Id = hotel.Id,
+                    Name = hotel.Name,
                     Stars = hotel.Stars,
                     Description = hotel.Details,
                     ImageHotel = hotel.ImageHotel,
@@ -329,7 +330,7 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
             return BadRequest(new { message = $"Тур не является 'горящим'" });
         }
 
-        var tourHotelsAddresses = await dbContext.ToursHotels.FindAsync(hotTourId);
+        var tourHotelsAddresses = await dbContext.ToursHotelsAddresses.FindAsync(hotTourId);
         if (tourHotelsAddresses != null)
         {
             var hotel = GetHotelDataBase(tourHotelsAddresses.HotelsId).Result;
@@ -341,6 +342,7 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
                 {
                     Id = hotel.Id,
                     Stars = hotel.Stars,
+                    Name = hotel.Name,
                     Description = hotel.Details,
                     ImageHotel = hotel.ImageHotel,
                     CountNight = CalculateCountNight(Convert.ToDateTime(hotTour.EndDot),
@@ -426,5 +428,237 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
         }
 
         return parsingBuilder.ToString();
+    }
+
+    [HttpPost("create-tour")]
+    public async Task<IActionResult> CreateTour(int userId, [FromBody] CreateTourDto? request)
+    {
+        try
+        {
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = $"Такого пользователя нет" });
+            }
+
+            if (user.Role != "admin")
+            {
+                if (user.Role != "employee")
+                {
+                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
+                }
+            }
+
+            if (request == null)
+            {
+                return BadRequest(new { message = $"Данные пустые" });
+            }
+
+            if (string.IsNullOrEmpty(request.NameTour))
+            {
+                return BadRequest(new { message = $"Название тура обязательное поле" });
+            }
+
+            if (string.IsNullOrEmpty(request.TypeTour))
+            {
+                return BadRequest(new { message = $"Тип тура обязательное поле" });
+            }
+
+            if (request.Price <= 0)
+            {
+                return BadRequest(new { message = $"Цена тура обязательное поле и не может быть меньше или равна 0" });
+            }
+
+            if (string.IsNullOrEmpty(request.Details))
+            {
+                return BadRequest(new { message = $"Детали тура обязательное поле" });
+            }
+
+            if (string.IsNullOrEmpty(request.Description))
+            {
+                return BadRequest(new { message = $"Краткое описание обязательное поле" });
+            }
+
+            if (string.IsNullOrEmpty(request.Included))
+            {
+                return BadRequest(new { message = $"Что включено в тур обязательное поле" });
+            }
+
+            if (string.IsNullOrEmpty(request.Program))
+            {
+                return BadRequest(new { message = $"Программа тура обязательное поле" });
+            }
+
+            if (string.IsNullOrEmpty(request.Separately))
+            {
+                return BadRequest(new { message = $"Что оплачивается отдельно обязательное поле" });
+            }
+
+            var newTour = new ToursModel()
+            {
+                Name = request.NameTour,
+                Description = request.Description,
+                Details = request.Details,
+                Price = request.Price,
+                Program = request.Program,
+                Included = request.Included,
+                Separately = request.Separately,
+                ImageTour = request.ImageTour,
+                StartDot = request.StartDot.ToString(),
+                EndDot = request.EndDot.ToString(),
+                HotTour = request.HotTour,
+            };
+
+            await dbContext.AddAsync(newTour);
+            await dbContext.SaveChangesAsync();
+
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            loggerToursController.Error($"Внутренняя ошибка сервера: {ex.Message}");
+            return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
+        }
+    }
+
+    [HttpPut("update-tour")]
+    public async Task<IActionResult> UpdateTour(int userId, [FromBody] UpdateTourDto? request)
+    {
+        try
+        {
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = $"Такого пользователя нет" });
+            }
+
+            if (user.Role != "admin")
+            {
+                if (user.Role != "employee")
+                {
+                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
+                }
+            }
+
+            if (request == null)
+            {
+                return BadRequest(new { message = $"Данные пустые" });
+            }
+
+            var tour = await dbContext.Tours.FindAsync(request.Id);
+            if (tour == null)
+            {
+                return NotFound(new { message = $"Данного тура не существует" });
+            }
+
+            if (!string.IsNullOrEmpty(request.ImageTour))
+            {
+                tour.ImageTour = request.ImageTour;
+            }
+
+            if (!string.IsNullOrEmpty(request.Description))
+            {
+                tour.Description = request.Description;
+            }
+
+            if (!string.IsNullOrEmpty(request.Details))
+            {
+                tour.Details = request.Details;
+            }
+
+            if (!string.IsNullOrEmpty(request.Program))
+            {
+                tour.Program = request.Program;
+            }
+
+            if (!string.IsNullOrEmpty(request.Included))
+            {
+                tour.Included = request.Included;
+            }
+
+            if (!string.IsNullOrEmpty(request.Separately))
+            {
+                tour.Separately = request.Separately;
+            }
+
+            if (!string.IsNullOrEmpty(request.Details))
+            {
+                tour.Details = request.Details;
+            }
+
+            if (!string.IsNullOrEmpty(request.NameTour))
+            {
+                tour.Name = request.NameTour;
+            }
+
+            if (request.Price <= 0)
+            {
+                return BadRequest(new { message = $"Цена не может быть меньше или равна 0" });
+            }
+
+            tour.Price = request.Price;
+
+            if (request.HotTour != tour.HotTour)
+            {
+                tour.HotTour = request.HotTour;
+            }
+
+            if (request.StartDot.ToString() != tour.StartDot)
+            {
+                tour.StartDot = request.StartDot.ToString();
+            }
+
+            if (request.EndDot.ToString() != tour.EndDot)
+            {
+                tour.EndDot = request.EndDot.ToString();
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            loggerToursController.Error($"Внутренняя ошибка сервера: {ex.Message}");
+            return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
+        }
+    }
+
+    [HttpDelete("delete-tour")]
+    public async Task<IActionResult> DeleteTour(int tourId, int userId)
+    {
+        try
+        {
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = $"Такого пользователя нет" });
+            }
+
+            if (user.Role != "admin")
+            {
+                if (user.Role != "employee")
+                {
+                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
+                }
+            }
+
+            var tour = await dbContext.Tours.FindAsync(tourId);
+            if (tour == null)
+            {
+                return NotFound(new { message = $"Такого тура нет" });
+            }
+
+
+            dbContext.Tours.Remove(tour);
+            await dbContext.SaveChangesAsync();
+
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            loggerToursController.Error($"Внутренняя ошибка сервера: {ex.Message}");
+            return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
+        }
     }
 }
