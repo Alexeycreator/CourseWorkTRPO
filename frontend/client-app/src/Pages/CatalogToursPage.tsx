@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
-import { getTours, Tour } from "../Services/ToursApi";
+import { getMainTours, ToursDto } from "../Services/ToursApi";
 import NavBar from "../Components/NavBar";
+import { PLACEHOLDERS, isValidImagePath } from "../Components/OptimizedImage";
 
 const CatalogToursPage = () => {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [toursData, setToursData] = useState<Tour[]>([]);
-  const [filteredTours, setFilteredTours] = useState<Tour[]>([]);
+  const [toursData, setToursData] = useState<ToursDto[]>([]);
+  const [filteredTours, setFilteredTours] = useState<ToursDto[]>([]);
   const [loadingTour, setLoadingTour] = useState(true);
   const [errorTour, setErrorTour] = useState<string | null>(null);
 
@@ -18,7 +19,7 @@ const CatalogToursPage = () => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
 
-  // Функция для расчета количества дней
+  // Функция для расчета количества дней (если countNights не пришел с сервера)
   const calculateNights = (startDate: string, endDate: string): number => {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -28,8 +29,8 @@ const CatalogToursPage = () => {
   };
 
   // функция расчета цены в зависимости от курса
-  const calculatePrice = (tourPrice: number, currencyRate: number): string => {
-    const totalPrice = tourPrice / currencyRate;
+  const calculatePrice = (tourPrice: number | null | undefined, currencyRate: number): string => {
+    const totalPrice = (tourPrice || 0) / currencyRate;
     return Intl.NumberFormat('ru-RU', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -50,7 +51,7 @@ const CatalogToursPage = () => {
   const fetchTours = async () => {
     try {
       setLoadingTour(true);
-      const tours = await getTours();
+      const tours = await getMainTours();
       console.log("Загруженные туры: ", tours);
       setToursData(tours);
       setFilteredTours(tours);
@@ -71,21 +72,17 @@ const CatalogToursPage = () => {
     if (searchQuery && searchQuery.trim().length > 0) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(tour => {
-        // Проверяем все возможные поля тура
+        // Проверяем все возможные поля тура из ToursDto
         const searchableFields = [
-          tour.name,
+          tour.nameTour,
           tour.startDot,
           tour.endDot,
           tour.type,
-          tour.description,
-          tour.details,
-          tour.included,
-          tour.separately,
-          tour.program
+          tour.details
         ].filter(field => field && typeof field === 'string');
-        
-        return searchableFields.some(field => 
-          field.toLowerCase().includes(query)
+
+        return searchableFields.some(field =>
+          field?.toLowerCase().includes(query)
         );
       });
     }
@@ -120,6 +117,13 @@ const CatalogToursPage = () => {
   // Обработчик изменения поискового запроса
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
+  };
+
+  const isValidImagePath = (path: string | null | undefined): boolean => {
+    if (!path || path === 'null' || path === 'undefined' || path === 'test' || path === '') return false;
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+    const lowerPath = path.toLowerCase();
+    return validExtensions.some(ext => lowerPath.endsWith(ext));
   };
 
   if (loadingTour) {
@@ -313,38 +317,22 @@ const CatalogToursPage = () => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                {tour.hotTour && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: '10px',
-                    background: '#B76E3C',
-                    color: '#FFF8F0',
-                    padding: '5px 15px',
-                    borderRadius: '25px',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    zIndex: 2
-                  }}>
-                    🔥 Горящий
-                  </div>
-                )}
-
                 <img
-                  src={`${API_URL}/${tour.imageTour}`}
-                  alt={tour.name}
+                  src={isValidImagePath(tour.imageTour) ? `${API_URL}/${tour.imageTour}` : PLACEHOLDERS.tour}
+                  alt={tour.nameTour || 'Тур'}
                   style={{
                     width: '100%',
                     height: '200px',
                     objectFit: 'cover',
                     borderBottom: '2px solid #D2B48C'
-                  }} 
+                  }}
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=No+Image';
+                    (e.target as HTMLImageElement).src = PLACEHOLDERS.tour;
+                    (e.target as HTMLImageElement).onerror = null; // Предотвращаем зацикливание
                   }}
                 />
 
-                {/* ИЗМЕНЕНИЕ: card-body теперь flex-контейнер, занимает всё доступное пространство */}
+                {/* card-body теперь flex-контейнер, занимает всё доступное пространство */}
                 <div className="card-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h3 style={{
@@ -353,7 +341,7 @@ const CatalogToursPage = () => {
                       fontSize: '22px',
                       fontFamily: "'Cormorant Garamond', serif"
                     }}>
-                      {tour.name}
+                      {tour.nameTour}
                     </h3>
                   </div>
 
@@ -378,11 +366,11 @@ const CatalogToursPage = () => {
                       </span>
                     </div>
                     <span style={{ color: '#B76E3C', fontSize: '14px' }}>
-                      {calculateNights(tour.startDot, tour.endDot)} ночей
+                      {tour.countNights || (tour.startDot && tour.endDot ? calculateNights(tour.startDot, tour.endDot) : 0)} ночей
                     </span>
                   </div>
 
-                  {/* ИЗМЕНЕНИЕ: контейнер кнопки прижат к низу с помощью marginTop: 'auto' */}
+                  {/* контейнер кнопки прижат к низу с помощью marginTop: 'auto' */}
                   <div className="d-flex gap-2" style={{ marginTop: 'auto' }}>
                     <Link to={`/catalog/tour/${tour.id}`} style={{ flex: 1, textDecoration: 'none' }}>
                       <button
