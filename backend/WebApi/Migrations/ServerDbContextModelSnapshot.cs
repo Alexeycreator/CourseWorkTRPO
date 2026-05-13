@@ -17,7 +17,7 @@ namespace WebApi.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.12")
+                .HasAnnotation("ProductVersion", "8.0.27")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -218,7 +218,7 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("AddressId")
+                    b.Property<int>("AddressId")
                         .HasColumnType("int")
                         .HasColumnName("AddressId");
 
@@ -477,15 +477,15 @@ namespace WebApi.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("AddressesId")
+                    b.Property<int>("AddressesId")
                         .HasColumnType("int")
                         .HasColumnName("AddressesId");
 
-                    b.Property<int?>("HotelsId")
+                    b.Property<int>("HotelsId")
                         .HasColumnType("int")
                         .HasColumnName("HotelsId");
 
-                    b.Property<int?>("ToursId")
+                    b.Property<int>("ToursId")
                         .HasColumnType("int")
                         .HasColumnName("ToursId");
 
@@ -711,7 +711,8 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.AddressesModel", "Address")
                         .WithMany("Hotels")
                         .HasForeignKey("AddressId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
 
                     b.HasOne("WebApi.Models.ModelsDataBase.HotelRoomsModel", "HotelRoom")
                         .WithMany("Hotels")
@@ -752,17 +753,20 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.AddressesModel", "Address")
                         .WithMany()
                         .HasForeignKey("AddressesId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
 
                     b.HasOne("WebApi.Models.ModelsDataBase.HotelsModel", "Hotel")
                         .WithMany("ToursHotels")
                         .HasForeignKey("HotelsId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
 
                     b.HasOne("WebApi.Models.ModelsDataBase.ToursModel", "Tour")
                         .WithMany("ToursHotels")
                         .HasForeignKey("ToursId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .IsRequired();
 
                     b.Navigation("Address");
 

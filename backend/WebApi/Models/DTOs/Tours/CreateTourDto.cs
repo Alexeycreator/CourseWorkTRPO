@@ -14,4 +14,5 @@ public class CreateTourDto
     public string Included { get; set; }
     public string Separately { get; set; }
     public string ImageTour { get; set; }
+    public int HotelsId { get; set; }
 }

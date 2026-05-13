@@ -433,6 +433,24 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
             await dbContext.AddAsync(newTour);
             await dbContext.SaveChangesAsync();
 
+            var hotel = await dbContext.Hotels.FindAsync(request.HotelsId);
+            if (hotel != null)
+            {
+                var newTourHotelAddress = new Tours_Hotels_AddressesModel()
+                {
+                    ToursId = newTour.Id,
+                    HotelsId = hotel.Id,
+                    AddressesId = hotel.AddressId,
+                };
+
+                await dbContext.AddAsync(newTourHotelAddress);
+                await dbContext.SaveChangesAsync();
+            }
+            else
+            {
+                return NotFound(new { message = $"Информация об отеле не найдена" });
+            }
+
             return Ok();
         }
         catch (Exception ex)
@@ -534,6 +552,21 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
                 tour.EndDot = request.EndDot.ToString();
             }
 
+            var tourHotelAddress = await dbContext.ToursHotelsAddresses.ToListAsync();
+            if (tourHotelAddress.Count > 0)
+            {
+                var hotel = await dbContext.Hotels.FindAsync(request.HotelsId);
+                if (hotel != null)
+                {
+                    foreach (var tha in tourHotelAddress.Where(
+                                 tha => tha.ToursId == tour.Id && tha.HotelsId != request.HotelsId))
+                    {
+                        tha.HotelsId = hotel.Id;
+                        tha.AddressesId = hotel.AddressId;
+                    }
+                }
+            }
+
             await dbContext.SaveChangesAsync();
 
             return Ok();
@@ -546,7 +579,7 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
     }
 
     [HttpDelete("delete-tour")]
-    public async Task<IActionResult> DeleteTour(int tourId, int userId)
+    public async Task<IActionResult> DeleteTour(int tourId, int hotelId, int userId)
     {
         try
         {
@@ -570,8 +603,16 @@ public sealed class ToursController(ServerDbContext dbContext) : ControllerBase
                 return NotFound(new { message = $"Такого тура нет" });
             }
 
+            var tourHotelAddress =
+                await dbContext.ToursHotelsAddresses.FirstOrDefaultAsync(tha =>
+                    tha.ToursId == tourId && tha.HotelsId == hotelId);
 
             dbContext.Tours.Remove(tour);
+            if (tourHotelAddress != null)
+            {
+                dbContext.ToursHotelsAddresses.Remove(tourHotelAddress);
+            }
+
             await dbContext.SaveChangesAsync();
 
             return Ok();
