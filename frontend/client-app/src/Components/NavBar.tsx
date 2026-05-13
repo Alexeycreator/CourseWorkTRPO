@@ -21,7 +21,7 @@ interface NavBarState {
   loading: boolean;
   error: string | null;
   user: UserData | null;
-  isNavbarCollapsed: boolean; // добавлено для управления мобильным меню
+  isNavbarCollapsed: boolean;
 
   // Форма авторизации
   authForm: {
@@ -61,7 +61,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     loading: true,
     error: null,
     showUserMenu: false,
-    isNavbarCollapsed: false, // инициализация
+    isNavbarCollapsed: false,
   };
 
   componentDidMount() {
@@ -90,7 +90,6 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
   };
 
   handleResize = () => {
-    // При ширине окна больше 992px (desktop) мобильное меню должно быть закрыто
     if (window.innerWidth >= 992) {
       this.setState({ isNavbarCollapsed: false });
     }
@@ -150,20 +149,6 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
     this.setState({ selectedCurrency: currencyCode, showCurrencyMenu: false });
     if (this.props.onCurrencyChange && rate) {
       this.props.onCurrencyChange(currencyCode, rate);
-    } else if (this.props.onCurrencyChange) {
-      this.fetchAndSendRate(currencyCode);
-    }
-  };
-
-  fetchAndSendRate = async (currencyCode: string) => {
-    try {
-      const response = await fetch(`/api/currency/rate?code=${currencyCode}`);
-      const data = await response.json();
-      if (this.props.onCurrencyChange) {
-        this.props.onCurrencyChange(currencyCode, data.rate);
-      }
-    } catch (error) {
-      console.error('Ошибка получения курса валюты:', error);
     }
   };
 
@@ -399,7 +384,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
                 </li>
               </ul>
 
-              {/* Селектор валюты (правый край, внизу под кнопкой) */}
+              {/* Селектор валюты */}
               <div ref={this.menuRef} style={{ position: 'relative', marginRight: '10px', flexShrink: 0 }}>
                 <button
                   onClick={this.toggleCurrencyMenu}
@@ -566,7 +551,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
           </div>
         </nav>
 
-        {/* Модальное окно регистрации (вынесено в отдельный компонент) */}
+        {/* Модальное окно регистрации */}
         <RegistrationModal
           isOpen={showRegistrationModal}
           onClose={() => {
