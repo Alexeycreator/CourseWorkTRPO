@@ -684,7 +684,7 @@ namespace WebApi.Migrations
                     b.HasOne("WebApi.Models.ModelsDataBase.PassportsModel", "Passport")
                         .WithMany("Addresses")
                         .HasForeignKey("PassportId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Passport");
                 });

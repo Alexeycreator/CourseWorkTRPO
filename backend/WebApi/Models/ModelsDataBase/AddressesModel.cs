@@ -23,7 +23,7 @@ public sealed class AddressesModel
     [ForeignKey("Passport")]
     public int? PassportId { get; set; }
 
-    [DeleteBehavior(DeleteBehavior.Restrict)]
+    [DeleteBehavior(DeleteBehavior.SetNull)]
     [JsonIgnore]
     public PassportsModel? Passport { get; set; }
 
