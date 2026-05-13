@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
-import { getTours, Tour } from "../Services/ToursApi";
+import { getMainTours, ToursDto } from "../Services/ToursApi";
+import { PLACEHOLDERS, isValidImagePath } from "../Components/OptimizedImage";
 import './MainPage.css';
 
 const MainPage = () => {
     const navigate = useNavigate();
-    const [tours, setTours] = useState<Tour[]>([]);
+    const [tours, setTours] = useState<ToursDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +22,8 @@ const MainPage = () => {
     };
 
     // Форматирование цены (рубли, без конвертации)
-    const formatPrice = (price: number): string => {
+    const formatPrice = (price: number | null | undefined): string => {
+        if (price === null || price === undefined) return '0';
         return Intl.NumberFormat('ru-RU', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
@@ -29,11 +31,21 @@ const MainPage = () => {
     };
 
     // Загрузка туров из API
+    // В MainPage.tsx, после получения туров, отфильтруйте или исправьте imageTour
+
     const fetchTours = async () => {
         try {
             setLoading(true);
-            const data = await getTours();
-            setTours(data);
+            const data = await getMainTours();
+
+            // Фильтруем и исправляем imageTour
+            const validTours = data.map(tour => ({
+                ...tour,
+                // Если imageTour невалидный - устанавливаем null
+                imageTour: isValidImagePath(tour.imageTour) ? tour.imageTour : null
+            }));
+
+            setTours(validTours);
             setError(null);
         } catch (err) {
             console.error("Ошибка загрузки туров:", err);
@@ -55,7 +67,7 @@ const MainPage = () => {
         navigate('/hot-tours');
     };
 
-    // Приглушённые цвета (оставляем без изменений)
+    // Приглушённые цвета
     const silkDunesBackground = {
         background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
         position: 'relative' as const,
@@ -132,8 +144,8 @@ const MainPage = () => {
         letterSpacing: '0.5px'
     };
 
-    // Компонент карточки тура (как в CatalogToursPage)
-    const TourCard = ({ tour }: { tour: Tour }) => (
+    // Компонент карточки тура (обновлен для ToursDto)
+    const TourCard = ({ tour }: { tour: ToursDto }) => (
         <div
             className="egypt-card"
             style={{
@@ -157,25 +169,9 @@ const MainPage = () => {
                 e.currentTarget.style.boxShadow = 'none';
             }}
         >
-            {tour.hotTour && (
-                <div style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: '10px',
-                    background: '#B76E3C',
-                    color: '#FFF8F0',
-                    padding: '5px 15px',
-                    borderRadius: '25px',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    zIndex: 2
-                }}>
-                    🔥 Горящий
-                </div>
-            )}
             <img
-                src={`${API_URL}/${tour.imageTour}`}
-                alt={tour.name}
+                src={isValidImagePath(tour.imageTour) ? `${API_URL}/${tour.imageTour}` : PLACEHOLDERS.tour}
+                alt={tour.nameTour || 'Тур'}
                 style={{
                     width: '100%',
                     height: '200px',
@@ -183,7 +179,8 @@ const MainPage = () => {
                     borderBottom: '2px solid #D2B48C'
                 }}
                 onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=No+Image';
+                    (e.target as HTMLImageElement).src = PLACEHOLDERS.tour;
+                    (e.target as HTMLImageElement).onerror = null;
                 }}
             />
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -193,7 +190,7 @@ const MainPage = () => {
                     fontSize: '22px',
                     fontFamily: "'Cormorant Garamond', serif"
                 }}>
-                    {tour.name}
+                    {tour.nameTour}
                 </h3>
                 <p style={{ color: '#8B5A2B', fontSize: '14px', marginBottom: '10px' }}>
                     {tour.details}
@@ -217,7 +214,7 @@ const MainPage = () => {
                         </span>
                     </div>
                     <span style={{ color: '#B76E3C', fontSize: '14px' }}>
-                        {calculateNights(tour.startDot, tour.endDot)} ночей
+                        {tour.countNights || (tour.startDot && tour.endDot ? calculateNights(tour.startDot, tour.endDot) : 0)} ночей
                     </span>
                 </div>
                 <button
@@ -269,7 +266,7 @@ const MainPage = () => {
             {/* Основной контент */}
             <div style={{ position: 'relative', zIndex: 2, flex: '1 0 auto' }}>
                 <main>
-                    {/* Hero секция с анимацией (без изменений) */}
+                    {/* Hero секция с анимацией */}
                     <section className="hero" style={heroSectionStyle}>
                         <div className="egypt-animation-container">
                             <div className="sun"></div>
@@ -308,7 +305,7 @@ const MainPage = () => {
                         </div>
                     </section>
 
-                    {/* Почему выбирают нас (без изменений) */}
+                    {/* Почему выбирают нас */}
                     <section className="advantages" style={{ padding: '60px 20px', maxWidth: '1200px', margin: '0 auto' }}>
                         <h2 style={{ textAlign: 'center', fontSize: '36px', marginBottom: '40px', color: '#8B5A2B', fontFamily: "'Cormorant Garamond', serif" }}>
                             𓊹 Почему выбирают нас?
@@ -376,7 +373,7 @@ const MainPage = () => {
                         )}
                     </section>
 
-                    {/* Отзывы (без изменений) */}
+                    {/* Отзывы */}
                     <section className="reviews" style={{ padding: '60px 20px', maxWidth: '1200px', margin: '0 auto' }}>
                         <h2 style={{ textAlign: 'center', fontSize: '36px', marginBottom: '40px', color: '#8B5A2B', fontFamily: "'Cormorant Garamond', serif" }}>
                             𓋴 Отзывы путешественников
@@ -397,7 +394,7 @@ const MainPage = () => {
                         </div>
                     </section>
 
-                    {/* Подписка (без изменений) */}
+                    {/* Подписка */}
                     <section className="newsletter" style={{ padding: '60px 20px', margin: '40px 0', background: 'linear-gradient(135deg, #C0A080, #8B5A2B)', color: '#F5F0E5', textAlign: 'center' }}>
                         <div style={{ maxWidth: '500px', margin: '0 auto' }}>
                             <h2 style={{ fontSize: '32px', marginBottom: '15px' }}>𓂀 Рассылка</h2>
