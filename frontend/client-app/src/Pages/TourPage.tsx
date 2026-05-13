@@ -2,15 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../Contexts/AuthContext';
-import { getTourById, Tour } from '../Services/ToursApi';
-import { getTicketById, Ticket } from '../Services/TicketsApi';
+import { getCurrentMainTour, CurrentTourDto } from '../Services/ToursApi';
 import { getTransferById, Transfer } from '../Services/TransfersApi';
 import NavBar from '../Components/NavBar';
 import { Address, getAddressById } from '../Services/AddressApi';
-import { getClientById } from '../Services/UsersApi';
-import { getPassportById, Passport } from '../Services/PassportApi';
+import { clientApi, UserResponse } from '../Services/IndexAuth';
+import { Passport } from '../Services/PassportApi';
 import TicketPayment from '../TicketPayment';
-import { Hotel } from '../Services/HotelsApi';
+import { HotelMainInfoDto } from '../Services/HotelsApi';
+import { PLACEHOLDERS, isValidImagePath } from "../Components/OptimizedImage";
 
 const TourPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -21,7 +21,7 @@ const TourPage = () => {
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState('');
 
-    const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
+    const [selectedTour, setSelectedTour] = useState<CurrentTourDto | null>(null);
     const [selectedTourTransfer, setSelectedTourTransfer] = useState<Transfer | null>(null);
     const [errorTour, setErrorTour] = useState<string | null>(null);
 
@@ -36,26 +36,32 @@ const TourPage = () => {
 
     // Состояния для модального окна оплаты
     const [showPayment, setShowPayment] = useState(false);
-    const [clientData, setClientData] = useState<any>(null);
+    const [clientData, setClientData] = useState<UserResponse | null>(null);
     const [passportData, setPassportData] = useState<Passport | null>(null);
     const [addressData, setAddressData] = useState<Address | null>(null);
 
-    // Новое состояние для отеля
-    const [hotel, setHotel] = useState<Hotel | null>(null);
+    // Состояние для отеля
+    const [hotel, setHotel] = useState<HotelMainInfoDto | null>(null);
+
+    // TourPage.tsx - ОБНОВЛЕННЫЙ БЛОК ЗАГРУЗКИ ОТЕЛЕЙ
+
+    // В методе fetchTour, замените блок загрузки отелей на:
 
     const fetchTour = async () => {
         try {
             setLoading(true);
             if (id) {
-                const tourData = await getTourById(Number(id));
+                const tourData = await getCurrentMainTour(Number(id));
                 let transferData = null;
                 let addressData = null;
 
-                if (tourData.transfers_Id) {
-                    transferData = await getTransferById(Number(tourData.transfers_Id));
-                }
-                if (tourData.id) {
-                    addressData = await getAddressById(tourData.id);
+                // Получаем адрес тура (если есть)
+                if (tourData.addresses && tourData.addresses.length > 0) {
+                    try {
+                        addressData = await getAddressById(tourData.addresses[0].id);
+                    } catch (addrErr) {
+                        console.warn('Адрес не найден:', addrErr);
+                    }
                 }
 
                 setSelectedTour(tourData);
@@ -63,18 +69,27 @@ const TourPage = () => {
                 setSelectedTourTransfer(transferData);
                 setErrorTour(null);
 
-                // --- ЗАГРУЗКА ОТЕЛЯ, если есть билет ---
-                if (tourData.tickets_Id) {
+                // ===== ИСПРАВЛЕННАЯ ЗАГРУЗКА ОТЕЛЕЙ =====
+                // API возвращает отели в поле hotels (массив HotelMainInfoDto)
+                if (tourData.hotels && tourData.hotels.length > 0) {
+                    // Отель уже содержит нужную информацию
+                    setHotel(tourData.hotels[0]);
+                } else {
+                    // Если отели не пришли в tourData, пробуем загрузить через отдельный запрос
                     try {
-                        const allHotelsResponse = await axios.get<Hotel[]>(`${API_URL}/api/Hotels`);
-                        const foundHotel = allHotelsResponse.data.find(h => h.tickets_Id === tourData.tickets_Id);
-                        setHotel(foundHotel || null);
+                        const hotelsResponse = await fetch(`http://localhost:5050/api/Hotels/get-current-hotel-info?tourId=${tourData.id}`, {
+                            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                        });
+                        if (hotelsResponse.ok) {
+                            const hotelsData = await hotelsResponse.json();
+                            if (hotelsData && hotelsData.length > 0) {
+                                setHotel(hotelsData[0]);
+                            }
+                        }
                     } catch (hotelErr) {
-                        console.error('Не удалось загрузить отели:', hotelErr);
+                        console.warn('Отель не найден через отдельный запрос:', hotelErr);
                         setHotel(null);
                     }
-                } else {
-                    setHotel(null);
                 }
             }
         } catch (err: any) {
@@ -92,11 +107,45 @@ const TourPage = () => {
     const fetchClientData = async () => {
         if (!user?.id) return;
         try {
-            const client = await getClientById(Number(user.id));
+            const client = await clientApi.getById(Number(user.id));
             setClientData(client);
-            if (client.passport_Id) {
-                const passport = await getPassportById(client.passport_Id);
-                setPassportData(passport);
+
+            // Получаем паспорт через прямой GET запрос
+            try {
+                const passportInfoResponse = await fetch(`http://localhost:5050/api/Passports/get-info-passport?userId=${user.id}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+
+                if (passportInfoResponse.ok) {
+                    const passportInfo = await passportInfoResponse.json();
+                    if (passportInfo) {
+                        const passport: Passport = {
+                            id: passportInfo.id,
+                            seria: passportInfo.seria,
+                            number: passportInfo.number,
+                            type: passportInfo.type,
+                            issuedBy: passportInfo.issuedBy,
+                            departmentCode: passportInfo.departmentCode,
+                            dateOfIssue: passportInfo.dateOfIssue
+                        };
+                        setPassportData(passport);
+
+                        if (passportInfo.address) {
+                            const address: Address = {
+                                id: passportInfo.address.id,
+                                country: passportInfo.address.country || '',
+                                region: passportInfo.address.region || '',
+                                city: passportInfo.address.city || '',
+                                street: passportInfo.address.street || '',
+                                house: passportInfo.address.house || '',
+                                apartment: passportInfo.address.apartment
+                            };
+                            setAddressData(address);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.log('Паспорт не найден:', err);
             }
         } catch (error) {
             console.error('Ошибка загрузки данных клиента:', error);
@@ -118,17 +167,16 @@ const TourPage = () => {
 
     useEffect(() => {
         if (location.state && (location.state as any).openBooking) {
-
             const timer = setTimeout(() => {
                 setShowPayment(true);
-
                 window.history.replaceState({}, document.title);
             }, 300);
             return () => clearTimeout(timer);
         }
     }, [location]);
 
-    const calculateNights = (startDate: string, endDate: string): number => {
+    const calculateNights = (startDate: string | null | undefined, endDate: string | null | undefined): number => {
+        if (!startDate || !endDate) return 0;
         const start = new Date(startDate);
         const end = new Date(endDate);
         const diffTime = Math.abs(end.getTime() - start.getTime());
@@ -136,8 +184,8 @@ const TourPage = () => {
         return diffDays;
     };
 
-    const calculatePrice = (tourPrice: number, currencyRate: number): string => {
-        const totalPrice = tourPrice / currencyRate;
+    const calculatePrice = (tourPrice: number | null | undefined, currencyRate: number): string => {
+        const totalPrice = (tourPrice || 0) / currencyRate;
         return Intl.NumberFormat('ru-RU', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
@@ -273,7 +321,7 @@ const TourPage = () => {
                     <span>/</span>
                     <Link to="/catalog" style={{ color: '#B76E3C', textDecoration: 'none' }}>Каталог</Link>
                     <span>/</span>
-                    <span>{selectedTour.name}</span>
+                    <span>{selectedTour.nameTour || 'Тур'}</span>
                 </div>
 
                 {/* Основной контент */}
@@ -301,15 +349,12 @@ const TourPage = () => {
                                 color: '#8B5A2B',
                                 marginBottom: '5px'
                             }}>
-                                {selectedTour.name}
+                                {selectedTour.nameTour}
                             </h1>
                             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                <span style={{ color: '#B76E3C' }}>📍 {addressTour?.country}, {addressTour?.city}</span>
+                                <span style={{ color: '#B76E3C' }}>📍 {addressTour?.country || 'Страна не указана'}, {addressTour?.city || 'Город не указан'}</span>
                                 <span style={{ color: '#B76E3C' }}>•</span>
                                 <span style={{ color: '#B76E3C' }}>🏷️ {selectedTour.type}</span>
-                                {selectedTour.hotTour && (
-                                    <span style={{ background: '#B76E3C', color: '#FFF8F0', padding: '4px 12px', borderRadius: '20px', fontSize: '12px' }}>🔥 Горящий тур</span>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -328,15 +373,16 @@ const TourPage = () => {
                             justifyContent: 'center'
                         }}>
                             <img
-                                src={`${API_URL}/${selectedTour.imageTour}`}
-                                alt={selectedTour.name}
+                                src={selectedTour.imageTour && isValidImagePath(selectedTour.imageTour) ? `${API_URL}/${selectedTour.imageTour}` : PLACEHOLDERS.tour}
+                                alt={selectedTour.nameTour || 'Тур'}
                                 style={{
                                     maxWidth: '100%',
                                     maxHeight: '100%',
                                     objectFit: 'contain'
                                 }}
                                 onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x400?text=No+Image';
+                                    (e.target as HTMLImageElement).src = PLACEHOLDERS.tour;
+                                    (e.target as HTMLImageElement).onerror = null;
                                 }}
                             />
                         </div>
@@ -389,10 +435,10 @@ const TourPage = () => {
                                         alignItems: 'center',
                                         flexWrap: 'wrap'
                                     }}>
-                                        {hotel.imageHotel && (
+                                        {hotel && hotel.imageHotel && (
                                             <img
-                                                src={`${API_URL}/${hotel.imageHotel}`}
-                                                alt={hotel.name}
+                                                src={isValidImagePath(hotel.imageHotel) ? `${API_URL}/${hotel.imageHotel}` : PLACEHOLDERS.hotel}
+                                                alt={hotel.name || 'Отель'}
                                                 style={{
                                                     width: '120px',
                                                     height: '120px',
@@ -401,7 +447,8 @@ const TourPage = () => {
                                                     border: '2px solid #D2B48C'
                                                 }}
                                                 onError={(e) => {
-                                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/120x120?text=Hotel';
+                                                    (e.target as HTMLImageElement).src = PLACEHOLDERS.hotel;
+                                                    (e.target as HTMLImageElement).onerror = null;
                                                 }}
                                             />
                                         )}
@@ -416,17 +463,17 @@ const TourPage = () => {
                                             </h3>
                                             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px' }}>
                                                 <span style={{ color: '#B76E3C' }}>
-                                                    {'★'.repeat(hotel.stars)}{'☆'.repeat(5 - hotel.stars)}
+                                                    {'★'.repeat(hotel.stars || 0)}{'☆'.repeat(5 - (hotel.stars || 0))}
                                                 </span>
                                                 <span style={{ color: '#B76E3C' }}>•</span>
-                                                <span style={{ color: '#B76E3C' }}>⏱ {hotel.timeOfStay} дней</span>
+                                                <span style={{ color: '#B76E3C' }}>⏱ {hotel.countNight || 0} дней</span>
                                             </div>
-                                            {hotel.details && (
+                                            {hotel.description && (
                                                 <p style={{ color: '#5A3E2B', fontSize: '14px', marginBottom: '12px' }}>
-                                                    {hotel.details}
+                                                    {hotel.description}
                                                 </p>
                                             )}
-                                            <Link to={`/hotel/${hotel.id}`} style={{ textDecoration: 'none' }}>
+                                            <Link to={`/hotel/${hotel.id}?tourId=${selectedTour?.id}`} style={{ textDecoration: 'none' }}>
                                                 <button style={{
                                                     padding: '8px 20px',
                                                     background: '#C0A080',
@@ -460,8 +507,8 @@ const TourPage = () => {
                                         ✅ В стоимость включено
                                     </h2>
                                     <ul style={{ color: '#5A3E2B', lineHeight: '1.8' }}>
-                                        {selectedTour.included.split('.').filter(item => item.trim() !== '').map((item, index) => (
-                                            <li key={index} style={{ marginBottom: '8px' }}>✓ {item.trim()}.</li>
+                                        {selectedTour.included.split('\n').filter(item => item.trim() !== '').map((item, index) => (
+                                            <li key={index} style={{ marginBottom: '8px' }}>✓ {item.trim()}</li>
                                         ))}
                                     </ul>
                                 </section>
@@ -480,8 +527,8 @@ const TourPage = () => {
                                         ❌ Дополнительно оплачивается
                                     </h2>
                                     <ul style={{ color: '#5A3E2B', lineHeight: '1.8' }}>
-                                        {selectedTour.separately.split('.').filter(item => item.trim() !== '').map((item, index) => (
-                                            <li key={index} style={{ marginBottom: '8px' }}>✗ {item.trim()}.</li>
+                                        {selectedTour.separately.split('\n').filter(item => item.trim() !== '').map((item, index) => (
+                                            <li key={index} style={{ marginBottom: '8px' }}>✗ {item.trim()}</li>
                                         ))}
                                     </ul>
                                 </section>
@@ -500,7 +547,7 @@ const TourPage = () => {
                                         📅 Программа тура
                                     </h2>
                                     <ul style={{ color: '#5A3E2B', lineHeight: '1.8' }}>
-                                        {selectedTour.program.split(';').filter(item => item.trim() !== '').map((item, index) => (
+                                        {selectedTour.program.split('\n').filter(item => item.trim() !== '').map((item, index) => (
                                             <li key={index} style={{ marginBottom: '8px' }}>{item.trim()}</li>
                                         ))}
                                     </ul>
@@ -534,10 +581,10 @@ const TourPage = () => {
                                         fontWeight: '700',
                                         color: '#8B5A2B'
                                     }}>
-                                        {calculatePrice(Number(selectedTour.price), currentRate)} {signCurrency}
+                                        {calculatePrice(selectedTour.price, currentRate)} {signCurrency}
                                     </span>
                                     <div style={{ color: '#B76E3C', fontSize: '14px', marginTop: '5px' }}>
-                                        за {calculateNights(selectedTour.startDot, selectedTour.endDot)} ночей
+                                        за {selectedTour.countNights || (selectedTour.startDot && selectedTour.endDot ? calculateNights(selectedTour.startDot, selectedTour.endDot) : 0)} ночей
                                     </div>
                                 </div>
 
@@ -559,7 +606,11 @@ const TourPage = () => {
                                         }}
                                     >
                                         <option value="">Выберите дату</option>
-                                        <option value={selectedTour.startDot}>{new Date(selectedTour.startDot).toLocaleDateString('ru-RU')}</option>
+                                        {selectedTour.startDot && (
+                                            <option value={selectedTour.startDot}>
+                                                {new Date(selectedTour.startDot).toLocaleDateString('ru-RU')}
+                                            </option>
+                                        )}
                                     </select>
                                 </div>
 
@@ -571,22 +622,16 @@ const TourPage = () => {
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ color: '#8B5A2B' }}>✈️ Вылет из:</span>
-                                        <span style={{ color: '#B76E3C' }}>{selectedTour.startDot}</span>
+                                        <span style={{ color: '#B76E3C' }}>{selectedTour.startDot || '—'}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ color: '#8B5A2B' }}>📍 Назначение:</span>
-                                        <span style={{ color: '#B76E3C' }}>{selectedTour.endDot}</span>
+                                        <span style={{ color: '#B76E3C' }}>{selectedTour.endDot || '—'}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ color: '#8B5A2B' }}>🌙 Ночей:</span>
-                                        <span style={{ color: '#B76E3C' }}>{calculateNights(selectedTour.startDot, selectedTour.endDot)}</span>
+                                        <span style={{ color: '#B76E3C' }}>{selectedTour.countNights || calculateNights(selectedTour.startDot, selectedTour.endDot)}</span>
                                     </div>
-                                    {selectedTourTransfer && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <span style={{ color: '#8B5A2B' }}>🚌 Трансфер:</span>
-                                            <span style={{ color: '#B76E3C' }}>{selectedTourTransfer.name}</span>
-                                        </div>
-                                    )}
                                 </div>
 
                                 <button
@@ -641,7 +686,22 @@ const TourPage = () => {
                 isOpen={showPayment}
                 onClose={() => setShowPayment(false)}
                 onSubmit={handleSubmitBooking}
-                tour={selectedTour}
+                tour={selectedTour ? {
+                    id: selectedTour.id,
+                    name: selectedTour.nameTour || '',
+                    nameTour: selectedTour.nameTour || '',
+                    startDot: selectedTour.startDot || '',
+                    endDot: selectedTour.endDot || '',
+                    details: selectedTour.details || '',
+                    imageTour: selectedTour.imageTour || '',
+                    description: selectedTour.description || '',
+                    separately: selectedTour.separately || '',
+                    included: selectedTour.included || '',
+                    program: selectedTour.program || '',
+                    type: selectedTour.type || '',
+                    typeTour: selectedTour.type || '',
+                    price: selectedTour.price || 0
+                } : null}
                 clientData={clientData}
                 passportData={passportData}
                 addressData={addressData}
