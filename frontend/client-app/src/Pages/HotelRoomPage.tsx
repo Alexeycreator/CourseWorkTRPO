@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { getTours } from '../Services/ToursApi';
+import { getMainTours } from '../Services/ToursApi';
 import NavBar from '../Components/NavBar';
+import { PLACEHOLDERS, getSafeImageUrl } from '../Components/OptimizedImage';
+import { useAuth } from '../Contexts/AuthContext';
 
-// Интерфейсы
 interface Hotel {
     id: number;
     name: string;
     stars: number;
-    timeOfStay: number;
+    timeOfStay?: number | null;
     imageHotel: string;
     details: string | null;
-    address_Id?: number | null;
-    tickets_Id?: number | null;
-    hotelRooms_Id?: number | null;
+    addressId?: number | null;
+    ticketsId?: number | null;
+    hotelRoomsId?: number | null;
 }
 
 interface Address {
@@ -33,48 +34,62 @@ interface HotelRoom {
     details: string | null;
     floor: number;
     imageRoom: string | null;
+    typeRoom?: string;
 }
 
 const HotelRoomPage = () => {
     const { hotelId, roomId } = useParams<{ hotelId: string; roomId: string }>();
+    const location = useLocation();
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
+    
+    // Получаем tourId из query параметров
+    const queryParams = new URLSearchParams(location.search);
+    const tourIdFromQuery = queryParams.get('tourId');
+    
     const [hotel, setHotel] = useState<Hotel | null>(null);
     const [room, setRoom] = useState<HotelRoom | null>(null);
     const [address, setAddress] = useState<Address | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [associatedTourId, setAssociatedTourId] = useState<number | null>(null);
+    const [associatedTourId, setAssociatedTourId] = useState<number | null>(tourIdFromQuery ? Number(tourIdFromQuery) : null);
 
     useEffect(() => {
         const fetchData = async () => {
             if (!hotelId || !roomId) return;
             try {
                 setLoading(true);
-                // Загружаем отель
+                
                 const hotelResponse = await axios.get<Hotel>(`${API_URL}/api/Hotels/${hotelId}`);
                 const hotelData = hotelResponse.data;
                 setHotel(hotelData);
 
-                // Загружаем номер
                 const roomResponse = await axios.get<HotelRoom>(`${API_URL}/api/HotelRooms/${roomId}`);
                 setRoom(roomResponse.data);
 
-                // Загружаем адрес отеля (если есть)
-                const addressId = (hotelData as any).address_Id ?? (hotelData as any).Address_Id;
+                const addressId = (hotelData as any).addressId ?? (hotelData as any).AddressId;
                 if (addressId) {
-                    const addressResponse = await axios.get<Address>(`${API_URL}/api/Addresses/${addressId}`);
-                    setAddress(addressResponse.data);
+                    try {
+                        const addressResponse = await axios.get<Address>(`${API_URL}/api/Addresses/${addressId}`);
+                        setAddress(addressResponse.data);
+                    } catch (addrErr) {
+                        console.warn('Адрес не найден:', addrErr);
+                    }
                 }
 
-                // Ищем тур, связанный с этим отелем через tickets_Id
-                if (hotelData.tickets_Id) {
-                    const allTours = await getTours();
-                    const foundTour = allTours.find(tour => tour.tickets_Id === hotelData.tickets_Id);
-                    if (foundTour) {
-                        setAssociatedTourId(foundTour.id);
-                    } else {
-                        console.log('Тур для этого отеля не найден');
+                if (!associatedTourId) {
+                    const ticketsId = (hotelData as any).ticketsId ?? (hotelData as any).TicketsId;
+                    if (ticketsId) {
+                        try {
+                            const allTours = await getMainTours();
+                            const foundTour = allTours.find(tour => tour.id === ticketsId);
+                            if (foundTour) {
+                                setAssociatedTourId(foundTour.id);
+                            }
+                        } catch (tourErr) {
+                            console.warn('Ошибка поиска тура:', tourErr);
+                        }
                     }
                 }
 
@@ -89,11 +104,29 @@ const HotelRoomPage = () => {
         fetchData();
     }, [hotelId, roomId, API_URL]);
 
+    // ГЛАВНАЯ ФУНКЦИЯ: переход на тур и открытие окна бронирования
     const handleBookClick = () => {
+       
         if (associatedTourId) {
-            navigate(`/catalog/tour/${associatedTourId}`, { state: { openBooking: true } });
+            // Передаем state с openBooking: true для открытия TicketPayment
+            navigate(`/catalog/tour/${associatedTourId}`, { 
+                state: { openBooking: true }
+            });
         } else {
-            alert('Не удалось найти тур, связанный с этим отелем. Пожалуйста, выберите тур в каталоге.');
+            const confirm = window.confirm(
+                'Не удалось найти связанный тур. Перейти в каталог для выбора тура?'
+            );
+            if (confirm) {
+                navigate('/catalog');
+            }
+        }
+    };
+
+    const handleBackToHotel = () => {
+        if (associatedTourId) {
+            navigate(`/hotel/${hotelId}?tourId=${associatedTourId}`);
+        } else {
+            navigate(`/hotel/${hotelId}`);
         }
     };
 
@@ -104,11 +137,10 @@ const HotelRoomPage = () => {
                 minHeight: '100vh',
                 display: 'flex',
                 justifyContent: 'center',
-                alignItems: 'center',
-                paddingTop: '70px'
+                alignItems: 'center'
             }}>
                 <NavBar />
-                <div style={{ textAlign: 'center' }}>
+                <div style={{ textAlign: 'center', marginTop: '100px' }}>
                     <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}>🐪</div>
                     <style>{`
                         @keyframes pulse {
@@ -127,9 +159,7 @@ const HotelRoomPage = () => {
         return (
             <div style={{
                 background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
-                minHeight: '100vh',
-                padding: '20px',
-                paddingTop: '70px'
+                minHeight: '100vh'
             }}>
                 <NavBar />
                 <div style={{
@@ -165,18 +195,23 @@ const HotelRoomPage = () => {
     return (
         <div style={{
             background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
-            minHeight: '100vh',
-            padding: '20px',
-            paddingTop: '70px'
+            minHeight: '100vh'
         }}>
             <NavBar />
 
-            {/* Фоновые иероглифы */}
             <div style={{ position: 'fixed', top: '10%', left: '2%', fontSize: '40px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>
             <div style={{ position: 'fixed', bottom: '10%', right: '3%', fontSize: '50px', opacity: 0.05, pointerEvents: 'none' }}>𓊹</div>
 
-            <div style={{ maxWidth: '1200px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-                {/* Хлебные крошки */}
+            <div style={{ 
+                maxWidth: '1200px', 
+                margin: '0 auto', 
+                position: 'relative', 
+                zIndex: 2,
+                paddingTop: '90px',
+                paddingRight: '20px',
+                paddingBottom: '40px',
+                paddingLeft: '20px'
+            }}>
                 <div style={{
                     display: 'flex',
                     gap: '10px',
@@ -189,7 +224,17 @@ const HotelRoomPage = () => {
                     <span>/</span>
                     <Link to="/catalog" style={{ color: '#B76E3C', textDecoration: 'none' }}>Каталог</Link>
                     <span>/</span>
-                    <Link to={`/hotel/${hotel.id}`} style={{ color: '#B76E3C', textDecoration: 'none' }}>{hotel.name}</Link>
+                    {associatedTourId && (
+                        <>
+                            <Link to={`/catalog/tour/${associatedTourId}`} style={{ color: '#B76E3C', textDecoration: 'none' }}>
+                                Тур #{associatedTourId}
+                            </Link>
+                            <span>/</span>
+                        </>
+                    )}
+                    <Link to={`/hotel/${hotel.id}${associatedTourId ? `?tourId=${associatedTourId}` : ''}`} style={{ color: '#B76E3C', textDecoration: 'none' }}>
+                        {hotel.name}
+                    </Link>
                     <span>/</span>
                     <span>{room.nameRoom}</span>
                 </div>
@@ -202,7 +247,6 @@ const HotelRoomPage = () => {
                     boxShadow: '0 20px 40px rgba(139, 69, 19, 0.15)',
                     border: '2px solid #C0A080'
                 }}>
-                    {/* Заголовок */}
                     <h1 style={{
                         fontFamily: "'Cormorant Garamond', serif",
                         fontSize: '42px',
@@ -215,7 +259,6 @@ const HotelRoomPage = () => {
                         {hotel.name}, {address?.country || ''}, {address?.city || ''}
                     </p>
 
-                    {/* Галерея */}
                     <div style={{ marginBottom: '40px' }}>
                         <div style={{
                             width: '100%',
@@ -229,19 +272,18 @@ const HotelRoomPage = () => {
                             justifyContent: 'center'
                         }}>
                             <img
-                                src={`${API_URL}/${room.imageRoom}`}
+                                src={getSafeImageUrl(room.imageRoom, API_URL, 'room')}
                                 alt={room.nameRoom}
                                 style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                                 onError={(e) => {
-                                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x450?text=No+Image';
+                                    (e.target as HTMLImageElement).src = PLACEHOLDERS.room;
+                                    (e.target as HTMLImageElement).onerror = null;
                                 }}
                             />
                         </div>
                     </div>
 
-                    {/* Две колонки */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '40px' }}>
-                        {/* Левая колонка - описание */}
                         <div>
                             <section style={{ marginBottom: '30px' }}>
                                 <h2 style={{
@@ -273,11 +315,16 @@ const HotelRoomPage = () => {
                                         <span style={{ fontSize: '24px', color: '#B76E3C' }}>🏗️</span>
                                         <p style={{ color: '#8B5A2B', marginTop: '5px' }}>Этаж: {room.floor}</p>
                                     </div>
+                                    {room.typeRoom && (
+                                        <div style={{ background: '#FFF8F0', border: '1px solid #D2B48C', borderRadius: '15px', padding: '15px', textAlign: 'center' }}>
+                                            <span style={{ fontSize: '24px', color: '#B76E3C' }}>🏷️</span>
+                                            <p style={{ color: '#8B5A2B', marginTop: '5px' }}>{room.typeRoom}</p>
+                                        </div>
+                                    )}
                                 </div>
                             </section>
                         </div>
 
-                        {/* Правая колонка - бронирование (как на странице отеля) */}
                         <div>
                             <div style={{
                                 background: '#FFF8F0',
@@ -297,7 +344,10 @@ const HotelRoomPage = () => {
                                     Забронировать
                                 </h3>
                                 <p style={{ color: '#B76E3C', marginBottom: '15px' }}>
-                                    Нажмите, чтобы перейти к бронированию тура
+                                    {associatedTourId 
+                                        ? 'Нажмите, чтобы вернуться к туру и оформить бронирование'
+                                        : 'Выберите тур в каталоге'
+                                    }
                                 </p>
                                 <button
                                     onClick={handleBookClick}
@@ -315,23 +365,66 @@ const HotelRoomPage = () => {
                                     onMouseEnter={(e) => e.currentTarget.style.background = '#8B5A2B'}
                                     onMouseLeave={(e) => e.currentTarget.style.background = '#B76E3C'}
                                 >
-                                    Забронировать тур
+                                    {associatedTourId ? '📅 Забронировать тур' : '🎫 Выбрать тур →'}
                                 </button>
+                                {!associatedTourId && (
+                                    <p style={{ 
+                                        fontSize: '12px', 
+                                        color: '#B76E3C', 
+                                        marginTop: '10px',
+                                        fontStyle: 'italic'
+                                    }}>
+                                        ⚡ Нажмите, чтобы перейти в каталог
+                                    </p>
+                                )}
+                                {associatedTourId && (
+                                    <p style={{ 
+                                        fontSize: '12px', 
+                                        color: '#28a745', 
+                                        marginTop: '10px',
+                                        fontStyle: 'italic'
+                                    }}>
+                                        Нажмите для бронирования
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ textAlign: 'center', marginTop: '40px' }}>
-                        <Link to={`/hotel/${hotel.id}`}>
-                            <button style={{
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '40px' }}>
+                        <button
+                            onClick={handleBackToHotel}
+                            style={{
                                 padding: '12px 30px',
                                 background: 'transparent',
                                 color: '#8B5A2B',
                                 border: '2px solid #C0A080',
                                 borderRadius: '30px',
-                                cursor: 'pointer'
-                            }}>← Вернуться к отелю</button>
-                        </Link>
+                                cursor: 'pointer',
+                                transition: 'all 0.3s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(192, 160, 128, 0.1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                            ← Вернуться к отелю
+                        </button>
+                        
+                        {/* {associatedTourId && (
+                            <button
+                                onClick={handleBookClick}
+                                style={{
+                                    padding: '12px 30px',
+                                    background: '#C0A080',
+                                    color: '#FFF8F0',
+                                    border: '2px solid #8B5A2B',
+                                    borderRadius: '30px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#8B5A2B'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = '#C0A080'}>
+                                🐪 Забронировать →
+                            </button>
+                        )} */}
                     </div>
                 </div>
             </div>
