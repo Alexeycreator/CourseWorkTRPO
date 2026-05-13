@@ -67,6 +67,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
     ];
     const years = Array.from({ length: 100 }, (_, i) => (new Date().getFullYear() - i).toString());
 
+    // Сброс формы при закрытии
     useEffect(() => {
         if (!isOpen) {
             setForm(initialForm);
@@ -85,13 +86,17 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
         const today = new Date();
         let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) age--;
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
         return age;
     };
 
+    // Фильтрация ввода
     const filterLettersOnly = (value: string) => value.replace(/[^а-яА-Яa-zA-Z]/g, '');
     const filterLogin = (value: string) => value.replace(/[^a-zA-Z0-9_]/g, '');
 
+    // Форматирование телефона
     const formatPhone = (digits: string): string => {
         let cleaned = digits.replace(/\D/g, '');
         if (cleaned.length === 0) return '';
@@ -165,6 +170,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
         }
     };
 
+    // Валидация шага 1 (личные данные)
     const validateStep1 = (): boolean => {
         const errors: Record<string, string> = {};
 
@@ -195,7 +201,6 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
             errors.phone = 'Телефон должен содержать 11 цифр (с кодом страны 7)';
         }
 
-        // Подсветка отдельных полей даты
         let birthErrorMessage = '';
         let hasBirthError = false;
 
@@ -216,7 +221,6 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
             const age = calculateAge(birthDay, birthMonth, birthYear);
             if (age < 18) {
                 birthErrorMessage = 'Регистрация доступна только с 18 лет';
-                // при ошибке возраста подсвечиваем все три поля
                 errors.birthDayMissing = 'error';
                 errors.birthMonthMissing = 'error';
                 errors.birthYearMissing = 'error';
@@ -237,6 +241,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
         return Object.keys(errors).filter(k => !['birthDayMissing', 'birthMonthMissing', 'birthYearMissing'].includes(k)).length === 0;
     };
 
+    // Валидация шага 2 (логин и пароль)
     const validateStep2 = (): boolean => {
         const errors: Record<string, string> = {};
         const login = form.login || '';
@@ -281,36 +286,78 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
         setError(null);
 
         try {
+            // Форматирование телефона для сервера (как в Swagger - без +)
             let phoneForServer = form.phoneRaw;
-            if (phoneForServer.startsWith('7')) phoneForServer = '+' + phoneForServer;
-            else if (phoneForServer.startsWith('8')) phoneForServer = '+' + '7' + phoneForServer.slice(1);
-            else phoneForServer = '+7' + phoneForServer;
+            if (phoneForServer.startsWith('8')) phoneForServer = '7' + phoneForServer.slice(1);
+            if (!phoneForServer.startsWith('7')) phoneForServer = '7' + phoneForServer;
+            // Убираем все не цифры
+            phoneForServer = phoneForServer.replace(/\D/g, '');
+            // Обрезаем до 11 цифр
+            phoneForServer = phoneForServer.slice(0, 11);
 
+            // Форматирование даты рождения в ISO формат (YYYY-MM-DD)
+            const birthdayDate = `${form.birthYear}-${form.birthMonth.padStart(2, '0')}-${form.birthDay.padStart(2, '0')}`;
+
+            // Расчет возраста
+            const age = calculateAge(form.birthDay, form.birthMonth, form.birthYear);
+
+            // ВАЖНО: gender отправляем на русском, как в Swagger: "Мужской" или "Женский"
+            const genderValue = form.gender === 'male' ? 'Мужской' : 'Женский';
+
+            // ПОЛНЫЕ ДАННЫЕ - все поля из Swagger
             const registerData = {
                 surName: form.lastName,
                 firstName: form.firstName,
-                middleName: form.middleName,
-                phoneNumber: phoneForServer,
+                middleName: form.middleName || null,
+                gender: genderValue,
+                birthday: birthdayDate,
+                age: age,                    // ← ОБЯЗАТЕЛЬНОЕ ПОЛЕ!
+                phoneNumber: phoneForServer, // ← БЕЗ +, только цифры
                 email: form.email,
                 login: form.login,
                 password: form.password,
+                role: "user",               // ← ОБЯЗАТЕЛЬНОЕ ПОЛЕ
+                position: "Пользователь"     // ← ОБЯЗАТЕЛЬНОЕ ПОЛЕ
             };
 
+            console.log('Отправляем данные регистрации:', registerData);
+
+            // Регистрация
             await authApi.register(registerData);
+
+            // Автоматический вход после регистрации
             const loginResponse = await authApi.login({ login: form.login, password: form.password });
             const fullName = `${loginResponse.user.surName} ${loginResponse.user.firstName} ${loginResponse.user.middleName || ''}`.trim();
             setSuccessMessage(`Вы успешно зарегистрированы!\nДобро пожаловать, ${fullName}!`);
             setRegisteredUser(loginResponse.user);
             setShowSuccessModal(true);
+
         } catch (err: any) {
+            console.error('Ошибка регистрации:', err);
+
             if (err.response?.status === 409) {
                 const msg = err.response.data?.message || '';
                 if (msg.includes('логин')) setError('Пользователь с таким логином уже существует');
                 else if (msg.includes('email')) setError('Пользователь с таким email уже существует');
                 else if (msg.includes('телефон')) setError('Пользователь с таким телефоном уже существует');
                 else setError('Пользователь уже существует');
+            } else if (err.response?.status === 400) {
+                const errorData = err.response.data;
+                if (errorData?.message) {
+                    setError(errorData.message);
+                } else if (errorData?.errors) {
+                    const errorMessages = [];
+                    for (const [field, errors] of Object.entries(errorData.errors)) {
+                        errorMessages.push(`${field}: ${(errors as any[]).join(', ')}`);
+                    }
+                    setError(`Ошибка валидации: ${errorMessages.join('; ')}`);
+                } else {
+                    setError('Ошибка при регистрации. Проверьте правильность заполнения полей.');
+                }
+            } else if (err.request) {
+                setError('Сервер не отвечает. Проверьте подключение.');
             } else {
-                setError('Ошибка при регистрации. Попробуйте позже');
+                setError('Ошибка при регистрации. Попробуйте позже.');
             }
         } finally {
             setLoading(false);
@@ -668,10 +715,17 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
                                 </div>
                             </section>
                         ) : (
-                            // Шаг 2: Безопасность (без изменений)
+                            // Шаг 2: Безопасность
                             <>
                                 <section style={{ marginBottom: '30px' }}>
-                                    <h3 style={{ fontSize: '20px', color: '#8B5A2B', marginBottom: '20px', fontFamily: "'Cormorant Garamond', serif", borderBottom: '2px solid #D2B48C', paddingBottom: '10px' }}>
+                                    <h3 style={{
+                                        fontSize: '20px',
+                                        color: '#8B5A2B',
+                                        marginBottom: '20px',
+                                        fontFamily: "'Cormorant Garamond', serif",
+                                        borderBottom: '2px solid #D2B48C',
+                                        paddingBottom: '10px'
+                                    }}>
                                         🔐 Безопасность
                                     </h3>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
@@ -694,7 +748,9 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
                                                     fontSize: '15px',
                                                 }}
                                             />
-                                            <div style={{ fontSize: '12px', color: '#B76E3C', marginTop: '4px' }}>Пример: ivan_petrov (только латиница, цифры, символ - "_", обязательно хотя бы одна буква)</div>
+                                            <div style={{ fontSize: '12px', color: '#B76E3C', marginTop: '4px' }}>
+                                                Пример: ivan_petrov (только латиница, цифры, символ "_", обязательно хотя бы одна буква)
+                                            </div>
                                             {fieldErrors.login && <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '2px' }}>{fieldErrors.login}</div>}
                                         </div>
                                         <div style={{ gridColumn: 'span 2' }}>
@@ -767,7 +823,16 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
                                 </section>
 
                                 {error && (
-                                    <div style={{ marginBottom: '20px', padding: '12px', background: '#f8d7da', color: '#721c24', borderRadius: '10px', textAlign: 'center' }}>
+                                    <div style={{
+                                        marginBottom: '20px',
+                                        padding: '12px',
+                                        background: '#f8d7da',
+                                        color: '#721c24',
+                                        borderRadius: '10px',
+                                        textAlign: 'center',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word'
+                                    }}>
                                         {error}
                                     </div>
                                 )}
