@@ -67,6 +67,7 @@ export interface CreateTourDto {
     included: string;
     separately: string;
     imageTour: string;
+    hotelsId: number;
 }
 
 // DTO для обновления тура (наследуется от CreateTourDto)
@@ -207,9 +208,9 @@ export const updateTour = async (userId: number, request: UpdateTourDto): Promis
 };
 
 // DELETE - удаление тура
-export const deleteTour = async (tourId: number, userId: number): Promise<void> => {
+export const deleteTour = async (tourId: number, hotelId: number, userId: number): Promise<void> => {
     try {
-        await api.delete(`/Tours/delete-tour?tourId=${tourId}&userId=${userId}`);
+        await api.delete(`/Tours/delete-tour?tourId=${tourId}&hotelId=${hotelId}&userId=${userId}`);
     }
     catch (error: any) {
         if (error.response) {

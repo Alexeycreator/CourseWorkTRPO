@@ -21,7 +21,7 @@ public sealed class HotelsModel
 
     [Column("AddressId")]
     [ForeignKey("Address")]
-    public int? AddressId { get; set; }
+    public int AddressId { get; set; }
 
     [Column("TicketsId")]
     [ForeignKey("Ticket")]

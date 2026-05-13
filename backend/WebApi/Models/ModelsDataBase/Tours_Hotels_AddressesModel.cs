@@ -14,15 +14,15 @@ public sealed class Tours_Hotels_AddressesModel
 
     [Column("ToursId")]
     [ForeignKey("Tour")]
-    public int? ToursId { get; set; }
+    public int ToursId { get; set; }
     
     [Column("HotelsId")]
     [ForeignKey("Hotel")]
-    public int? HotelsId { get; set; }
+    public int HotelsId { get; set; }
     
     [Column("AddressesId")]
     [ForeignKey("Address")]
-    public int? AddressesId { get; set; }
+    public int AddressesId { get; set; }
     
     [DeleteBehavior(DeleteBehavior.SetNull)]
     [JsonIgnore]
