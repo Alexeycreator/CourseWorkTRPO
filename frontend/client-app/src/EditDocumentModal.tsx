@@ -128,7 +128,8 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
   };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, passportForm.type === 'internal' ? 6 : 9);
+    const maxLength = passportForm.type === 'internal' ? 6 : 9;
+    const value = e.target.value.replace(/\D/g, '').slice(0, maxLength);
     setPassportForm(prev => ({ ...prev, number: value }));
     if (passportErrors.number) {
       setPassportErrors(prev => { const newErrors = { ...prev }; delete newErrors.number; return newErrors; });
@@ -774,12 +775,14 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                 />
                 {(passportErrors as any).placeOfBirth && (
                   <div style={{
-                    color: '#8B0000',
+                    color: '#dc3545',
                     fontSize: '12px',
-                    marginTop: '5px',
-                    marginLeft: '5px'
+                    marginTop: '3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px'
                   }}>
-                    {(passportErrors as any).placeOfBirth}
+                    <span>⚠️</span> {(passportErrors as any).placeOfBirth}
                   </div>
                 )}
               </div>
