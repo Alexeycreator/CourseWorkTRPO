@@ -290,9 +290,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
             let phoneForServer = form.phoneRaw;
             if (phoneForServer.startsWith('8')) phoneForServer = '7' + phoneForServer.slice(1);
             if (!phoneForServer.startsWith('7')) phoneForServer = '7' + phoneForServer;
-            // Убираем все не цифры
             phoneForServer = phoneForServer.replace(/\D/g, '');
-            // Обрезаем до 11 цифр
             phoneForServer = phoneForServer.slice(0, 11);
 
             // Форматирование даты рождения в ISO формат (YYYY-MM-DD)
@@ -301,7 +299,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
             // Расчет возраста
             const age = calculateAge(form.birthDay, form.birthMonth, form.birthYear);
 
-            // ВАЖНО: gender отправляем на русском, как в Swagger: "Мужской" или "Женский"
+            // gender отправляем на русском, как в Swagger: "Мужской" или "Женский"
             const genderValue = form.gender === 'male' ? 'Мужской' : 'Женский';
 
             // ПОЛНЫЕ ДАННЫЕ - все поля из Swagger
@@ -311,16 +309,14 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
                 middleName: form.middleName || null,
                 gender: genderValue,
                 birthday: birthdayDate,
-                age: age,                    // ← ОБЯЗАТЕЛЬНОЕ ПОЛЕ!
-                phoneNumber: phoneForServer, // ← БЕЗ +, только цифры
+                age: age,
+                phoneNumber: phoneForServer,
                 email: form.email,
                 login: form.login,
                 password: form.password,
-                role: "user",               // ← ОБЯЗАТЕЛЬНОЕ ПОЛЕ
-                position: "Пользователь"     // ← ОБЯЗАТЕЛЬНОЕ ПОЛЕ
+                role: "user",
+                position: "Пользователь"
             };
-
-            console.log('Отправляем данные регистрации:', registerData);
 
             // Регистрация
             await authApi.register(registerData);
@@ -333,8 +329,6 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
             setShowSuccessModal(true);
 
         } catch (err: any) {
-            console.error('Ошибка регистрации:', err);
-
             if (err.response?.status === 409) {
                 const msg = err.response.data?.message || '';
                 if (msg.includes('логин')) setError('Пользователь с таким логином уже существует');
@@ -357,7 +351,7 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
             } else if (err.request) {
                 setError('Сервер не отвечает. Проверьте подключение.');
             } else {
-                setError('Ошибка при регистрации. Попробуйте позже.');
+                setError(err.serverMessage || err.message || 'Ошибка при регистрации. Попробуйте позже.');
             }
         } finally {
             setLoading(false);
