@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { getMainTours, ToursDto } from "../Services/ToursApi";
 import NavBar from "../Components/NavBar";
-import { PLACEHOLDERS, isValidImagePath } from "../Components/OptimizedImage";
+import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
+import Loader from "../Components/Loader";
 
 const CatalogToursPage = () => {
   const location = useLocation();
@@ -16,8 +17,6 @@ const CatalogToursPage = () => {
   const [selectedCurrency, setSelectedCurrency] = useState('RUB');
   const [currentRate, setCurrentRate] = useState(1);
   const [signCurrency, setSignCurrency] = useState('₽');
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
 
   // Функция для расчета количества дней (если countNights не пришел с сервера)
   const calculateNights = (startDate: string, endDate: string): number => {
@@ -38,7 +37,6 @@ const CatalogToursPage = () => {
   };
 
   const handleCurrencyChange = async (currency: string, rate: number) => {
-    console.log(`Валюта изменена на: ${currency}, курс: ${rate}`);
     switch (currency) {
       case "RUB": setSignCurrency('₽'); break;
       case "USD": setSignCurrency('$'); break;
@@ -52,13 +50,11 @@ const CatalogToursPage = () => {
     try {
       setLoadingTour(true);
       const tours = await getMainTours();
-      console.log("Загруженные туры: ", tours);
       setToursData(tours);
       setFilteredTours(tours);
       setErrorTour(null);
-    } catch (err) {
-      console.error("Ошибка загрузки туров: ", err);
-      setErrorTour("Не удалось загрузить туры");
+    } catch (err: any) {
+      setErrorTour(err.serverMessage || err.message || "Не удалось загрузить туры");
     } finally {
       setLoadingTour(false);
     }
@@ -119,37 +115,8 @@ const CatalogToursPage = () => {
     setSearchQuery(e.target.value);
   };
 
-  const isValidImagePath = (path: string | null | undefined): boolean => {
-    if (!path || path === 'null' || path === 'undefined' || path === 'test' || path === '') return false;
-    const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
-    const lowerPath = path.toLowerCase();
-    return validExtensions.some(ext => lowerPath.endsWith(ext));
-  };
-
   if (loadingTour) {
-    return (
-      <div style={{
-        background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
-        minHeight: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingTop: '70px'
-      }}>
-        <NavBar onCurrencyChange={handleCurrencyChange} />
-        <div style={{ textAlign: 'center', marginTop: '100px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}>🐪</div>
-          <style>{`
-            @keyframes pulse {
-              0% { opacity: 0.6; transform: scale(1); }
-              50% { opacity: 1; transform: scale(1.1); }
-              100% { opacity: 0.6; transform: scale(1); }
-            }
-          `}</style>
-          <h2 style={{ color: '#8B5A2B' }}>Загрузка туров...</h2>
-        </div>
-      </div>
-    );
+    return <Loader message="Загрузка туров..." fullScreen />;
   }
 
   if (errorTour) {
@@ -318,7 +285,7 @@ const CatalogToursPage = () => {
                 }}
               >
                 <img
-                  src={isValidImagePath(tour.imageTour) ? `${API_URL}/${tour.imageTour}` : PLACEHOLDERS.tour}
+                  src={getSafeImageUrl(tour.imageTour, 'tour')}
                   alt={tour.nameTour || 'Тур'}
                   style={{
                     width: '100%',
@@ -328,7 +295,7 @@ const CatalogToursPage = () => {
                   }}
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = PLACEHOLDERS.tour;
-                    (e.target as HTMLImageElement).onerror = null; // Предотвращаем зацикливание
+                    (e.target as HTMLImageElement).onerror = null;
                   }}
                 />
 
@@ -372,7 +339,7 @@ const CatalogToursPage = () => {
 
                   {/* контейнер кнопки прижат к низу с помощью marginTop: 'auto' */}
                   <div className="d-flex gap-2" style={{ marginTop: 'auto' }}>
-                    <Link to={`/catalog/tour/${tour.id}`} style={{ flex: 1, textDecoration: 'none' }}>
+                    <a href={`/catalog/tour/${tour.id}`} style={{ flex: 1, textDecoration: 'none' }}>
                       <button
                         style={{
                           width: '100%',
@@ -394,7 +361,7 @@ const CatalogToursPage = () => {
                       >
                         𓊹 Подробнее
                       </button>
-                    </Link>
+                    </a>
                   </div>
                 </div>
               </div>
