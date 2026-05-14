@@ -117,9 +117,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       const uniqueCurrencies = Array.from(new Set(currencies.map(c => c.letterCode).filter(c => selectedCurrencies.includes(c))));
       const sortedCurrencies = uniqueCurrencies.sort();
       this.setState({ currencyOptions: sortedCurrencies, loading: false });
-    } catch (err) {
-      console.error("Ошибка загрузки списка валют:", err);
-      this.setState({ error: "Не удалось загрузить список валют", loading: false });
+    } catch (err: any) {
+      this.setState({ error: err.serverMessage || err.message || "Не удалось загрузить список валют", loading: false });
     }
   };
 
@@ -134,8 +133,8 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
         ratesData: todayRates.map(r => ({ letterCode: r.letterCode, rate: r.rate })),
         loading: false,
       });
-    } catch (err) {
-      this.setState({ error: "Не удалось загрузить данные", loading: false });
+    } catch (err: any) {
+      this.setState({ error: err.serverMessage || err.message || "Не удалось загрузить данные", loading: false });
     }
   };
 
@@ -224,7 +223,7 @@ export default class NavBar extends Component<NavBarProps, NavBarState> {
       } else if (error.request) {
         this.setState({ authError: 'Сервер не отвечает. Проверьте подключение' });
       } else {
-        this.setState({ authError: 'Произошла ошибка. Попробуйте снова' });
+        this.setState({ authError: error.serverMessage || 'Произошла ошибка. Попробуйте снова' });
       }
     } finally {
       this.setState({ authLoading: false });
