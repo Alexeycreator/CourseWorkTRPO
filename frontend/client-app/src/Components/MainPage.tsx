@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import { getMainTours, ToursDto } from "../Services/ToursApi";
-import { PLACEHOLDERS, isValidImagePath } from "../Components/OptimizedImage";
+import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
+import Loader from "../Components/Loader";
 import './MainPage.css';
 
 const MainPage = () => {
@@ -10,9 +11,6 @@ const MainPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
-
-    // Функция расчёта количества ночей
     const calculateNights = (startDate: string, endDate: string): number => {
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -21,7 +19,6 @@ const MainPage = () => {
         return diffDays;
     };
 
-    // Форматирование цены (рубли, без конвертации)
     const formatPrice = (price: number | null | undefined): string => {
         if (price === null || price === undefined) return '0';
         return Intl.NumberFormat('ru-RU', {
@@ -30,26 +27,14 @@ const MainPage = () => {
         }).format(price);
     };
 
-    // Загрузка туров из API
-    // В MainPage.tsx, после получения туров, отфильтруйте или исправьте imageTour
-
     const fetchTours = async () => {
         try {
             setLoading(true);
             const data = await getMainTours();
-
-            // Фильтруем и исправляем imageTour
-            const validTours = data.map(tour => ({
-                ...tour,
-                // Если imageTour невалидный - устанавливаем null
-                imageTour: isValidImagePath(tour.imageTour) ? tour.imageTour : null
-            }));
-
-            setTours(validTours);
+            setTours(data);
             setError(null);
-        } catch (err) {
-            console.error("Ошибка загрузки туров:", err);
-            setError("Не удалось загрузить популярные направления");
+        } catch (err: any) {
+            setError(err.serverMessage || err.message || "Не удалось загрузить популярные направления");
         } finally {
             setLoading(false);
         }
@@ -67,7 +52,6 @@ const MainPage = () => {
         navigate('/hot-tours');
     };
 
-    // Приглушённые цвета
     const silkDunesBackground = {
         background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
         position: 'relative' as const,
@@ -144,7 +128,6 @@ const MainPage = () => {
         letterSpacing: '0.5px'
     };
 
-    // Компонент карточки тура (обновлен для ToursDto)
     const TourCard = ({ tour }: { tour: ToursDto }) => (
         <div
             className="egypt-card"
@@ -170,7 +153,7 @@ const MainPage = () => {
             }}
         >
             <img
-                src={isValidImagePath(tour.imageTour) ? `${API_URL}/${tour.imageTour}` : PLACEHOLDERS.tour}
+                src={getSafeImageUrl(tour.imageTour, 'tour')}
                 alt={tour.nameTour || 'Тур'}
                 style={{
                     width: '100%',
@@ -244,6 +227,10 @@ const MainPage = () => {
             </div>
         </div>
     );
+
+    if (loading) {
+        return <Loader message="Загрузка популярных направлений..." fullScreen />;
+    }
 
     return (
         <div style={{
@@ -334,20 +321,6 @@ const MainPage = () => {
                             𓊖 Популярные направления
                         </h2>
 
-                        {loading && (
-                            <div style={{ textAlign: 'center', padding: '40px' }}>
-                                <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}>🐪</div>
-                                <style>{`
-                                    @keyframes pulse {
-                                        0% { opacity: 0.6; transform: scale(1); }
-                                        50% { opacity: 1; transform: scale(1.1); }
-                                        100% { opacity: 0.6; transform: scale(1); }
-                                    }
-                                `}</style>
-                                <h3 style={{ color: '#8B5A2B' }}>Загрузка туров...</h3>
-                            </div>
-                        )}
-
                         {error && (
                             <div style={{ textAlign: 'center', padding: '40px', background: 'rgba(255, 248, 240, 0.9)', borderRadius: '30px', maxWidth: '500px', margin: '0 auto' }}>
                                 <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
@@ -356,7 +329,7 @@ const MainPage = () => {
                             </div>
                         )}
 
-                        {!loading && !error && (
+                        {!error && (
                             <div className="offers-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                                 {tours.slice(0, 3).map((tour) => (
                                     <TourCard key={tour.id} tour={tour} />
@@ -364,7 +337,7 @@ const MainPage = () => {
                             </div>
                         )}
 
-                        {!loading && !error && tours.length === 0 && (
+                        {!error && tours.length === 0 && (
                             <div style={{ textAlign: 'center', padding: '40px', color: '#8B5A2B' }}>
                                 <div style={{ fontSize: '60px', marginBottom: '20px' }}>🏜️</div>
                                 <h3>Нет доступных туров</h3>
