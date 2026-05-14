@@ -32,6 +32,11 @@ export interface Tickets {
     dateSale: Date;
 };
 
+export const getAllTickets = async (): Promise<Tickets[]> => {
+    const response = await api.get<Tickets[]>(`/Tickets`);
+    return response.data;
+};
+
 export const getTicketById = async (id: number): Promise<Tickets> => {
     try {
         const response = await api.get<Tickets>(`/Tickets/${id}`);

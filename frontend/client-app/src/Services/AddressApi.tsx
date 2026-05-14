@@ -1,5 +1,4 @@
 import axios from "axios";
-import { Passport } from "./PassportApi";
 
 const API_URL = "http://localhost:5050/api";
 
@@ -24,8 +23,6 @@ export interface Address {
     street: string;
     house: string;
     apartment?: number | null;
-    passport_Id?: number | null;
-    passport?: Passport | null;
 }
 
 // Получить все адреса

@@ -2,6 +2,7 @@
 import axios from "axios";
 import { Address } from './AddressApi';
 import { ResponseInfoAddressHotelOrRoomDto } from "./HotelsApi";
+import { get } from "http";
 
 const API_URL = "http://localhost:5050/api";
 
@@ -12,7 +13,7 @@ const api = axios.create({
     },
 });
 
-export interface Passport {
+export interface Passports {
     id: number;
     seria: number;
     number: number;
@@ -20,10 +21,6 @@ export interface Passport {
     issuedBy: string;
     departmentCode: string;
     dateOfIssue: string;
-    dateOfExpiry?: string; //загранпаспорт
-    gender?: string; // ДОБАВЛЕНО: Пол
-    placeOfBirth?: string; // ДОБАВЛЕНО: Место рождения
-    addresses?: Address[] | null;
 }
 
 export interface CreatePassportDto {
@@ -50,6 +47,11 @@ export interface ResponsePassportInfoDto {
     departmentCode: string;
     dateOfIssue: Date;
     address: ResponseInfoAddressHotelOrRoomDto;
+};
+
+export const getAllPassports = async (): Promise<Passports[]> => {
+    const response = await api.get<Passports[]>(`/Passports`);
+    return response.data;
 };
 
 export const createPassport = async (userId: number, request: CreatePassportDto): Promise<void> => {
