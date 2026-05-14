@@ -117,7 +117,7 @@ export const deletePassport = async (passportId: number, userId: number): Promis
 
 export const getInfoPassport = async (userId: number): Promise<ResponsePassportInfoDto> => {
     try {
-        const response = await api.get<ResponsePassportInfoDto>(`/Passports/delete-passport?userId=${userId}`);
+        const response = await api.get<ResponsePassportInfoDto>(`/Passports/get-info-passport?userId=${userId}`);
         return response.data
     }
     catch (error: any) {
