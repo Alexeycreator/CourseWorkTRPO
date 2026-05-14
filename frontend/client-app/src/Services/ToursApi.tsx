@@ -75,6 +75,29 @@ export interface UpdateTourDto extends CreateTourDto {
     id: number;
 }
 
+export interface Tours {
+    id: number;
+    name: string;
+    startDot: string;
+    endDot: string;
+    details: string;
+    imageTour: string;
+    description: string;
+    separately: string;
+    included: string;
+    program: string;
+    type: string;
+    hotTour: boolean;
+    price: number;
+    ticketsId?: number | null;
+    transfersId?: number | null;
+};
+
+export const getAllTours = async (): Promise<Tours[]> => {
+    const response = await api.get<Tours[]>(`/Tours`);
+    return response.data;
+};
+
 // каждый метод соответствует методам контроллера на сервере
 export const getMainTours = async (): Promise<ToursDto[]> => {
     try {

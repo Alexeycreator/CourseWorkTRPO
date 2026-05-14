@@ -1,5 +1,4 @@
 import axios from "axios";
-//import { CurrencyRatesTicket } from "./CurrencyRates_TicketsApi";
 
 const API_URL = "http://localhost:5050/api";
 
@@ -18,7 +17,6 @@ export interface CurrencyRate {
     currency: string;
     rate: number;
     dateReceipt: string;
-    //currencyRatesTickets?: CurrencyRatesTicket[] ;
 }
 
 // Получить все курсы валют

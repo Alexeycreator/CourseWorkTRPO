@@ -12,6 +12,15 @@ const api = axios.create({
     },
 });
 
+export interface HotelRooms {
+    id: number;
+    nameRoom: string;
+    details: string;
+    floor: number;
+    imageRoom: string;
+    typeRoom: string;
+};
+
 export interface ResponseCurrentInfoHotelRoomDto {
     id: number;
     nameRoom?: string | null;
@@ -32,6 +41,28 @@ export interface CreateHotelRoomsDto {
 
 export interface UpdateHotelRoomsDto extends CreateHotelRoomsDto {
     id: number;
+};
+
+export const getAllHotelRooms = async (): Promise<HotelRooms[]> => {
+    try {
+        const response = await api.get<HotelRooms[]>(`/HotelRooms`);
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
 };
 
 export const getCurrentInfoHotelRoom = async (hotelRoomId: number): Promise<ResponseCurrentInfoHotelRoomDto> => {

@@ -59,6 +59,23 @@ export interface ResponseHotelDto extends HotelMainInfoDto {
     mainInfo?: ResponseMainInfoHotelRooms[] | null;
 }
 
+export interface Hotels {
+    id: number;
+    name: string;
+    stars: number;
+    timeOfStay: string;
+    imageHotel: string;
+    details: string;
+    addressId?: number | null;
+    ticketsId?: number | null;
+    hotelRoomsId?: number | null;
+};
+
+export const getAllHotels = async (): Promise<Hotels[]> => {
+    const response = await api.get<Hotels[]>(`/Hotels`);
+    return response.data;
+};
+
 export const createHotel = async (userId: number, request: CreateHotelDto): Promise<void> => {
     try {
         await api.post(`/Hotels/create-hotel?userId=${userId}`, request);
