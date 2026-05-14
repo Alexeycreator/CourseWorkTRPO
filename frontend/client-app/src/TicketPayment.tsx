@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserResponse } from './Services/IndexAuth';
 import { Passport } from './Services/PassportApi';
 import { Address } from './Services/AddressApi';
-import { ToursDto } from './Services/ToursApi';
+import { createTicket } from './Services/TicketsApi';
 
 // Расширенный интерфейс для тура с поддержкой разных типов
 interface ExtendedTour {
@@ -38,9 +38,7 @@ interface TicketPaymentProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (ticketData: TicketData) => Promise<void>;
-    tour?: ToursDto | ExtendedTour | null;
-    hotel?: any;
-    room?: any;
+    tour?: ExtendedTour | null;
     clientData?: UserResponse | null;
     passportData?: Passport | null;
     addressData?: Address | null;
@@ -60,8 +58,6 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
     onClose,
     onSubmit,
     tour,
-    hotel,
-    room,
     clientData,
     passportData,
     addressData,
@@ -89,8 +85,6 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showLoading, setShowLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
-
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
 
     useEffect(() => {
         if (isOpen && clientData && passportData) {
@@ -219,19 +213,12 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
             if ('nameTour' in tour && tour.nameTour) return tour.nameTour;
             if ('name' in tour && tour.name) return tour.name;
         }
-        if (hotel?.name) return hotel.name;
         return 'Бронирование';
     };
 
     // Безопасное получение ID тура
     const getTourId = (): number => {
         if (tour && 'id' in tour && tour.id) return tour.id;
-        return 0;
-    };
-
-    // Безопасное получение цены тура
-    const getTourPrice = (): number => {
-        if (tour && 'price' in tour && tour.price) return tour.price;
         return 0;
     };
 
@@ -265,68 +252,21 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
         setIsSubmitting(true);
 
         try {
-            let ticketId = null;
+            if (!clientData?.id) {
+                throw new Error('Данные клиента не загружены');
+            }
 
-            // 1. Создаем билет
-            const ticketData = {
+            // Создаем билет через API
+            await createTicket(clientData.id, {
                 price: convertedPrice,
-                departureTime: new Date(departureDate).toISOString(),
-                arrivalTime: new Date(arrivalDate).toISOString(),
-                dateSale: new Date().toISOString(),
+                departureTime: new Date(departureDate),
+                arrivalTime: new Date(arrivalDate),
+                dateSale: new Date(),
                 hotelRoomsId: 1,
                 tourId: getTourId()
-            };
-
-            console.log('Создание билета:', ticketData);
-
-            const ticketResponse = await fetch(`${API_URL}/api/Tickets/create-ticket?userId=${clientData?.id}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify(ticketData)
             });
 
-            if (!ticketResponse.ok) {
-                const errorText = await ticketResponse.text();
-                console.error('Ошибка создания билета:', errorText);
-                throw new Error('Ошибка создания билета');
-            }
-
-            // 2. Получаем ID созданного билета
-            const allTicketsResponse = await fetch(`${API_URL}/api/Tickets`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            
-            if (!allTicketsResponse.ok) {
-                throw new Error('Ошибка получения списка билетов');
-            }
-            
-            const allTickets = await allTicketsResponse.json();
-            const newTicket = allTickets[allTickets.length - 1];
-            ticketId = newTicket.id;
-            console.log('Создан билет с ID:', ticketId);
-
-            // 3. Обновляем пользователя - добавляем ticketsId
-            const updateUserResponse = await fetch(`${API_URL}/api/Users/${clientData?.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({
-                    ticketsId: ticketId
-                })
-            });
-
-            if (!updateUserResponse.ok) {
-                console.error('Ошибка обновления пользователя');
-            } else {
-                console.log('Пользователь обновлен, ticketsId:', ticketId);
-            }
-
-            // 4. Вызываем onSubmit
+            // Вызываем onSubmit для дополнительной логики
             await onSubmit({
                 price: convertedPrice,
                 departureTime: new Date(departureDate),
@@ -343,11 +283,10 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
                 setShowSuccess(true);
             }, 2000);
 
-        } catch (error) {
-            console.error('Ошибка при оформлении тура:', error);
+        } catch (error: any) {
             setErrors(prev => ({
                 ...prev,
-                submit: 'Ошибка при оформлении тура. Пожалуйста, попробуйте позже.'
+                submit: error.serverMessage || error.message || 'Ошибка при оформлении тура. Пожалуйста, попробуйте позже.'
             }));
         } finally {
             setIsSubmitting(false);
@@ -483,7 +422,7 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
                                 </div>
                             </div>
 
-                            {/* Остальные секции формы остаются без изменений */}
+                            {/* Личные данные */}
                             <div style={{
                                 background: '#FFF8F0',
                                 borderRadius: '20px',
@@ -539,6 +478,7 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
                                 </div>
                             </div>
 
+                            {/* Паспортные данные */}
                             <div style={{
                                 background: '#FFF8F0',
                                 borderRadius: '20px',
@@ -590,6 +530,7 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
                                 </div>
                             </div>
 
+                            {/* Контактные данные */}
                             <div style={{
                                 background: '#FFF8F0',
                                 borderRadius: '20px',
@@ -623,6 +564,7 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
                                 </div>
                             </div>
 
+                            {/* Даты поездки */}
                             <div style={{
                                 background: '#FFF8F0',
                                 borderRadius: '20px',

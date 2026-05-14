@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { getMainTours } from '../Services/ToursApi';
+import { getAllHotels } from '../Services/HotelsApi';
+import { getCurrentInfoHotelRoom } from '../Services/HotelRoomsApi';
+import { getAddressById } from '../Services/AddressApi';
 import NavBar from '../Components/NavBar';
-import { PLACEHOLDERS, getSafeImageUrl } from '../Components/OptimizedImage';
+import { getSafeImageUrl, PLACEHOLDERS } from '../Components/OptimizedImage';
+import Loader from '../Components/Loader';
 import { useAuth } from '../Contexts/AuthContext';
 
-interface Hotel {
+interface ExtendedHotel {
     id: number;
     name: string;
     stars: number;
-    timeOfStay?: number | null;
-    imageHotel: string;
-    details: string | null;
+    imageHotel?: string | null;
+    description?: string | null;
     addressId?: number | null;
     ticketsId?: number | null;
     hotelRoomsId?: number | null;
+    timeOfStay?: number | null;
+    details?: string | null;
 }
 
 interface Address {
@@ -35,6 +39,7 @@ interface HotelRoom {
     floor: number;
     imageRoom: string | null;
     typeRoom?: string;
+    description?: string | null;
 }
 
 const HotelRoomPage = () => {
@@ -42,13 +47,11 @@ const HotelRoomPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
-    
-    // Получаем tourId из query параметров
+
     const queryParams = new URLSearchParams(location.search);
     const tourIdFromQuery = queryParams.get('tourId');
-    
-    const [hotel, setHotel] = useState<Hotel | null>(null);
+
+    const [hotel, setHotel] = useState<ExtendedHotel | null>(null);
     const [room, setRoom] = useState<HotelRoom | null>(null);
     const [address, setAddress] = useState<Address | null>(null);
     const [loading, setLoading] = useState(true);
@@ -60,55 +63,58 @@ const HotelRoomPage = () => {
             if (!hotelId || !roomId) return;
             try {
                 setLoading(true);
+                setError(null);
+
+                // Получаем ВСЕ отели через существующий метод
+                const allHotels = await getAllHotels();
+                const foundHotel = allHotels.find(h => h.id === Number(hotelId));
                 
-                const hotelResponse = await axios.get<Hotel>(`${API_URL}/api/Hotels/${hotelId}`);
-                const hotelData = hotelResponse.data;
-                setHotel(hotelData);
+                if (!foundHotel) {
+                    throw new Error('Отель не найден');
+                }
+                setHotel(foundHotel as ExtendedHotel);
 
-                const roomResponse = await axios.get<HotelRoom>(`${API_URL}/api/HotelRooms/${roomId}`);
-                setRoom(roomResponse.data);
+                // Получаем комнату через существующий метод
+                const roomData = await getCurrentInfoHotelRoom(Number(roomId));
+                if (!roomData) {
+                    throw new Error('Номер не найден');
+                }
+                setRoom(roomData as HotelRoom);
 
-                const addressId = (hotelData as any).addressId ?? (hotelData as any).AddressId;
+                // Получаем адрес, если есть (используем существующий метод)
+                const addressId = (foundHotel as any).addressId ?? (foundHotel as any).AddressId;
                 if (addressId) {
                     try {
-                        const addressResponse = await axios.get<Address>(`${API_URL}/api/Addresses/${addressId}`);
-                        setAddress(addressResponse.data);
-                    } catch (addrErr) {
-                        console.warn('Адрес не найден:', addrErr);
+                        const addressData = await getAddressById(addressId);
+                        setAddress(addressData);
+                    } catch (err) {
+                        // Тихая обработка
                     }
                 }
 
-                if (!associatedTourId) {
-                    const ticketsId = (hotelData as any).ticketsId ?? (hotelData as any).TicketsId;
-                    if (ticketsId) {
-                        try {
-                            const allTours = await getMainTours();
-                            const foundTour = allTours.find(tour => tour.id === ticketsId);
-                            if (foundTour) {
-                                setAssociatedTourId(foundTour.id);
-                            }
-                        } catch (tourErr) {
-                            console.warn('Ошибка поиска тура:', tourErr);
+                // Если tourId не передан, пытаемся найти связанный тур
+                if (!associatedTourId && (foundHotel as any).ticketsId) {
+                    try {
+                        const allTours = await getMainTours();
+                        const foundTour = allTours.find(tour => tour.id === (foundHotel as any).ticketsId);
+                        if (foundTour) {
+                            setAssociatedTourId(foundTour.id);
                         }
+                    } catch (tourErr) {
+                        // Тихая обработка
                     }
                 }
-
-                setError(null);
-            } catch (err) {
-                console.error('Ошибка загрузки данных:', err);
-                setError('Не удалось загрузить информацию о номере');
+            } catch (err: any) {
+                setError(err.serverMessage || err.message || 'Не удалось загрузить информацию о номере');
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, [hotelId, roomId, API_URL]);
+    }, [hotelId, roomId]);
 
-    // ГЛАВНАЯ ФУНКЦИЯ: переход на тур и открытие окна бронирования
     const handleBookClick = () => {
-       
         if (associatedTourId) {
-            // Передаем state с openBooking: true для открытия TicketPayment
             navigate(`/catalog/tour/${associatedTourId}`, { 
                 state: { openBooking: true }
             });
@@ -131,28 +137,7 @@ const HotelRoomPage = () => {
     };
 
     if (loading) {
-        return (
-            <div style={{
-                background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
-                minHeight: '100vh',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-            }}>
-                <NavBar />
-                <div style={{ textAlign: 'center', marginTop: '100px' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}>🐪</div>
-                    <style>{`
-                        @keyframes pulse {
-                            0% { opacity: 0.6; transform: scale(1); }
-                            50% { opacity: 1; transform: scale(1.1); }
-                            100% { opacity: 0.6; transform: scale(1); }
-                        }
-                    `}</style>
-                    <h2 style={{ color: '#8B5A2B' }}>Загрузка номера...</h2>
-                </div>
-            </div>
-        );
+        return <Loader message="Загрузка номера..." fullScreen />;
     }
 
     if (error || !hotel || !room) {
@@ -272,7 +257,7 @@ const HotelRoomPage = () => {
                             justifyContent: 'center'
                         }}>
                             <img
-                                src={getSafeImageUrl(room.imageRoom, API_URL, 'room')}
+                                src={getSafeImageUrl(room.imageRoom, 'room')}
                                 alt={room.nameRoom}
                                 style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                                 onError={(e) => {
@@ -294,7 +279,7 @@ const HotelRoomPage = () => {
                                     marginBottom: '15px'
                                 }}>📝 Описание номера</h2>
                                 <p style={{ fontSize: '16px', lineHeight: '1.8', color: '#5A3E2B' }}>
-                                    {room.details || 'Описание отсутствует'}
+                                    {room.description || room.details || 'Описание отсутствует'}
                                 </p>
                             </section>
 
@@ -384,7 +369,7 @@ const HotelRoomPage = () => {
                                         marginTop: '10px',
                                         fontStyle: 'italic'
                                     }}>
-                                        Нажмите для бронирования
+                                        ✅ Нажмите для бронирования
                                     </p>
                                 )}
                             </div>
@@ -407,24 +392,6 @@ const HotelRoomPage = () => {
                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                             ← Вернуться к отелю
                         </button>
-                        
-                        {/* {associatedTourId && (
-                            <button
-                                onClick={handleBookClick}
-                                style={{
-                                    padding: '12px 30px',
-                                    background: '#C0A080',
-                                    color: '#FFF8F0',
-                                    border: '2px solid #8B5A2B',
-                                    borderRadius: '30px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#8B5A2B'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = '#C0A080'}>
-                                🐪 Забронировать →
-                            </button>
-                        )} */}
                     </div>
                 </div>
             </div>

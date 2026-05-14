@@ -1,28 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../Contexts/AuthContext';
 import { getCurrentMainTour, CurrentTourDto } from '../Services/ToursApi';
-import { getTransferById, Transfer } from '../Services/TransfersApi';
+import { getCurrentHotelInfo } from '../Services/HotelsApi';
 import NavBar from '../Components/NavBar';
 import { Address, getAddressById } from '../Services/AddressApi';
 import { clientApi, UserResponse } from '../Services/IndexAuth';
-import { Passport } from '../Services/PassportApi';
+import { Passport, getInfoPassport } from '../Services/PassportApi';
 import TicketPayment from '../TicketPayment';
 import { HotelMainInfoDto } from '../Services/HotelsApi';
-import { PLACEHOLDERS, isValidImagePath } from "../Components/OptimizedImage";
+import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
+import Loader from "../Components/Loader";
+import { createTicket } from "../Services/TicketsApi";
+
+// Интерфейс для location.state
+interface LocationState {
+    openBooking?: boolean;
+}
 
 const TourPage = () => {
     const { id } = useParams<{ id: string }>();
     const location = useLocation();
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState('');
 
     const [selectedTour, setSelectedTour] = useState<CurrentTourDto | null>(null);
-    const [selectedTourTransfer, setSelectedTourTransfer] = useState<Transfer | null>(null);
     const [errorTour, setErrorTour] = useState<string | null>(null);
 
     const [addressTour, setAddressTour] = useState<Address | null>(null);
@@ -43,16 +47,11 @@ const TourPage = () => {
     // Состояние для отеля
     const [hotel, setHotel] = useState<HotelMainInfoDto | null>(null);
 
-    // TourPage.tsx - ОБНОВЛЕННЫЙ БЛОК ЗАГРУЗКИ ОТЕЛЕЙ
-
-    // В методе fetchTour, замените блок загрузки отелей на:
-
     const fetchTour = async () => {
         try {
             setLoading(true);
             if (id) {
                 const tourData = await getCurrentMainTour(Number(id));
-                let transferData = null;
                 let addressData = null;
 
                 // Получаем адрес тура (если есть)
@@ -60,44 +59,35 @@ const TourPage = () => {
                     try {
                         addressData = await getAddressById(tourData.addresses[0].id);
                     } catch (addrErr) {
-                        console.warn('Адрес не найден:', addrErr);
+                        // Тихая обработка - адрес не обязателен
                     }
                 }
 
                 setSelectedTour(tourData);
                 setAddressTour(addressData);
-                setSelectedTourTransfer(transferData);
                 setErrorTour(null);
 
-                // ===== ИСПРАВЛЕННАЯ ЗАГРУЗКА ОТЕЛЕЙ =====
-                // API возвращает отели в поле hotels (массив HotelMainInfoDto)
+                // ===== ЗАГРУЗКА ОТЕЛЕЙ =====
                 if (tourData.hotels && tourData.hotels.length > 0) {
-                    // Отель уже содержит нужную информацию
                     setHotel(tourData.hotels[0]);
                 } else {
-                    // Если отели не пришли в tourData, пробуем загрузить через отдельный запрос
                     try {
-                        const hotelsResponse = await fetch(`http://localhost:5050/api/Hotels/get-current-hotel-info?tourId=${tourData.id}`, {
-                            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                        });
-                        if (hotelsResponse.ok) {
-                            const hotelsData = await hotelsResponse.json();
-                            if (hotelsData && hotelsData.length > 0) {
-                                setHotel(hotelsData[0]);
-                            }
+                        const hotelsData = await getCurrentHotelInfo(tourData.id);
+                        if (hotelsData && hotelsData.length > 0) {
+                            setHotel(hotelsData[0]);
                         }
-                    } catch (hotelErr) {
-                        console.warn('Отель не найден через отдельный запрос:', hotelErr);
+                    } catch (hotelErr: any) {
+                        setErrorTour(`Не удалось загрузить отель: ${hotelErr.serverMessage || hotelErr.message}`);
                         setHotel(null);
                     }
                 }
             }
         } catch (err: any) {
-            console.error('Ошибка загрузки тура:', err);
-            if (err.response?.status === 404) {
+            if (err.statusCode === 404 || err.response?.status === 404) {
                 navigate('/404', { replace: true });
             } else {
-                setErrorTour(err.response?.data?.message || 'Ошибка загрузки данных');
+                const errorMessage = err.serverMessage || err.response?.data?.message || err.message || 'Ошибка загрузки данных';
+                setErrorTour(errorMessage);
             }
         } finally {
             setLoading(false);
@@ -110,45 +100,39 @@ const TourPage = () => {
             const client = await clientApi.getById(Number(user.id));
             setClientData(client);
 
-            // Получаем паспорт через прямой GET запрос
+            // Получаем паспорт через API метод
             try {
-                const passportInfoResponse = await fetch(`http://localhost:5050/api/Passports/get-info-passport?userId=${user.id}`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                });
+                const passportInfo = await getInfoPassport(user.id);
+                if (passportInfo) {
+                    const passport: Passport = {
+                        id: passportInfo.id,
+                        seria: passportInfo.seria,
+                        number: passportInfo.number,
+                        type: passportInfo.type,
+                        issuedBy: passportInfo.issuedBy,
+                        departmentCode: passportInfo.departmentCode,
+                        dateOfIssue: passportInfo.dateOfIssue.toString()
+                    };
+                    setPassportData(passport);
 
-                if (passportInfoResponse.ok) {
-                    const passportInfo = await passportInfoResponse.json();
-                    if (passportInfo) {
-                        const passport: Passport = {
-                            id: passportInfo.id,
-                            seria: passportInfo.seria,
-                            number: passportInfo.number,
-                            type: passportInfo.type,
-                            issuedBy: passportInfo.issuedBy,
-                            departmentCode: passportInfo.departmentCode,
-                            dateOfIssue: passportInfo.dateOfIssue
+                    if (passportInfo.address) {
+                        const address: Address = {
+                            id: passportInfo.address.id,
+                            country: passportInfo.address.country || '',
+                            region: passportInfo.address.region || '',
+                            city: passportInfo.address.city || '',
+                            street: passportInfo.address.street || '',
+                            house: passportInfo.address.house || '',
+                            apartment: passportInfo.address.apartment ? parseInt(passportInfo.address.apartment, 10) : null
                         };
-                        setPassportData(passport);
-
-                        if (passportInfo.address) {
-                            const address: Address = {
-                                id: passportInfo.address.id,
-                                country: passportInfo.address.country || '',
-                                region: passportInfo.address.region || '',
-                                city: passportInfo.address.city || '',
-                                street: passportInfo.address.street || '',
-                                house: passportInfo.address.house || '',
-                                apartment: passportInfo.address.apartment
-                            };
-                            setAddressData(address);
-                        }
+                        setAddressData(address);
                     }
                 }
             } catch (err) {
-                console.log('Паспорт не найден:', err);
+                // Тихая обработка - паспорт не обязателен
             }
         } catch (error) {
-            console.error('Ошибка загрузки данных клиента:', error);
+            setErrorTour('Ошибка загрузки данных клиента');
         }
     };
 
@@ -166,7 +150,8 @@ const TourPage = () => {
     }, [selectedTour]);
 
     useEffect(() => {
-        if (location.state && (location.state as any).openBooking) {
+        const state = location.state as LocationState;
+        if (state?.openBooking) {
             const timer = setTimeout(() => {
                 setShowPayment(true);
                 window.history.replaceState({}, document.title);
@@ -214,41 +199,29 @@ const TourPage = () => {
     };
 
     const handleSubmitBooking = async (ticketData: any) => {
+        if (!clientData?.id || !selectedTour) {
+            throw new Error('Недостаточно данных для бронирования');
+        }
+
         try {
-            console.log('Отправка данных бронирования:', ticketData);
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await createTicket(clientData.id, {
+                price: convertedPrice,
+                departureTime: new Date(selectedDate || selectedTour.startDot || new Date()),
+                arrivalTime: new Date(selectedTour.endDot || new Date()),
+                dateSale: new Date(),
+                hotelRoomsId: 1,
+                tourId: selectedTour.id
+            });
             setShowPayment(false);
             alert('Тур успешно забронирован! На вашу почту отправлено подтверждение.');
-        } catch (error) {
-            console.error('Ошибка при бронировании:', error);
-            alert('Произошла ошибка при бронировании. Пожалуйста, попробуйте позже.');
+        } catch (error: any) {
+            alert(error.serverMessage || error.message || 'Произошла ошибка при бронировании. Пожалуйста, попробуйте позже.');
             throw error;
         }
     };
 
     if (loading) {
-        return (
-            <div style={{
-                background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
-                minHeight: '100vh',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-            }}>
-                <NavBar />
-                <div style={{ textAlign: 'center', marginTop: '100px' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}>🐪</div>
-                    <style>{`
-                        @keyframes pulse {
-                            0% { opacity: 0.6; transform: scale(1); }
-                            50% { opacity: 1; transform: scale(1.1); }
-                            100% { opacity: 0.6; transform: scale(1); }
-                        }
-                    `}</style>
-                    <h2 style={{ color: '#8B5A2B' }}>Загрузка информации о туре...</h2>
-                </div>
-            </div>
-        );
+        return <Loader message="Загрузка информации о туре..." fullScreen />;
     }
 
     if (errorTour || !selectedTour) {
@@ -373,7 +346,7 @@ const TourPage = () => {
                             justifyContent: 'center'
                         }}>
                             <img
-                                src={selectedTour.imageTour && isValidImagePath(selectedTour.imageTour) ? `${API_URL}/${selectedTour.imageTour}` : PLACEHOLDERS.tour}
+                                src={getSafeImageUrl(selectedTour.imageTour, 'tour')}
                                 alt={selectedTour.nameTour || 'Тур'}
                                 style={{
                                     maxWidth: '100%',
@@ -437,7 +410,7 @@ const TourPage = () => {
                                     }}>
                                         {hotel && hotel.imageHotel && (
                                             <img
-                                                src={isValidImagePath(hotel.imageHotel) ? `${API_URL}/${hotel.imageHotel}` : PLACEHOLDERS.hotel}
+                                                src={getSafeImageUrl(hotel.imageHotel, 'hotel')}
                                                 alt={hotel.name || 'Отель'}
                                                 style={{
                                                     width: '120px',

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { getMainTours } from "../Services/ToursApi";
 import NavBar from "../Components/NavBar";
-import { PLACEHOLDERS, getSafeImageUrl } from "../Components/OptimizedImage";
+import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
+import Loader from "../Components/Loader";
 
 // Локальный интерфейс для горящего тура
 interface HotTourItem {
@@ -26,8 +27,6 @@ const HotTourPage = () => {
     const [tours, setTours] = useState<HotTourItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
 
     const calculateNights = (startDate: string, endDate: string): number => {
         const start = new Date(startDate);
@@ -54,22 +53,11 @@ const HotTourPage = () => {
         try {
             setLoading(true);
             
-            // Загружаем все туры через get-main-tours
-            const response = await fetch(`${API_URL}/api/Tours/get-main-tours`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            
-            if (!response.ok) {
-                throw new Error('Ошибка загрузки туров');
-            }
-            
-            const allTours = await response.json();
-            console.log("Все туры:", allTours);
+            // Загружаем все туры через готовый метод API
+            const allTours = await getMainTours();
             
             // Фильтруем только горящие туры (hotTour === true)
-            const hotToursList = allTours.filter((tour: any) => tour.hotTour === true);
-            
-            console.log("Найдено горящих туров:", hotToursList.length);
+            const hotToursList = allTours.filter(tour => tour.hotTour === true);
             
             if (hotToursList.length === 0) {
                 setError("На данный момент горящих туров нет");
@@ -94,8 +82,7 @@ const HotTourPage = () => {
             }
             
         } catch (err: any) {
-            console.error("Ошибка загрузки туров:", err);
-            setError("Не удалось загрузить горящие туры");
+            setError(err.serverMessage || err.message || "Не удалось загрузить горящие туры");
         } finally {
             setLoading(false);
         }
@@ -160,30 +147,7 @@ const HotTourPage = () => {
     const hasNoSearchResults = tours.length > 0 && filteredAndSortedTours.length === 0 && !loading && !error;
 
     if (loading) {
-        return (
-            <div style={{
-                background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
-                minHeight: '100vh',
-                padding: '20px',
-                paddingTop: '70px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-            }}>
-                <NavBar />
-                <div style={{ textAlign: 'center', marginTop: '100px' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}>🐪</div>
-                    <style>{`
-                        @keyframes pulse {
-                            0% { opacity: 0.6; transform: scale(1); }
-                            50% { opacity: 1; transform: scale(1.1); }
-                            100% { opacity: 0.6; transform: scale(1); }
-                        }
-                    `}</style>
-                    <h2 style={{ color: '#8B5A2B' }}>Загрузка горящих туров...</h2>
-                </div>
-            </div>
-        );
+        return <Loader message="Загрузка горящих туров..." fullScreen />;
     }
 
     if (error && error !== "На данный момент горящих туров нет") {
@@ -451,7 +415,7 @@ const HotTourPage = () => {
                                     }}>
                                         <Link to={`/catalog/tour/${tour.id}`} style={{ textDecoration: 'none', display: 'block', height: '100%' }}>
                                             <img
-                                                src={getSafeImageUrl(tour.imageTour, API_URL, 'tour')}
+                                                src={getSafeImageUrl(tour.imageTour, 'tour')}
                                                 alt={tour.nameTour || 'Тур'}
                                                 style={{
                                                     width: '100%',

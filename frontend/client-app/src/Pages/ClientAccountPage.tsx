@@ -1,21 +1,18 @@
-// ClientAccountPage.tsx - ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ ФАЙЛ
-
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../Contexts/AuthContext";
 import { clientApi, UserResponse } from "../Services/IndexAuth";
-import { Passport } from "../Services/PassportApi";
+import { Passport, deletePassport, getAllPassports, updatePassport, createPassport, CreatePassportDto } from "../Services/PassportApi";
 import { User } from "../Services/UsersApi";
-import { Address, getAddressById } from "../Services/AddressApi";
+import { Address, getAddressById, getAddressesByPassportId } from "../Services/AddressApi";
 import EditDocumentModal, { DocumentFormData, AddressFormData, CombinedDocumentData } from '../EditDocumentModal';
 import { Link } from 'react-router-dom';
-import { createTour, CreateTourDto } from "../Services/ToursApi";
-import { createHotel, CreateHotelDto, getCurrentHotelInfo, ResponseHotelDto } from "../Services/HotelsApi";
+import { createTour, CreateTourDto, getMainTours, ToursDto } from "../Services/ToursApi";
+import { createHotel, CreateHotelDto, getAllHotels } from "../Services/HotelsApi";
 import { createHotelRoom, CreateHotelRoomsDto } from "../Services/HotelRoomsApi";
-import { PLACEHOLDERS, isValidImagePath, getSafeImageUrl } from "../Components/OptimizedImage";
+import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
+import Loader from "../Components/Loader";
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
-
-// Локальные интерфейсы
+// Локальные интерфейсы для форм
 interface TourLocal {
   id?: number;
   name: string;
@@ -156,19 +153,15 @@ const ClientAccountPage = () => {
   const fetchAvailableHotels = async () => {
     try {
       setIsLoadingHotels(true);
-      const response = await fetch('http://localhost:5050/api/Hotels', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (response.ok) {
-        const hotelsList = await response.json();
-        setAvailableHotels(hotelsList.map((h: any) => ({
-          id: h.id,
-          name: h.name,
-          stars: h.stars
-        })));
-      }
-    } catch (error) {
-      console.error('Ошибка загрузки отелей:', error);
+      const hotelsList = await getAllHotels();
+      setAvailableHotels(hotelsList.map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        stars: h.stars
+      })));
+    } catch (error: any) {
+      setSaveStatus({ show: true, message: error.serverMessage || 'Ошибка загрузки отелей', type: 'error' });
+      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
     } finally {
       setIsLoadingHotels(false);
     }
@@ -299,28 +292,26 @@ const ClientAccountPage = () => {
         const index = modalData.index;
         const existingPassport = passportsData[index];
 
-        const updateResponse = await fetch(`http://localhost:5050/api/Passports/update-passport?userId=${user.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            id: existingPassport.id,
-            passportId: existingPassport.id,
-            seria: parseInt(passportData.seria, 10),
-            number: parseInt(passportData.number, 10),
-            type: passportData.type,
-            issuedBy: passportData.issuedBy,
-            departmentCode: passportData.departmentCode,
-            dateOfIssue: passportData.dateOfIssue,
-            address: null
-          })
-        });
+        const updateRequest: UpdatePassportDto = {
+          id: existingPassport.id,
+          passportId: existingPassport.id,
+          seria: parseInt(passportData.seria, 10),
+          number: parseInt(passportData.number, 10),
+          type: passportData.type,
+          issuedBy: passportData.issuedBy,
+          departmentCode: passportData.departmentCode,
+          dateOfIssue: new Date(passportData.dateOfIssue),
+          address: addressData.city || addressData.street ? {
+            country: addressData.country,
+            region: addressData.country,
+            city: addressData.city,
+            street: addressData.street,
+            house: addressData.house,
+            apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null
+          } : null
+        };
 
-        if (!updateResponse.ok) {
-          throw new Error('Ошибка обновления паспорта');
-        }
+        await updatePassport(user.id, updateRequest);
 
         const updatedPassports = [...passportsData];
         updatedPassports[index] = {
@@ -336,34 +327,24 @@ const ClientAccountPage = () => {
 
         setSaveStatus({ show: true, message: 'Документ успешно обновлён!', type: 'success' });
       } else if (modalMode === 'add') {
-        const createResponse = await fetch(`http://localhost:5050/api/Passports/create-passport-data?userId=${user.id}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            seria: parseInt(passportData.seria, 10),
-            number: parseInt(passportData.number, 10),
-            type: passportData.type,
-            issuedBy: passportData.issuedBy,
-            dateOfIssue: passportData.dateOfIssue,
-            departmentCode: passportData.departmentCode,
-            address: addressData.city || addressData.street ? {
-              country: addressData.country,
-              region: addressData.country,
-              city: addressData.city,
-              street: addressData.street,
-              house: addressData.house,
-              apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null
-            } : null
-          })
-        });
+        const createRequest: CreatePassportDto = {
+          seria: parseInt(passportData.seria, 10),
+          number: parseInt(passportData.number, 10),
+          type: passportData.type,
+          issuedBy: passportData.issuedBy,
+          departmentCode: passportData.departmentCode,
+          dateOfIssue: new Date(passportData.dateOfIssue),
+          address: addressData.city || addressData.street ? {
+            country: addressData.country,
+            region: addressData.country,
+            city: addressData.city,
+            street: addressData.street,
+            house: addressData.house,
+            apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null
+          } : null
+        };
 
-        if (!createResponse.ok) {
-          const errorData = await createResponse.json();
-          throw new Error(errorData.message || 'Ошибка создания паспорта');
-        }
+        await createPassport(user.id, createRequest);
 
         setSaveStatus({ show: true, message: 'Новый документ успешно добавлен!', type: 'success' });
         await fetchUser();
@@ -374,8 +355,7 @@ const ClientAccountPage = () => {
       setTimeout(() => fetchUser(), 500);
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
     } catch (error: any) {
-      console.error('Ошибка:', error);
-      setSaveStatus({ show: true, message: error.message || 'Ошибка при сохранении', type: 'error' });
+      setSaveStatus({ show: true, message: error.serverMessage || error.message || 'Ошибка при сохранении', type: 'error' });
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
     } finally {
       setLoading(false);
@@ -389,8 +369,8 @@ const ClientAccountPage = () => {
       const loadUser = await clientApi.getById(Number(user.id));
       setUserData(loadUser);
       await fetchAllPassports();
-    } catch (error) {
-      console.error("Ошибка загрузки:", error);
+    } catch (error: any) {
+      setSaveStatus({ show: true, message: error.serverMessage || 'Ошибка загрузки данных', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -400,36 +380,25 @@ const ClientAccountPage = () => {
     if (!user?.id) return;
     setIsLoadingPassports(true);
     try {
-      const passportsResponse = await fetch('http://localhost:5050/api/Passports', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (passportsResponse.ok) {
-        const allPassports = await passportsResponse.json();
-        setPassportsData(allPassports);
-        const addressesList: Address[] = [];
-        for (const passport of allPassports) {
-          try {
-            const addressResponse = await fetch(`http://localhost:5050/api/Addresses?passportId=${passport.id}`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            if (addressResponse.ok) {
-              const addresses = await addressResponse.json();
-              if (addresses && addresses.length > 0) {
-                addressesList.push(addresses[0]);
-              } else {
-                addressesList.push(null as any);
-              }
-            } else {
-              addressesList.push(null as any);
-            }
-          } catch (err) {
+      const allPassports = await getAllPassports();
+      setPassportsData(allPassports);
+      
+      const addressesList: Address[] = [];
+      for (const passport of allPassports) {
+        try {
+          const addresses = await getAddressesByPassportId(passport.id);
+          if (addresses && addresses.length > 0) {
+            addressesList.push(addresses[0]);
+          } else {
             addressesList.push(null as any);
           }
+        } catch (err) {
+          addressesList.push(null as any);
         }
-        setAddressesData(addressesList);
       }
-    } catch (error) {
-      console.error('Ошибка загрузки паспортов:', error);
+      setAddressesData(addressesList);
+    } catch (error: any) {
+      setSaveStatus({ show: true, message: error.serverMessage || 'Ошибка загрузки паспортов', type: 'error' });
     } finally {
       setIsLoadingPassports(false);
     }
@@ -524,8 +493,7 @@ const ClientAccountPage = () => {
       setSaveStatus({ show: true, message: 'Данные успешно сохранены!', type: 'success' });
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
     } catch (error: any) {
-      console.error("Ошибка:", error);
-      setSaveStatus({ show: true, message: error.message || 'Ошибка при сохранении', type: 'error' });
+      setSaveStatus({ show: true, message: error.serverMessage || error.message || 'Ошибка при сохранении', type: 'error' });
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
     }
   };
@@ -545,8 +513,8 @@ const ClientAccountPage = () => {
       setLoading(true);
       const clients = await clientApi.getAll();
       setAllClients(clients);
-    } catch (error) {
-      console.error("Ошибка загрузки клиентов:", error);
+    } catch (error: any) {
+      setSaveStatus({ show: true, message: error.serverMessage || 'Ошибка загрузки клиентов', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -558,8 +526,8 @@ const ClientAccountPage = () => {
       const users = await clientApi.getAll();
       const employees = users.filter(u => u.role === 'employee' || u.position === 'Сотрудник');
       setAllEmployees(employees as Employee[]);
-    } catch (error) {
-      console.error("Ошибка загрузки сотрудников:", error);
+    } catch (error: any) {
+      setSaveStatus({ show: true, message: error.serverMessage || 'Ошибка загрузки сотрудников', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -572,8 +540,8 @@ const ClientAccountPage = () => {
       const user = await clientApi.getById(id);
       setViewingUserData(user);
       setIsEditingUser(false);
-    } catch (error) {
-      console.error("Ошибка загрузки пользователя:", error);
+    } catch (error: any) {
+      setSaveStatus({ show: true, message: error.serverMessage || 'Ошибка загрузки пользователя', type: 'error' });
     }
   };
 
@@ -617,8 +585,7 @@ const ClientAccountPage = () => {
       resetForms();
       setSaveStatus({ show: true, message: 'Тур успешно добавлен!', type: 'success' });
     } catch (error: any) {
-      console.error('Ошибка создания тура:', error);
-      setSaveStatus({ show: true, message: error.response?.data?.message || 'Ошибка при создании тура', type: 'error' });
+      setSaveStatus({ show: true, message: error.serverMessage || error.response?.data?.message || 'Ошибка при создании тура', type: 'error' });
     } finally {
       setLoading(false);
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
@@ -639,47 +606,20 @@ const ClientAccountPage = () => {
 
     try {
       setLoading(true);
-      let addressId = 1;
-      const addressesResponse = await fetch('http://localhost:5050/api/Addresses', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (addressesResponse.ok) {
-        const addresses = await addressesResponse.json();
-        if (addresses && addresses.length > 0) {
-          addressId = addresses[0].id;
-        }
-      }
-
-      const hotelData = {
+      
+      await createHotel(user.id, {
         name: newHotel.name,
         stars: Number(newHotel.stars),
         imageHotel: newHotel.imageHotel || '/default-hotel.jpg',
-        details: newHotel.details || '',
-        hotelRoomId: null,
-        addressId: addressId
-      };
-
-      const response = await fetch(`http://localhost:5050/api/Hotels/create-hotel?userId=${user.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(hotelData)
+        details: newHotel.details || ''
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData?.message || 'Ошибка создания отеля');
-      }
 
       setShowHotelForm(false);
       resetForms();
       setSaveStatus({ show: true, message: 'Отель успешно добавлен!', type: 'success' });
       await fetchAvailableHotels();
     } catch (error: any) {
-      console.error('Ошибка создания отеля:', error);
-      setSaveStatus({ show: true, message: error.message || 'Ошибка при создании отеля', type: 'error' });
+      setSaveStatus({ show: true, message: error.serverMessage || error.message || 'Ошибка при создании отеля', type: 'error' });
     } finally {
       setLoading(false);
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
@@ -690,27 +630,16 @@ const ClientAccountPage = () => {
     if (!user?.id) return;
     try {
       setLoadingBookings(true);
-      const userResponse = await fetch(`http://localhost:5050/api/Users/${user.id}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!userResponse.ok) {
-        setBookedTours([]);
-        return;
-      }
-      const userData = await userResponse.json();
+      const userData = await clientApi.getById(user.id);
+      
       if (!userData.ticketsId) {
         setBookedTours([]);
         return;
       }
-      const toursResponse = await fetch('http://localhost:5050/api/Tours/get-main-tours', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!toursResponse.ok) {
-        setBookedTours([]);
-        return;
-      }
-      const allTours = await toursResponse.json();
+      
+      const allTours = await getMainTours();
       const bookedTour = allTours.find((tour: any) => tour.ticketsId === userData.ticketsId);
+      
       if (bookedTour) {
         setBookedTours([{
           id: bookedTour.id,
@@ -732,15 +661,12 @@ const ClientAccountPage = () => {
       } else {
         setBookedTours([]);
       }
-    } catch (error) {
-      console.error('Ошибка загрузки забронированных туров:', error);
+    } catch (error: any) {
       setBookedTours([]);
     } finally {
       setLoadingBookings(false);
     }
   };
-
-  // ClientAccountPage.tsx - исправленная функция handleDeleteDocument
 
   const handleDeleteDocument = async (passport: Passport, address: Address | undefined, index: number) => {
     if (!user?.id) {
@@ -755,107 +681,8 @@ const ClientAccountPage = () => {
 
     setLoading(true);
     try {
-      console.log(`Начинаем удаление паспорта ${passport.id}...`);
+      await deletePassport(passport.id, user.id);
 
-      // ШАГ 1: Отвязываем паспорт от пользователя через обновление пользователя
-      console.log('Шаг 1: Отвязываем паспорт от пользователя...');
-
-      // Сначала получаем текущие данные пользователя
-      const userResponse = await fetch(`http://localhost:5050/api/Users/${user.id}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-
-      if (!userResponse.ok) {
-        throw new Error('Не удалось получить данные пользователя');
-      }
-
-      const currentUserData = await userResponse.json();
-
-      // Обновляем пользователя - убираем passportId
-      const updateUserResponse = await fetch(`http://localhost:5050/api/Users/${user.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          surName: currentUserData.surName,
-          firstName: currentUserData.firstName,
-          middleName: currentUserData.middleName,
-          gender: currentUserData.gender,
-          birthday: currentUserData.birthday,
-          phoneNumber: currentUserData.phoneNumber,
-          email: currentUserData.email,
-          passportId: null  // Отвязываем паспорт
-        })
-      });
-
-      if (!updateUserResponse.ok) {
-        console.warn('Не удалось отвязать паспорт от пользователя, но продолжаем...');
-      } else {
-        console.log('✅ Паспорт отвязан от пользователя');
-      }
-
-      // ШАГ 2: Пробуем удалить адрес (если есть) - используем тот же подход что и для паспорта
-      if (address && address.id) {
-        console.log(`Шаг 2: Пытаемся удалить адрес ID=${address.id}...`);
-        // Пробуем удалить через обновление - убираем passportId
-        try {
-          const updateAddressResponse = await fetch(`http://localhost:5050/api/Addresses/${address.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-              passportId: null,
-              country: address.country,
-              region: address.region,
-              city: address.city,
-              street: address.street,
-              house: address.house,
-              apartment: address.apartment
-            })
-          });
-          if (updateAddressResponse.ok) {
-            console.log('✅ Связь адреса с паспортом удалена');
-          }
-        } catch (err) {
-          console.warn('Не удалось обновить адрес');
-        }
-      }
-
-      // ШАГ 3: Удаляем паспорт через единственный рабочий эндпоинт
-      console.log(`Шаг 3: Удаляем паспорт ID=${passport.id}...`);
-
-      const deleteResponse = await fetch(
-        `http://localhost:5050/api/Passports/delete-passport?userId=${user.id}&passportId=${passport.id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      // Пытаемся получить тело ответа для диагностики
-      let errorDetail = '';
-      try {
-        const errorData = await deleteResponse.json();
-        errorDetail = errorData?.message || errorData?.detail || JSON.stringify(errorData);
-      } catch (e) {
-        errorDetail = 'Нет деталей ошибки';
-      }
-
-      if (!deleteResponse.ok) {
-        console.error(`Ошибка удаления: статус ${deleteResponse.status}, детали: ${errorDetail}`);
-        throw new Error(`Ошибка удаления: ${deleteResponse.status}. ${errorDetail}`);
-      }
-
-      console.log('✅ Паспорт успешно удален');
-
-      // Обновляем локальное состояние
       const newPassportsData = [...passportsData];
       newPassportsData.splice(index, 1);
       setPassportsData(newPassportsData);
@@ -870,35 +697,20 @@ const ClientAccountPage = () => {
         type: 'success'
       });
 
-      // Обновляем данные пользователя
       setTimeout(() => {
         fetchUser();
       }, 500);
-
     } catch (error: any) {
-      console.error('Ошибка удаления паспорта:', error);
-
-      // ВРЕМЕННОЕ РЕШЕНИЕ: скрываем документ из UI даже при ошибке
-      const newPassportsData = [...passportsData];
-      newPassportsData.splice(index, 1);
-      setPassportsData(newPassportsData);
-
-      const newAddressesData = [...addressesData];
-      newAddressesData.splice(index, 1);
-      setAddressesData(newAddressesData);
-
       setSaveStatus({
         show: true,
-        message: 'Документ скрыт (ошибка сервера, обратитесь к администратору)',
-        type: 'warning'
+        message: error.serverMessage || error.message || 'Ошибка удаления паспорта',
+        type: 'error'
       });
     } finally {
       setLoading(false);
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
     }
   };
-
-
 
   const handleAddRoomAsync = async () => {
     if (!newRoom.nameRoom || !newRoom.floor || !newRoom.typeRoom) {
@@ -923,16 +735,18 @@ const ClientAccountPage = () => {
       setShowRoomForm(false);
       resetForms();
       setSaveStatus({ show: true, message: 'Номер успешно добавлен!', type: 'success' });
-    } catch (error) {
-      console.error('Ошибка создания номера:', error);
-      setSaveStatus({ show: true, message: 'Ошибка при создании номера', type: 'error' });
+    } catch (error: any) {
+      setSaveStatus({ show: true, message: error.serverMessage || 'Ошибка при создании номера', type: 'error' });
     } finally {
       setLoading(false);
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
     }
   };
 
-  if (loading && !userData) return <div>Загрузка...</div>;
+  if (loading && !userData) {
+    return <Loader message="Загрузка данных пользователя..." fullScreen />;
+  }
+  
   if (!isAuthenticated) return <div>Пожалуйста, войдите в систему</div>;
 
   return (
@@ -1210,7 +1024,7 @@ const ClientAccountPage = () => {
                       <div key={tour.id} style={{ background: '#FFF8F0', borderRadius: '20px', padding: '25px', border: '2px solid #D2B48C', position: 'relative', marginBottom: '20px' }}>
                         <div style={{ position: 'absolute', top: '15px', right: '15px', background: '#28a745', color: 'white', padding: '6px 18px', borderRadius: '25px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><span>✅</span> Забронировано</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '25px' }}>
-                          <img src={isValidImagePath(tour.imageTour) ? `${API_URL}/${tour.imageTour}` : PLACEHOLDERS.tour} alt={tour.name} style={{ width: '100%', height: '160px', borderRadius: '15px', objectFit: 'cover', border: '2px solid #D2B48C' }} onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDERS.tour; }} />
+                          <img src={getSafeImageUrl(tour.imageTour, 'tour')} alt={tour.name} style={{ width: '100%', height: '160px', borderRadius: '15px', objectFit: 'cover', border: '2px solid #D2B48C' }} onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDERS.tour; }} />
                           <div>
                             <h4 style={{ fontSize: '22px', color: '#8B5A2B', marginBottom: '8px' }}>{tour.name}</h4>
                             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>

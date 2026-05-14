@@ -1,92 +1,53 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { getMainTours } from '../Services/ToursApi';
+import { getCurrentHotelInfo, getAllHotels, HotelMainInfoDto } from '../Services/HotelsApi';
+import { getCurrentInfoHotelRoom } from '../Services/HotelRoomsApi';
+import { getAddressById, Address } from '../Services/AddressApi';
 import NavBar from '../Components/NavBar';
-import { PLACEHOLDERS, getSafeImageUrl } from '../Components/OptimizedImage';
+import { getSafeImageUrl, PLACEHOLDERS } from '../Components/OptimizedImage';
+import Loader from '../Components/Loader';
 
-interface Hotel {
-    id: number;
-    name: string;
-    stars: number;
+interface ExtendedHotel extends HotelMainInfoDto {
     timeOfStay?: number | null;
-    imageHotel: string;
-    details: string | null;
+    details?: string | null;
     addressId?: number | null;
     ticketsId?: number | null;
     hotelRoomsId?: number | null;
-}
-
-interface Address {
-    id: number;
-    country: string;
-    region: string;
-    city: string;
-    street: string;
-    house: string;
-    apartment?: number | null;
-}
-
-interface HotelRoom {
-    id: number;
-    nameRoom: string;
-    details: string | null;
-    floor: number;
-    imageRoom: string | null;
-    typeRoom?: string;
 }
 
 const HotelPage = () => {
     const { id } = useParams<{ id: string }>();
     const location = useLocation();
     const navigate = useNavigate();
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
 
-    // Получаем tourId из query параметров
     const queryParams = new URLSearchParams(location.search);
     const tourIdFromQuery = queryParams.get('tourId');
 
-    const [hotel, setHotel] = useState<Hotel | null>(null);
+    const [hotel, setHotel] = useState<ExtendedHotel | null>(null);
     const [address, setAddress] = useState<Address | null>(null);
-    const [rooms, setRooms] = useState<HotelRoom[]>([]);
+    const [rooms, setRooms] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [associatedTourId, setAssociatedTourId] = useState<number | null>(tourIdFromQuery ? Number(tourIdFromQuery) : null);
     const [loadingRooms, setLoadingRooms] = useState(false);
 
-    const fetchHotelRooms = async (hotelId: number, hotelRoomsId: number | null | undefined) => {
+    const fetchHotelRooms = async (hotelRoomsId: number | null | undefined) => {
         setLoadingRooms(true);
         try {
             if (hotelRoomsId) {
                 try {
-                    const roomResponse = await axios.get<HotelRoom>(`${API_URL}/api/HotelRooms/${hotelRoomsId}`);
-                    if (roomResponse.data) {
-                        setRooms([roomResponse.data]);
+                    const roomData = await getCurrentInfoHotelRoom(hotelRoomsId);
+                    if (roomData) {
+                        setRooms([roomData]);
                         return;
                     }
                 } catch (err) {
-                    console.warn('Не удалось загрузить комнату по ID:', err);
+                    // Тихая обработка
                 }
             }
-
-            try {
-                const allRoomsResponse = await axios.get<HotelRoom[]>(`${API_URL}/api/HotelRooms`);
-                const allRooms = allRoomsResponse.data;
-                const filteredRooms = allRooms.filter(room => {
-                    return true;
-                });
-
-                if (filteredRooms.length > 0) {
-                    setRooms(filteredRooms);
-                } else {
-                    setRooms([]);
-                }
-            } catch (err) {
-                console.error('Ошибка загрузки всех комнат:', err);
-                setRooms([]);
-            }
+            setRooms([]);
         } catch (err) {
-            console.error('Ошибка загрузки комнат:', err);
             setRooms([]);
         } finally {
             setLoadingRooms(false);
@@ -98,48 +59,54 @@ const HotelPage = () => {
             if (!id) return;
             try {
                 setLoading(true);
+                setError(null);
 
-                const hotelResponse = await axios.get<Hotel>(`${API_URL}/api/Hotels/${id}`);
-                const hotelData = hotelResponse.data;
-                setHotel(hotelData);
+                // Получаем ВСЕ отели через существующий метод
+                const allHotels = await getAllHotels();
+                const foundHotel = allHotels.find(h => h.id === Number(id));
+                
+                if (!foundHotel) {
+                    throw new Error('Отель не найден');
+                }
+                
+                setHotel(foundHotel as ExtendedHotel);
 
-                const addressId = (hotelData as any).addressId ?? (hotelData as any).AddressId;
+                // Получаем адрес, если есть (используем существующий метод)
+                const addressId = (foundHotel as any).addressId ?? (foundHotel as any).AddressId;
                 if (addressId) {
                     try {
-                        const addressResponse = await axios.get<Address>(`${API_URL}/api/Addresses/${addressId}`);
-                        setAddress(addressResponse.data);
-                    } catch (addrErr) {
-                        console.warn('Адрес не найден:', addrErr);
+                        const addressData = await getAddressById(addressId);
+                        setAddress(addressData);
+                    } catch (err) {
+                        // Тихая обработка
                     }
                 }
 
-                const hotelRoomsId = (hotelData as any).hotelRoomsId ?? (hotelData as any).HotelRoomsId;
-                await fetchHotelRooms(hotelData.id, hotelRoomsId);
+                // Получаем комнаты отеля
+                const hotelRoomsId = (foundHotel as any).hotelRoomsId ?? (foundHotel as any).HotelRoomsId;
+                await fetchHotelRooms(hotelRoomsId);
 
                 // Если tourId не передан, пытаемся найти связанный тур
-                if (!associatedTourId && hotelData.ticketsId) {
+                if (!associatedTourId && (foundHotel as any).ticketsId) {
                     try {
                         const allTours = await getMainTours();
-                        const foundTour = allTours.find(tour => tour.id === hotelData.ticketsId);
+                        const foundTour = allTours.find(tour => tour.id === (foundHotel as any).ticketsId);
                         if (foundTour) {
                             setAssociatedTourId(foundTour.id);
                         }
                     } catch (tourErr) {
-                        console.warn('Тур не найден:', tourErr);
+                        // Тихая обработка
                     }
                 }
-
-                setError(null);
-            } catch (err) {
-                console.error('Ошибка загрузки отеля:', err);
-                setError('Не удалось загрузить данные об отеле');
+            } catch (err: any) {
+                setError(err.serverMessage || err.message || 'Не удалось загрузить данные об отеле');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchHotelData();
-    }, [id, API_URL]);
+    }, [id]);
 
     const handleBookClick = () => {
         if (associatedTourId) {
@@ -150,29 +117,7 @@ const HotelPage = () => {
     };
 
     if (loading) {
-        return (
-            <div style={{
-                background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
-                minHeight: '100vh',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingTop: '70px'
-            }}>
-                <NavBar />
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '20px', animation: 'pulse 1.5s infinite' }}>🐪</div>
-                    <style>{`
-                        @keyframes pulse {
-                            0% { opacity: 0.6; transform: scale(1); }
-                            50% { opacity: 1; transform: scale(1.1); }
-                            100% { opacity: 0.6; transform: scale(1); }
-                        }
-                    `}</style>
-                    <h2 style={{ color: '#8B5A2B' }}>Загрузка информации об отеле...</h2>
-                </div>
-            </div>
-        );
+        return <Loader message="Загрузка информации об отеле..." fullScreen />;
     }
 
     if (error || !hotel) {
@@ -232,7 +177,6 @@ const HotelPage = () => {
                 position: 'relative',
                 zIndex: 2
             }}>
-                {/* Хлебные крошки */}
                 <div style={{
                     display: 'flex',
                     gap: '10px',
@@ -264,7 +208,6 @@ const HotelPage = () => {
                     boxShadow: '0 20px 40px rgba(139, 69, 19, 0.15)',
                     border: '2px solid #C0A080'
                 }}>
-                    {/* Заголовок */}
                     <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -291,21 +234,20 @@ const HotelPage = () => {
                                 fontSize: '16px'
                             }}>
                                 <div style={{ display: 'flex', gap: '5px' }}>
-                                    {'★'.repeat(hotel.stars)}{'☆'.repeat(5 - hotel.stars)}
+                                    {'★'.repeat(hotel.stars || 0)}{'☆'.repeat(5 - (hotel.stars || 0))}
                                 </div>
                                 <span>•</span>
                                 <span>📍 {address?.country || 'Страна не указана'}, {address?.city || 'Город не указан'}</span>
-                                {hotel.timeOfStay && (
+                                {(hotel as any).timeOfStay && (
                                     <>
                                         <span>•</span>
-                                        <span>⏱ {hotel.timeOfStay} дней</span>
+                                        <span>⏱ {(hotel as any).timeOfStay} дней</span>
                                     </>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Изображение отеля */}
                     <div style={{ marginBottom: '40px' }}>
                         <div style={{
                             width: '100%',
@@ -319,8 +261,8 @@ const HotelPage = () => {
                             justifyContent: 'center'
                         }}>
                             <img
-                                src={getSafeImageUrl(hotel.imageHotel, API_URL, 'hotel')}
-                                alt={hotel.name}
+                                src={getSafeImageUrl(hotel.imageHotel, 'hotel')}
+                                alt={hotel.name || 'Отель'}
                                 style={{
                                     maxWidth: '100%',
                                     maxHeight: '100%',
@@ -334,13 +276,11 @@ const HotelPage = () => {
                         </div>
                     </div>
 
-                    {/* Две колонки */}
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 350px',
                         gap: '40px'
                     }}>
-                        {/* Левая колонка - описание и номера */}
                         <div>
                             <section style={{ marginBottom: '30px' }}>
                                 <h2 style={{
@@ -358,7 +298,7 @@ const HotelPage = () => {
                                     lineHeight: '1.8',
                                     color: '#5A3E2B'
                                 }}>
-                                    {hotel.details || 'Описание отсутствует'}
+                                    {hotel.description || (hotel as any).details || 'Описание отсутствует'}
                                 </p>
                                 {address && (
                                     <p style={{
@@ -373,7 +313,6 @@ const HotelPage = () => {
                                 )}
                             </section>
 
-                            {/* Номера отеля */}
                             <section>
                                 <h2 style={{
                                     fontSize: '28px',
@@ -415,8 +354,8 @@ const HotelPage = () => {
                                             }}>
                                                 {room.imageRoom && (
                                                     <img
-                                                        src={getSafeImageUrl(room.imageRoom, API_URL, 'room')}
-                                                        alt={room.nameRoom}
+                                                        src={getSafeImageUrl(room.imageRoom, 'room')}
+                                                        alt={room.nameRoom || 'Номер'}
                                                         style={{
                                                             width: '100%',
                                                             height: '150px',
@@ -448,7 +387,7 @@ const HotelPage = () => {
                                                     Этаж: {room.floor}
                                                 </p>
                                                 <p style={{ color: '#5A3E2B', fontSize: '14px', lineHeight: '1.6' }}>
-                                                    {room.details || 'Подробности отсутствуют'}
+                                                    {room.description || room.details || 'Подробности отсутствуют'}
                                                 </p>
                                                 <Link
                                                     to={`/hotel-room/${hotel.id}/${room.id}${associatedTourId ? `?tourId=${associatedTourId}` : ''}`}
@@ -494,7 +433,6 @@ const HotelPage = () => {
                             </section>
                         </div>
 
-                        {/* Правая колонка - бронирование */}
                         <div>
                             <div style={{
                                 background: '#FFF8F0',
@@ -551,7 +489,6 @@ const HotelPage = () => {
                         </div>
                     </div>
 
-                    {/* Кнопка возврата */}
                     <div style={{ textAlign: 'center', marginTop: '40px' }}>
                         <Link to={associatedTourId ? `/catalog/tour/${associatedTourId}` : "/catalog"}>
                             <button style={{
