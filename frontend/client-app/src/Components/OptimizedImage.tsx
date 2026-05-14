@@ -27,15 +27,18 @@ export const isValidImagePath = (path: string | null | undefined): boolean => {
     return validExtensions.some(ext => lowerPath.endsWith(ext));
 };
 
+// ПОЛУЧЕНИЕ БЕЗОПАСНОГО URL ДЛЯ ИЗОБРАЖЕНИЙ
+// Использует REACT_APP_API_URL_IMAGES для правильного формирования пути к картинкам
 export const getSafeImageUrl = (
     path: string | null | undefined,
-    apiUrl: string,
     type: keyof typeof PLACEHOLDERS = 'tour'
 ): string => {
     if (!isValidImagePath(path)) {
         return PLACEHOLDERS[type];
     }
-    return `${apiUrl}/${path}`;
+    // Используем отдельную переменную для URL картинок (без /api)
+    const IMAGES_API_URL = process.env.REACT_APP_API_URL_IMAGES || 'http://localhost:5050';
+    return `${IMAGES_API_URL}/${path}`;
 };
 
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -56,7 +59,6 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
         // Проверка на валидность src
         if (!src || src === 'null' || src === 'undefined' || src === 'test' || src === '') {
-            console.log(`❌ Невалидный путь к изображению: "${src}", используем плейсхолдер`);
             setImageSrc(PLACEHOLDERS[type]);
             setIsLoading(false);
             setHasError(true);
@@ -70,11 +72,10 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
             return;
         }
 
-        // Если это полный URL
+        // Если это полный URL (http:// или https://)
         if (src.startsWith('http://') || src.startsWith('https://')) {
             // Проверяем, что это изображение, а не просто текст
             if (!isValidImagePath(src)) {
-                console.log(`❌ Невалидный URL изображения: "${src}"`);
                 setImageSrc(PLACEHOLDERS[type]);
                 setIsLoading(false);
                 setHasError(true);
@@ -87,7 +88,6 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
                 setIsLoading(false);
             };
             img.onerror = () => {
-                console.warn(`❌ Не удалось загрузить изображение: ${src}`);
                 setImageSrc(PLACEHOLDERS[type]);
                 setIsLoading(false);
                 setHasError(true);
@@ -96,33 +96,27 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
             return;
         }
 
-        // Формируем полный URL для сервера
-        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5050';
-
-        // Проверяем, что это валидный путь к изображению
-        if (!isValidImagePath(src)) {
-            console.log(`❌ Некорректный путь к изображению: "${src}" (должен иметь расширение .jpg, .png и т.д.)`);
-            setImageSrc(PLACEHOLDERS[type]);
+        // Для относительных путей используем getSafeImageUrl
+        const fullUrl = getSafeImageUrl(src, type);
+        
+        // Если вернулся плейсхолдер, значит путь невалидный
+        if (fullUrl === PLACEHOLDERS[type]) {
+            setImageSrc(fullUrl);
             setIsLoading(false);
             setHasError(true);
             return;
         }
-
-        const fullUrl = `${API_URL}/${src}`;
 
         const img = new Image();
         img.onload = () => {
             setImageSrc(fullUrl);
             setIsLoading(false);
         };
-
         img.onerror = () => {
-            console.warn(`❌ Не удалось загрузить изображение: ${fullUrl}`);
             setImageSrc(PLACEHOLDERS[type]);
             setIsLoading(false);
             setHasError(true);
         };
-
         img.src = fullUrl;
     }, [src, type]);
 
