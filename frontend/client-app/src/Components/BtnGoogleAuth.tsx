@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "reactstrap";
 import { Link } from "react-router-dom";
+import { PLACEHOLDERS } from "../Components/OptimizedImage";
 
 declare global {
   interface Window {
@@ -56,12 +57,10 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
     script.defer = true;
 
     script.onload = () => {
-      console.log('✅ Google API script loaded');
       this.initializeGoogle();
     };
 
     script.onerror = () => {
-      console.error('❌ Failed to load Google API script');
       this.setState({
         loadError: 'Не удалось загрузить Google API',
         isLoading: false
@@ -83,10 +82,9 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
       auto_select: false,
       cancel_on_tap_outside: true,
       context: 'signin',
-      ux_mode: 'popup', // Используем popup вместо iframe
+      ux_mode: 'popup',
     });
 
-    console.log("✅ Google Identity Services initialized");
     this.setState({ isLoading: false, loadError: null });
 
     // Рендерим кнопку после инициализации
@@ -104,13 +102,12 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
         {
           theme: 'outline',
           size: 'large',
-          width: 250,        // ВАЖНО: число, не строка!
+          width: 250,
           text: 'signin_with',
           shape: 'pill',
           logo_alignment: 'left'
         }
       );
-      console.log("✅ Google button rendered");
     }
   };
 
@@ -125,10 +122,7 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
         picture: payload.picture,
         isLoading: false
       });
-
-      console.log("✅ Signed in as:", payload.name);
     } catch (error) {
-      console.error("❌ Error parsing credential:", error);
       this.setState({
         loadError: 'Ошибка обработки ответа',
         isLoading: false
@@ -148,28 +142,24 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
       // Пытаемся показать One Tap UI
       window.google.accounts.id.prompt((notification: any) => {
         if (notification.isNotDisplayed()) {
-          console.log("One Tap не отобразился, показываем кнопку");
           this.setState({ isLoading: false });
-          this.renderGoogleButton(); // Запасной вариант
+          this.renderGoogleButton();
         }
         if (notification.isSkippedMoment()) {
-          console.log("One Tap пропущен пользователем");
           this.setState({ isLoading: false });
-          this.renderGoogleButton(); // Запасной вариант
+          this.renderGoogleButton();
         }
         if (notification.isDismissedMoment()) {
-          console.log("One Tap закрыт пользователем");
           this.setState({ isLoading: false });
-          this.renderGoogleButton(); // Запасной вариант
+          this.renderGoogleButton();
         }
       });
     } catch (error) {
-      console.error("❌ Error during sign in:", error);
       this.setState({
         isLoading: false,
         loadError: 'Ошибка при открытии окна авторизации'
       });
-      this.renderGoogleButton(); // Запасной вариант
+      this.renderGoogleButton();
     }
   };
 
@@ -187,12 +177,10 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
           picture: null,
           isLoading: false
         });
-        console.log("✅ Signed out successfully");
         // Снова рендерим кнопку после выхода
         setTimeout(() => this.renderGoogleButton(), 100);
       });
     } catch (error) {
-      console.error("❌ Error during sign out:", error);
       this.setState({ isLoading: false });
     }
   };
@@ -264,6 +252,10 @@ class ButtonGoogleAuth extends React.Component<{}, ButtonGoogleAuthState> {
                 height: '50px',
                 borderRadius: '50%',
                 border: '2px solid #FFD700'
+              }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = PLACEHOLDERS.user;
+                (e.target as HTMLImageElement).onerror = null;
               }}
             />
           )}
