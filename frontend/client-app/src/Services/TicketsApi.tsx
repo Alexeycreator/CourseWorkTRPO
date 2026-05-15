@@ -11,6 +11,16 @@ const api = axios.create({
     },
 });
 
+export interface ResponseUserTicketsData {
+    id: number;
+    price: number;
+    departureTime: Date;
+    arrivalTime: Date;
+    dateSale: Date;
+    tourId: number;
+    hotelId: number;
+};
+
 export interface CreateTicketsDto {
     price: number;
     departureTime: Date;
@@ -58,6 +68,29 @@ export const getTicketById = async (id: number): Promise<Tickets> => {
         }
     }
 };
+
+export const getInfoUserTicket= async(userId: number): Promise<ResponseUserTicketsData[]>=>{
+    try {
+        const response = await api.get<ResponseUserTicketsData[]>(`/Tickets/get-info-user-ticket?userId=${userId}`);
+        return response.data;
+    }
+    catch (error: any) {
+        if (error.response) {
+            console.log('Ошибка ответа:', error.response.data);
+            console.log('Статус:', error.response.status);
+            throw {
+                ...error,
+                serverMessage: error.response.data?.message || 'Неизвестная ошибка',
+                statusCode: error.response.status
+            };
+        } else if (error.request) {
+            throw { message: 'Нет ответа от сервера', isNetworkError: true };
+        } else {
+            throw { message: error.message, isSetupError: true };
+        }
+    }
+};
+
 export const createTicket = async (userId: number, request: CreateTicketsDto): Promise<void> => {
     try {
         await api.post(`/Tickets/create-ticket?userId=${userId}`, request);
