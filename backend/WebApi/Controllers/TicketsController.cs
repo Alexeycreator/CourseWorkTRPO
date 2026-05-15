@@ -38,6 +38,62 @@ public sealed class TicketsController(ServerDbContext dbContext) : ControllerBas
     }
 
     [HttpGet("get-info-user-ticket")]
+    public async Task<IActionResult> GetInfoUserTicket(int userId)
+    {
+        try
+        {
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = $"Такого пользователя нет" });
+            }
+
+            var userTickets = await dbContext.Tickets.Where(t => t.Id == user.TicketsId).ToListAsync();
+            if (userTickets.Count <= 0)
+            {
+                loggerTicketsController.Error($"Не получилось найти информацию о билетах пользователя {user.Login}");
+                return BadRequest(new
+                    { message = $"Не получилось найти информацию о билетах пользователя {user.Login}" });
+            }
+
+            List<ResponseUserTicketsData> responseTicketUser = new List<ResponseUserTicketsData>();
+            foreach (var uTicket in userTickets)
+            {
+                var hotel = await dbContext.Hotels.Where(h => h.TicketsId == uTicket.Id).FirstOrDefaultAsync();
+                if (hotel == null)
+                {
+                    loggerTicketsController.Error($"Данные об отеле данного билета не найдены");
+                    return BadRequest(new { message = $"Данные об отеле данного билета не найдены" });
+                }
+
+                var tour = await dbContext.Tours.Where(t => t.TicketsId == uTicket.Id).FirstOrDefaultAsync();
+                if (tour == null)
+                {
+                    loggerTicketsController.Error($"Данные о туре данного билета не найдены");
+                    return BadRequest(new { message = $"Данные о туре данного билета не найдены" });
+                }
+
+                responseTicketUser.Add(new ResponseUserTicketsData()
+                {
+                    Id = uTicket.Id,
+                    ArrivalTime = uTicket.ArrivalTime,
+                    DateSale = uTicket.DateSale,
+                    DepartureTime = uTicket.DepartureTime,
+                    Price = uTicket.Price,
+                    HotelId = hotel.Id,
+                    TourId = tour.Id,
+                });
+            }
+
+            return Ok(responseTicketUser);
+        }
+        catch (Exception ex)
+        {
+            loggerTicketsController.Error($"Внутренняя ошибка сервера: {ex.Message}");
+            return StatusCode(500, new { message = $"Внутренняя ошибка сервера: {ex.Message}" });
+        }
+    }
+
     [HttpPost("create-ticket")]
     public async Task<IActionResult> CreatePassportData(int userId, CreateTicketsDto? request)
     {
