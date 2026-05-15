@@ -6,7 +6,7 @@ import { getCurrentHotelInfo } from '../Services/HotelsApi';
 import NavBar from '../Components/NavBar';
 import { Address, getAddressById } from '../Services/AddressApi';
 import { clientApi, UserResponse } from '../Services/IndexAuth';
-import { Passport, getInfoPassport } from '../Services/PassportApi';
+import { Passports, getInfoPassport } from '../Services/PassportApi';
 import TicketPayment from '../TicketPayment';
 import { HotelMainInfoDto } from '../Services/HotelsApi';
 import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
@@ -41,7 +41,7 @@ const TourPage = () => {
     // Состояния для модального окна оплаты
     const [showPayment, setShowPayment] = useState(false);
     const [clientData, setClientData] = useState<UserResponse | null>(null);
-    const [passportData, setPassportData] = useState<Passport | null>(null);
+    const [passportData, setPassportData] = useState<Passports | null>(null);
     const [addressData, setAddressData] = useState<Address | null>(null);
 
     // Состояние для отеля
@@ -104,7 +104,7 @@ const TourPage = () => {
             try {
                 const passportInfo = await getInfoPassport(user.id);
                 if (passportInfo) {
-                    const passport: Passport = {
+                    const passport: Passports = {
                         id: passportInfo.id,
                         seria: passportInfo.seria,
                         number: passportInfo.number,
@@ -160,10 +160,39 @@ const TourPage = () => {
         }
     }, [location]);
 
+    const parseDate = (dateStr: string | null | undefined): Date | null => {
+        if (!dateStr) return null;
+
+        // Если формат ДД.ММ.ГГГГ
+        if (dateStr.includes('.')) {
+            const parts = dateStr.split('.');
+            if (parts.length === 3) {
+                const year = parseInt(parts[2], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const day = parseInt(parts[0], 10);
+                const date = new Date(year, month, day);
+                return isNaN(date.getTime()) ? null : date;
+            }
+        }
+        // Если формат YYYY-MM-DD
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date;
+    };
+
+    // Функция для форматирования даты для отображения
+    const formatDateForDisplay = (dateStr: string | null | undefined): string => {
+        if (!dateStr) return '—';
+        const date = parseDate(dateStr);
+        if (!date) return dateStr;
+        return date.toLocaleDateString('ru-RU');
+    };
+
     const calculateNights = (startDate: string | null | undefined, endDate: string | null | undefined): number => {
-        if (!startDate || !endDate) return 0;
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        const start = parseDate(startDate);
+        const end = parseDate(endDate);
+
+        if (!start || !end) return 0;
+
         const diffTime = Math.abs(end.getTime() - start.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
@@ -204,18 +233,48 @@ const TourPage = () => {
         }
 
         try {
+            // Получаем корректную дату начала
+            let departureDate: Date;
+            if (selectedDate) {
+                const parsed = parseDate(selectedDate);
+                if (!parsed) throw new Error('Некорректный формат даты начала');
+                departureDate = parsed;
+            } else if (selectedTour.startDot) {
+                const parsed = parseDate(selectedTour.startDot);
+                if (!parsed) throw new Error('Некорректный формат даты начала тура');
+                departureDate = parsed;
+            } else {
+                departureDate = new Date();
+            }
+
+            // Получаем корректную дату окончания
+            let arrivalDate: Date;
+            if (selectedTour.endDot) {
+                const parsed = parseDate(selectedTour.endDot);
+                if (!parsed) throw new Error('Некорректный формат даты окончания тура');
+                arrivalDate = parsed;
+            } else {
+                arrivalDate = new Date();
+                arrivalDate.setDate(departureDate.getDate() + 7);
+            }
+
+            // Округляем цену до целого числа
+            const roundedPrice = Math.round(convertedPrice);
+
             await createTicket(clientData.id, {
-                price: convertedPrice,
-                departureTime: new Date(selectedDate || selectedTour.startDot || new Date()),
-                arrivalTime: new Date(selectedTour.endDot || new Date()),
+                price: roundedPrice,
+                departureTime: departureDate,
+                arrivalTime: arrivalDate,
                 dateSale: new Date(),
                 hotelRoomsId: 1,
                 tourId: selectedTour.id
             });
+
             setShowPayment(false);
-            alert('Тур успешно забронирован! На вашу почту отправлено подтверждение.');
         } catch (error: any) {
-            alert(error.serverMessage || error.message || 'Произошла ошибка при бронировании. Пожалуйста, попробуйте позже.');
+            console.error('Ошибка бронирования:', error);
+            const errorMessage = error.serverMessage || error.response?.data?.message || error.message || 'Произошла ошибка при бронировании. Пожалуйста, попробуйте позже.';
+            alert(errorMessage);
             throw error;
         }
     };
@@ -581,7 +640,7 @@ const TourPage = () => {
                                         <option value="">Выберите дату</option>
                                         {selectedTour.startDot && (
                                             <option value={selectedTour.startDot}>
-                                                {new Date(selectedTour.startDot).toLocaleDateString('ru-RU')}
+                                                {formatDateForDisplay(selectedTour.startDot)}
                                             </option>
                                         )}
                                     </select>
@@ -594,12 +653,12 @@ const TourPage = () => {
                                     marginBottom: '20px'
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span style={{ color: '#8B5A2B' }}>✈️ Вылет из:</span>
-                                        <span style={{ color: '#B76E3C' }}>{selectedTour.startDot || '—'}</span>
+                                        <span style={{ color: '#8B5A2B' }}>✈️ Вылет:</span>
+                                        <span style={{ color: '#B76E3C' }}>{formatDateForDisplay(selectedTour.startDot)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span style={{ color: '#8B5A2B' }}>📍 Назначение:</span>
-                                        <span style={{ color: '#B76E3C' }}>{selectedTour.endDot || '—'}</span>
+                                        <span style={{ color: '#8B5A2B' }}>📍 Прибытие:</span>
+                                        <span style={{ color: '#B76E3C' }}>{formatDateForDisplay(selectedTour.endDot)}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ color: '#8B5A2B' }}>🌙 Ночей:</span>

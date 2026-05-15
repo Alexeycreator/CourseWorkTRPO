@@ -1,6 +1,50 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 const InformationPage = () => {
+  // Обработка прокрутки к якорям
+  useEffect(() => {
+    // Функция для обработки кликов из Footer
+    const handleScrollToSection = (event: Event) => {
+      const customEvent = event as CustomEvent<{ sectionId: string }>;
+      const sectionId = customEvent.detail?.sectionId;
+      if (sectionId) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          // Небольшая задержка для уверенности, что DOM полностью загружен
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        }
+      }
+    };
+
+    // Функция для обработки прямых ссылок вида /information#mission
+    const handleHashChange = () => {
+      const hash = window.location.hash.substring(1); // убираем #
+      if (hash) {
+        const element = document.getElementById(hash);
+        if (element) {
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        }
+      }
+    };
+
+    // Добавляем слушатели событий
+    window.addEventListener('scrollToSection', handleScrollToSection);
+    window.addEventListener('hashchange', handleHashChange);
+    
+    // Проверяем hash при загрузке страницы
+    handleHashChange();
+
+    // Очищаем слушатели при размонтировании компонента
+    return () => {
+      window.removeEventListener('scrollToSection', handleScrollToSection);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
   return (
     <div style={{
       background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
@@ -53,7 +97,7 @@ const InformationPage = () => {
         }}>
           
           {/* Деятельность компании */}
-          <section style={{ marginBottom: '50px' }}>
+          <section id="about" style={{ marginBottom: '50px' }}>
             <h2 style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontSize: '36px',
@@ -86,8 +130,8 @@ const InformationPage = () => {
             </p>
           </section>
 
-          {/* Миссия и цели */}
-          <section style={{ marginBottom: '50px' }}>
+          {/* Миссия и цели - ДОБАВЛЕН ID "mission" */}
+          <section id="mission" style={{ marginBottom: '50px' }}>
             <h2 style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontSize: '36px',
@@ -157,7 +201,7 @@ const InformationPage = () => {
           </section>
 
           {/* Перспективы развития */}
-          <section style={{ marginBottom: '50px' }}>
+          <section id="development" style={{ marginBottom: '50px' }}>
             <h2 style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontSize: '36px',
@@ -225,8 +269,8 @@ const InformationPage = () => {
             </div>
           </section>
 
-          {/* Качество продукта */}
-          <section style={{ marginBottom: '50px' }}>
+          {/* Качество продукта - ДОБАВЛЕН ID "quality" */}
+          <section id="quality" style={{ marginBottom: '50px' }}>
             <h2 style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontSize: '36px',
@@ -303,7 +347,7 @@ const InformationPage = () => {
           </section>
 
           {/* Социальная ответственность */}
-          <section style={{ marginBottom: '50px' }}>
+          <section id="social" style={{ marginBottom: '50px' }}>
             <h2 style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontSize: '36px',
@@ -339,7 +383,7 @@ const InformationPage = () => {
           </section>
 
           {/* Ценности и принципы */}
-          <section style={{ marginBottom: '20px' }}>
+          <section id="values" style={{ marginBottom: '20px' }}>
             <h2 style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontSize: '36px',

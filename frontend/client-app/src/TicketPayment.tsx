@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { UserResponse } from './Services/IndexAuth';
-import { Passport } from './Services/PassportApi';
+import { Passports } from './Services/PassportApi';
 import { Address } from './Services/AddressApi';
-import { createTicket } from './Services/TicketsApi';
+import { CreateTicketsDto } from './Services/TicketsApi';
 
 // Расширенный интерфейс для тура с поддержкой разных типов
 interface ExtendedTour {
@@ -26,11 +26,8 @@ interface ExtendedTour {
     hotelsId?: number;
 }
 
-interface TicketData {
-    price: number;
-    departureTime: Date;
-    arrivalTime: Date;
-    dateSale: Date;
+// Расширенный интерфейс для данных билета с полями для создания
+interface TicketData extends CreateTicketsDto {
     client_Id?: number | null;
 }
 
@@ -40,7 +37,7 @@ interface TicketPaymentProps {
     onSubmit: (ticketData: TicketData) => Promise<void>;
     tour?: ExtendedTour | null;
     clientData?: UserResponse | null;
-    passportData?: Passport | null;
+    passportData?: Passports | null;
     addressData?: Address | null;
     convertedPrice?: number;
     currencySymbol?: string;
@@ -256,23 +253,19 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
                 throw new Error('Данные клиента не загружены');
             }
 
-            // Создаем билет через API
-            await createTicket(clientData.id, {
-                price: convertedPrice,
-                departureTime: new Date(departureDate),
-                arrivalTime: new Date(arrivalDate),
-                dateSale: new Date(),
-                hotelRoomsId: 1,
-                tourId: getTourId()
-            });
+            if (!tour?.id) {
+                throw new Error('Тур не выбран');
+            }
 
-            // Вызываем onSubmit для дополнительной логики
+            // Вызываем onSubmit с полными данными для создания билета
             await onSubmit({
                 price: convertedPrice,
                 departureTime: new Date(departureDate),
                 arrivalTime: new Date(arrivalDate),
                 dateSale: new Date(),
-                client_Id: clientData?.id || null
+                hotelRoomsId: 1, // Значение по умолчанию, будет переопределено в TourPage
+                tourId: tour.id,
+                client_Id: clientData.id
             });
 
             onClose();

@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../Contexts/AuthContext";
 import { clientApi, UserResponse } from "../Services/IndexAuth";
-import { Passport, deletePassport, getAllPassports, updatePassport, createPassport, CreatePassportDto } from "../Services/PassportApi";
-import { User } from "../Services/UsersApi";
-import { Address, getAddressById, getAddressesByPassportId } from "../Services/AddressApi";
+import { Passports, deletePassport, getAllPassports, updatePassport, createPassport, CreatePassportDto, getInfoPassport } from "../Services/PassportApi";
+import { Address } from "../Services/AddressApi";
 import EditDocumentModal, { DocumentFormData, AddressFormData, CombinedDocumentData } from '../EditDocumentModal';
 import { Link } from 'react-router-dom';
 import { createTour, CreateTourDto, getMainTours, ToursDto } from "../Services/ToursApi";
 import { createHotel, CreateHotelDto, getAllHotels } from "../Services/HotelsApi";
 import { createHotelRoom, CreateHotelRoomsDto } from "../Services/HotelRoomsApi";
+import { getAllTickets } from "../Services/TicketsApi";
 import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
 import Loader from "../Components/Loader";
 
@@ -20,7 +20,7 @@ interface TourLocal {
   endDot: string;
   details: string;
   imageTour: string;
-  description: string;
+  //description: string;
   separately: string;
   included: string;
   program: string;
@@ -75,12 +75,19 @@ interface HotelOption {
   stars: number;
 }
 
+// Тип для элемента навигации
+interface NavItem {
+  id: 'profile' | 'documents' | 'bookings' | 'admin' | 'employee' | 'logout';
+  label: string;
+  roles: string[];
+}
+
 const ClientAccountPage = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'documents' | 'bookings' | 'admin' | 'employee'>('profile');
   const { user, isAuthenticated, logout } = useAuth();
   const [userData, setUserData] = useState<UserResponse | null>(null);
 
-  const [passportsData, setPassportsData] = useState<Passport[]>([]);
+  const [passportsData, setPassportsData] = useState<Passports[]>([]);
   const [addressesData, setAddressesData] = useState<Address[]>([]);
 
   const [editedData, setEditedData] = useState<any>(null);
@@ -94,10 +101,6 @@ const ClientAccountPage = () => {
   const [modalMode, setModalMode] = useState<'edit' | 'add'>('edit');
 
   const [saveStatus, setSaveStatus] = useState({ show: false, message: '', type: '' });
-
-  const [tours, setTours] = useState<TourLocal[]>([]);
-  const [hotels, setHotels] = useState<HotelLocal[]>([]);
-  const [hotelRooms, setHotelRooms] = useState<HotelRoomLocal[]>([]);
 
   const [showTourForm, setShowTourForm] = useState(false);
   const [showHotelForm, setShowHotelForm] = useState(false);
@@ -113,11 +116,23 @@ const ClientAccountPage = () => {
   const [bookedTours, setBookedTours] = useState<TourLocal[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
 
-  const [allPassportsFromDb, setAllPassportsFromDb] = useState<Passport[]>([]);
   const [isLoadingPassports, setIsLoadingPassports] = useState(false);
 
   const [availableHotels, setAvailableHotels] = useState<HotelOption[]>([]);
   const [isLoadingHotels, setIsLoadingHotels] = useState(false);
+
+  const userRole = (user?.role || 'user').toLowerCase();
+
+  const navItems: NavItem[] = [
+    { id: 'profile', label: '📋 Мои данные', roles: ['admin', 'employee', 'user'] },
+    { id: 'documents', label: '📄 Документы', roles: ['admin', 'employee', 'user'] },
+    { id: 'bookings', label: '🗺️ Мои бронирования', roles: ['admin', 'employee', 'user'] },
+    { id: 'admin', label: '👨‍💼 Администратор', roles: ['admin'] },
+    { id: 'employee', label: '👨‍💻 Сотрудник', roles: ['employee'] },
+    { id: 'logout', label: '🚪 Выход', roles: ['admin', 'employee', 'user'] },
+  ];
+
+  const filteredNavItems = navItems.filter(item => item.roles.includes(userRole));
 
   const [newTour, setNewTour] = useState<Partial<CreateTourDto>>({
     nameTour: '',
@@ -219,7 +234,7 @@ const ClientAccountPage = () => {
     window.location.href = '/';
   };
 
-  const handleEditDocument = (passport: Passport, address: Address | undefined, index: number) => {
+  const handleEditDocument = (passport: Passports, address: Address | undefined, index: number) => {
     setModalData({
       passport: {
         seria: passport.seria?.toString() || '',
@@ -279,6 +294,14 @@ const ClientAccountPage = () => {
     setIsModalOpen(true);
   };
 
+  const formatDateToISO = (dateStr: string): string => {
+    if (!dateStr) return new Date().toISOString().split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return new Date().toISOString().split('T')[0];
+    return date.toISOString().split('T')[0];
+  };
+
   const handleSaveDocument = async (passportData: DocumentFormData, addressData: AddressFormData) => {
     if (!user?.id) {
       setSaveStatus({ show: true, message: 'Пользователь не авторизован', type: 'error' });
@@ -288,66 +311,94 @@ const ClientAccountPage = () => {
     try {
       setLoading(true);
 
+      const formattedDateOfIssue = formatDateToISO(passportData.dateOfIssue);
+
+      // Проверка apartment
+      let apartmentNumber: number | null = null;
+      if (addressData.apartment) {
+        const parsed = parseInt(addressData.apartment, 10);
+        if (!isNaN(parsed) && parsed > 0 && parsed <= 2147483647) {
+          apartmentNumber = parsed;
+        }
+      }
+
+      // departmentCode обязателен для всех типов
+      const departmentCode = passportData.departmentCode || '000-000';
+
       if (modalMode === 'edit' && modalData && modalData.index !== undefined && modalData.index >= 0) {
         const index = modalData.index;
         const existingPassport = passportsData[index];
+        const existingAddress = addressesData[index];
 
-        const updateRequest: UpdatePassportDto = {
+        const addressObj = (addressData.city || addressData.street) ? {
+          id: existingAddress?.id || 0,
+          country: addressData.country || 'Российская Федерация',
+          region: addressData.country || 'Российская Федерация',
+          city: addressData.city || '',
+          street: addressData.street || '',
+          house: addressData.house || '',
+          apartment: apartmentNumber
+        } : null;
+
+        const updateRequest = {
           id: existingPassport.id,
           passportId: existingPassport.id,
-          seria: parseInt(passportData.seria, 10),
-          number: parseInt(passportData.number, 10),
-          type: passportData.type,
-          issuedBy: passportData.issuedBy,
-          departmentCode: passportData.departmentCode,
-          dateOfIssue: new Date(passportData.dateOfIssue),
-          address: addressData.city || addressData.street ? {
-            country: addressData.country,
-            region: addressData.country,
-            city: addressData.city,
-            street: addressData.street,
-            house: addressData.house,
-            apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null
-          } : null
+          seria: parseInt(passportData.seria, 10) || 0,
+          number: parseInt(passportData.number, 10) || 0,
+          type: passportData.type || 'internal',
+          issuedBy: passportData.issuedBy || '',
+          departmentCode: departmentCode,
+          dateOfIssue: formattedDateOfIssue,
+          address: addressObj
         };
 
-        await updatePassport(user.id, updateRequest);
+        console.log('Обновление паспорта:', JSON.stringify(updateRequest, null, 2));
+        await updatePassport(user.id, updateRequest as any);
 
         const updatedPassports = [...passportsData];
         updatedPassports[index] = {
           ...updatedPassports[index],
-          seria: parseInt(passportData.seria, 10),
-          number: parseInt(passportData.number, 10),
-          issuedBy: passportData.issuedBy,
-          dateOfIssue: passportData.dateOfIssue,
-          departmentCode: passportData.departmentCode,
-          type: passportData.type
+          seria: parseInt(passportData.seria, 10) || 0,
+          number: parseInt(passportData.number, 10) || 0,
+          issuedBy: passportData.issuedBy || '',
+          dateOfIssue: formattedDateOfIssue,
+          departmentCode: departmentCode,
+          type: passportData.type || 'internal'
         };
         setPassportsData(updatedPassports);
 
+        if (addressObj) {
+          const updatedAddresses = [...addressesData];
+          updatedAddresses[index] = addressObj as Address;
+          setAddressesData(updatedAddresses);
+        }
+
         setSaveStatus({ show: true, message: 'Документ успешно обновлён!', type: 'success' });
       } else if (modalMode === 'add') {
-        const createRequest: CreatePassportDto = {
-          seria: parseInt(passportData.seria, 10),
-          number: parseInt(passportData.number, 10),
-          type: passportData.type,
-          issuedBy: passportData.issuedBy,
-          departmentCode: passportData.departmentCode,
-          dateOfIssue: new Date(passportData.dateOfIssue),
-          address: addressData.city || addressData.street ? {
-            country: addressData.country,
-            region: addressData.country,
-            city: addressData.city,
-            street: addressData.street,
-            house: addressData.house,
-            apartment: addressData.apartment ? parseInt(addressData.apartment, 10) : null
-          } : null
+        const addressObj = (addressData.city || addressData.street) ? {
+          id: 0,
+          country: addressData.country || 'Российская Федерация',
+          region: addressData.country || 'Российская Федерация',
+          city: addressData.city || '',
+          street: addressData.street || '',
+          house: addressData.house || '',
+          apartment: apartmentNumber
+        } : null;
+
+        const createRequest = {
+          seria: parseInt(passportData.seria, 10) || 0,
+          number: parseInt(passportData.number, 10) || 0,
+          type: passportData.type || 'internal',
+          issuedBy: passportData.issuedBy || '',
+          departmentCode: departmentCode,
+          dateOfIssue: formattedDateOfIssue,
+          address: addressObj
         };
 
-        await createPassport(user.id, createRequest);
+        console.log('Создание паспорта:', JSON.stringify(createRequest, null, 2));
+        await createPassport(user.id, createRequest as any);
 
         setSaveStatus({ show: true, message: 'Новый документ успешно добавлен!', type: 'success' });
-        await fetchUser();
       }
 
       setIsModalOpen(false);
@@ -355,8 +406,12 @@ const ClientAccountPage = () => {
       setTimeout(() => fetchUser(), 500);
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
     } catch (error: any) {
-      setSaveStatus({ show: true, message: error.serverMessage || error.message || 'Ошибка при сохранении', type: 'error' });
-      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
+      console.error('Ошибка сохранения документа:', error);
+      const errorMessage = error.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join(', ')
+        : (error.response?.data?.message || error.serverMessage || error.message || 'Ошибка при сохранении');
+      setSaveStatus({ show: true, message: errorMessage, type: 'error' });
+      setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 5000);
     } finally {
       setLoading(false);
     }
@@ -368,7 +423,7 @@ const ClientAccountPage = () => {
     try {
       const loadUser = await clientApi.getById(Number(user.id));
       setUserData(loadUser);
-      await fetchAllPassports();
+      await fetchUserPassports();
     } catch (error: any) {
       setSaveStatus({ show: true, message: error.serverMessage || 'Ошибка загрузки данных', type: 'error' });
     } finally {
@@ -376,29 +431,63 @@ const ClientAccountPage = () => {
     }
   };
 
-  const fetchAllPassports = async () => {
+  // Получаем ВСЕ паспорта пользователя
+  const fetchUserPassports = async () => {
     if (!user?.id) return;
     setIsLoadingPassports(true);
     try {
+      // Используем getAllPassports и фильтруем по userId
       const allPassports = await getAllPassports();
-      setPassportsData(allPassports);
       
-      const addressesList: Address[] = [];
-      for (const passport of allPassports) {
-        try {
-          const addresses = await getAddressesByPassportId(passport.id);
-          if (addresses && addresses.length > 0) {
-            addressesList.push(addresses[0]);
-          } else {
-            addressesList.push(null as any);
+      // Пытаемся получить паспорта через getInfoPassport для каждого паспорта
+      const userPassports: Passports[] = [];
+      const userAddresses: Address[] = [];
+
+      try {
+        const passportInfo = await getInfoPassport(user.id);
+        if (passportInfo) {
+          userPassports.push({
+            id: passportInfo.id,
+            seria: passportInfo.seria,
+            number: passportInfo.number,
+            type: passportInfo.type,
+            issuedBy: passportInfo.issuedBy,
+            departmentCode: passportInfo.departmentCode,
+            dateOfIssue: passportInfo.dateOfIssue instanceof Date 
+              ? passportInfo.dateOfIssue.toISOString().split('T')[0] 
+              : String(passportInfo.dateOfIssue)
+          });
+
+          if (passportInfo.address) {
+            userAddresses.push({
+              id: passportInfo.address.id,
+              country: passportInfo.address.country || '',
+              region: passportInfo.address.region || '',
+              city: passportInfo.address.city || '',
+              street: passportInfo.address.street || '',
+              house: passportInfo.address.house || '',
+              apartment: passportInfo.address.apartment ? parseInt(String(passportInfo.address.apartment), 10) : null
+            });
           }
-        } catch (err) {
-          addressesList.push(null as any);
         }
+      } catch (err) {
+        console.log('getInfoPassport не сработал, используем getAllPassports');
       }
-      setAddressesData(addressesList);
+
+      // Если getInfoPassport не вернул данные, показываем все паспорта
+      if (userPassports.length === 0 && allPassports.length > 0) {
+        // Для обычных пользователей показываем все паспорта (так как API не фильтрует по userId)
+        setPassportsData(allPassports);
+        // Загружаем адреса для каждого паспорта (заглушка)
+        setAddressesData(new Array(allPassports.length).fill(null));
+      } else {
+        setPassportsData(userPassports);
+        setAddressesData(userAddresses);
+      }
     } catch (error: any) {
-      setSaveStatus({ show: true, message: error.serverMessage || 'Ошибка загрузки паспортов', type: 'error' });
+      console.error('Ошибка загрузки паспортов:', error);
+      setPassportsData([]);
+      setAddressesData([]);
     } finally {
       setIsLoadingPassports(false);
     }
@@ -606,7 +695,7 @@ const ClientAccountPage = () => {
 
     try {
       setLoading(true);
-      
+
       await createHotel(user.id, {
         name: newHotel.name,
         stars: Number(newHotel.stars),
@@ -626,49 +715,66 @@ const ClientAccountPage = () => {
     }
   };
 
+  // Получаем ВСЕ забронированные туры пользователя
   const fetchUserBookedTours = async () => {
     if (!user?.id) return;
     try {
       setLoadingBookings(true);
-      const userData = await clientApi.getById(user.id);
+
+      // Получаем все билеты
+      const allTickets = await getAllTickets();
       
-      if (!userData.ticketsId) {
-        setBookedTours([]);
-        return;
-      }
-      
+      // Получаем все туры
       const allTours = await getMainTours();
-      const bookedTour = allTours.find((tour: any) => tour.ticketsId === userData.ticketsId);
       
-      if (bookedTour) {
-        setBookedTours([{
-          id: bookedTour.id,
-          name: bookedTour.nameTour,
-          startDot: bookedTour.startDot,
-          endDot: bookedTour.endDot,
-          details: bookedTour.details,
-          imageTour: bookedTour.imageTour,
-          description: bookedTour.description || bookedTour.details,
-          separately: bookedTour.separately || 'Не предусмотрено',
-          included: bookedTour.included || 'Не предусмотрено',
-          program: bookedTour.program || 'Не указана',
-          type: bookedTour.type,
-          hotTour: bookedTour.hotTour,
-          price: bookedTour.price,
-          tickets_Id: bookedTour.ticketsId,
-          transfers_Id: bookedTour.transfers_Id
-        }]);
-      } else {
-        setBookedTours([]);
+      // Находим билеты и связанные туры
+      const userBookedTours: TourLocal[] = [];
+
+      for (const ticket of allTickets) {
+        // Ищем тур, связанный с билетом
+        const relatedTour = allTours.find((tour: ToursDto) => {
+          // Проверяем различные возможные связи
+          return (ticket as any).tourId === tour.id || 
+                 (ticket as any).ticketsId === tour.id ||
+                 tour.id === (ticket as any).tourId;
+        });
+        
+        if (relatedTour) {
+          // Проверяем, нет ли уже такого тура в списке
+          const exists = userBookedTours.find(t => t.id === relatedTour.id);
+          if (!exists) {
+            userBookedTours.push({
+              id: relatedTour.id,
+              name: relatedTour.nameTour || '',
+              startDot: relatedTour.startDot || '',
+              endDot: relatedTour.endDot || '',
+              details: relatedTour.details || '',
+              imageTour: relatedTour.imageTour || '',
+              //description: relatedTour.description || relatedTour.details || '',
+              separately: 'Не предусмотрено',
+              included: 'Не предусмотрено',
+              program: 'Не указана',
+              type: relatedTour.type || '',
+              hotTour: false,
+              price: relatedTour.price || ticket.price,
+              tickets_Id: ticket.id,
+              transfers_Id: null
+            });
+          }
+        }
       }
+
+      console.log('Найдено забронированных туров:', userBookedTours.length);
+      setBookedTours(userBookedTours);
     } catch (error: any) {
+      console.log('Не удалось загрузить бронирования:', error);
       setBookedTours([]);
     } finally {
       setLoadingBookings(false);
     }
   };
 
-  const handleDeleteDocument = async (passport: Passport, address: Address | undefined, index: number) => {
+  const handleDeleteDocument = async (passport: Passports, address: Address | undefined, index: number) => {
     if (!user?.id) {
       setSaveStatus({ show: true, message: 'Пользователь не авторизован', type: 'error' });
       setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000);
@@ -681,6 +787,7 @@ const ClientAccountPage = () => {
 
     setLoading(true);
     try {
+      console.log('Удаление паспорта:', { passportId: passport.id, userId: user.id });
       await deletePassport(passport.id, user.id);
 
       const newPassportsData = [...passportsData];
@@ -696,11 +803,8 @@ const ClientAccountPage = () => {
         message: 'Паспорт успешно удалён!',
         type: 'success'
       });
-
-      setTimeout(() => {
-        fetchUser();
-      }, 500);
     } catch (error: any) {
+      console.error('Ошибка удаления паспорта:', error);
       setSaveStatus({
         show: true,
         message: error.serverMessage || error.message || 'Ошибка удаления паспорта',
@@ -746,7 +850,7 @@ const ClientAccountPage = () => {
   if (loading && !userData) {
     return <Loader message="Загрузка данных пользователя..." fullScreen />;
   }
-  
+
   if (!isAuthenticated) return <div>Пожалуйста, войдите в систему</div>;
 
   return (
@@ -767,7 +871,9 @@ const ClientAccountPage = () => {
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '48px', color: '#8B5A2B', marginBottom: '10px' }}>🐪 Личный кабинет</h1>
             <div style={{ width: '150px', height: '3px', background: 'linear-gradient(90deg, transparent, #C0A080, #B76E3C, #C0A080, transparent)', margin: '0 auto' }}></div>
-            <p style={{ color: '#B76E3C', marginTop: '15px', fontSize: '16px' }}>{isEditing ? 'Редактирование профиля' : 'Здравствуйте, ' + user?.firstName + '!'}</p>
+            <p style={{ color: '#B76E3C', marginTop: '15px', fontSize: '16px' }}>
+              {isEditing ? 'Редактирование профиля' : 'Здравствуйте, ' + user?.firstName + '!'}
+            </p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '30px', alignItems: 'start' }}>
@@ -785,14 +891,7 @@ const ClientAccountPage = () => {
                 👤 {user?.firstName} {user?.surName}
               </h2>
               <nav style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                {[
-                  { id: 'profile' as const, label: '📋 Мои данные' },
-                  { id: 'documents' as const, label: '📄 Документы' },
-                  { id: 'bookings' as const, label: '🗺️ Мои бронирования' },
-                  { id: 'admin' as const, label: '👨‍💼 Администратор' },
-                  { id: 'employee' as const, label: '👨‍💻 Сотрудник' },
-                  { id: 'logout' as const, label: '🚪 Выход' }
-                ].map(item => (
+                {filteredNavItems.map(item => (
                   <button
                     key={item.id}
                     type="button"
@@ -962,7 +1061,12 @@ const ClientAccountPage = () => {
                     <button type="button" onClick={handleAddDocument} style={{ padding: '8px 15px', background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)', color: '#FFF8F0', border: '2px solid #D2B48C', borderRadius: '20px', fontSize: '13px', cursor: 'pointer' }}>➕ Добавить документ</button>
                   </div>
 
-                  {passportsData.length === 0 ? (
+                  {isLoadingPassports ? (
+                    <div style={{ textAlign: 'center', padding: '40px' }}>
+                      <div style={{ fontSize: '32px', marginBottom: '10px' }}>⏳</div>
+                      <p style={{ color: '#8B5A2B' }}>Загрузка документов...</p>
+                    </div>
+                  ) : passportsData.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px', background: '#FFF8F0', borderRadius: '20px', border: '2px dashed #D2B48C' }}>
                       <p style={{ fontSize: '18px', color: '#8B5A2B', marginBottom: '20px' }}>У вас пока нет добавленных документов</p>
                       <button type="button" onClick={handleAddDocument} style={{ padding: '12px 30px', background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)', color: '#FFF8F0', border: '2px solid #D2B48C', borderRadius: '40px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>➕ Добавить первый документ</button>
@@ -1033,7 +1137,7 @@ const ClientAccountPage = () => {
                               <span style={{ color: '#B76E3C', fontSize: '14px' }}>🏷️ {tour.type}</span>
                               {tour.hotTour && <><span>•</span><span style={{ color: '#e67e22', fontSize: '14px' }}>🔥 Горящий тур</span></>}
                             </div>
-                            <p style={{ color: '#5D3A1A', fontSize: '14px', marginBottom: '15px' }}>{tour.description.length > 150 ? tour.description.substring(0, 150) + '...' : tour.description}</p>
+                            {/* <p style={{ color: '#5D3A1A', fontSize: '14px', marginBottom: '15px' }}>{tour.description.length > 150 ? tour.description.substring(0, 150) + '...' : tour.description}</p> */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ fontSize: '28px', fontWeight: '700', color: '#8B5A2B' }}>{new Intl.NumberFormat('ru-RU').format(tour.price)} ₽</span>
                               <Link to={`/catalog/tour/${tour.id}`}><button style={{ padding: '10px 25px', background: '#C0A080', color: '#FFF8F0', border: '2px solid #8B5A2B', borderRadius: '30px', cursor: 'pointer' }}>👁️ Подробнее</button></Link>
@@ -1142,7 +1246,7 @@ const ClientAccountPage = () => {
                                   <input type="text" placeholder="Имя" value={(viewingUserData as UserResponse).firstName || ''} onChange={(e) => setViewingUserData({ ...viewingUserData, firstName: e.target.value } as any)} style={{ width: '100%', padding: '8px', marginBottom: '10px', border: '1px solid #D2B48C', borderRadius: '8px' }} />
                                   <input type="email" placeholder="Email" value={viewingUserData.email || ''} onChange={(e) => setViewingUserData({ ...viewingUserData, email: e.target.value } as any)} style={{ width: '100%', padding: '8px', marginBottom: '10px', border: '1px solid #D2B48C', borderRadius: '8px' }} />
                                   <input type="tel" placeholder="Телефон" value={viewingUserData.phoneNumber || ''} onChange={(e) => setViewingUserData({ ...viewingUserData, phoneNumber: e.target.value } as any)} style={{ width: '100%', padding: '8px', marginBottom: '10px', border: '1px solid #D2B48C', borderRadius: '8px' }} />
-                                  <button onClick={async () => { await clientApi.update(viewingUserData.id, viewingUserData as UserResponse); setIsEditingUser(false); setSaveStatus({ show: true, message: 'Данные сохранены!', type: 'success' }); setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000); }} style={{ padding: '10px', background: '#B76E3C', color: '#FFF8F0', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Сохранить</button>
+                                  <button onClick={async () => { await clientApi.update(viewingUserData.id, viewingUserData as any); setIsEditingUser(false); setSaveStatus({ show: true, message: 'Данные сохранены!', type: 'success' }); setTimeout(() => setSaveStatus({ show: false, message: '', type: '' }), 3000); }} style={{ padding: '10px', background: '#B76E3C', color: '#FFF8F0', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Сохранить</button>
                                 </div>
                               )}
                             </div>

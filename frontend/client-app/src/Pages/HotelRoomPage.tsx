@@ -1,27 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { getMainTours } from '../Services/ToursApi';
+import { getMainTours, ToursDto } from '../Services/ToursApi';
 import { getAllHotels } from '../Services/HotelsApi';
 import { getCurrentInfoHotelRoom } from '../Services/HotelRoomsApi';
 import { getAddressById } from '../Services/AddressApi';
 import NavBar from '../Components/NavBar';
 import { getSafeImageUrl, PLACEHOLDERS } from '../Components/OptimizedImage';
 import Loader from '../Components/Loader';
-import { useAuth } from '../Contexts/AuthContext';
 
+// Используем интерфейс из HotelsApi для отеля
 interface ExtendedHotel {
     id: number;
     name: string;
     stars: number;
-    imageHotel?: string | null;
-    description?: string | null;
+    timeOfStay: string;
+    imageHotel: string;
+    details: string;
     addressId?: number | null;
     ticketsId?: number | null;
     hotelRoomsId?: number | null;
-    timeOfStay?: number | null;
-    details?: string | null;
 }
 
+// Используем интерфейс из AddressApi
 interface Address {
     id: number;
     country: string;
@@ -32,21 +32,21 @@ interface Address {
     apartment?: number | null;
 }
 
+// Интерфейс для комнаты на основе ResponseCurrentInfoHotelRoomDto из HotelRoomsApi
 interface HotelRoom {
     id: number;
-    nameRoom: string;
-    details: string | null;
-    floor: number;
-    imageRoom: string | null;
-    typeRoom?: string;
+    nameRoom?: string | null;
+    typeRoom?: string | null;
     description?: string | null;
+    floor?: number | null;
+    imageRoom?: string | null;
+    address?: any;
 }
 
 const HotelRoomPage = () => {
     const { hotelId, roomId } = useParams<{ hotelId: string; roomId: string }>();
     const location = useLocation();
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
 
     const queryParams = new URLSearchParams(location.search);
     const tourIdFromQuery = queryParams.get('tourId');
@@ -65,7 +65,7 @@ const HotelRoomPage = () => {
                 setLoading(true);
                 setError(null);
 
-                // Получаем ВСЕ отели через существующий метод
+                // Получаем ВСЕ отели через существующий метод getAllHotels
                 const allHotels = await getAllHotels();
                 const foundHotel = allHotels.find(h => h.id === Number(hotelId));
                 
@@ -74,29 +74,28 @@ const HotelRoomPage = () => {
                 }
                 setHotel(foundHotel as ExtendedHotel);
 
-                // Получаем комнату через существующий метод
+                // Получаем комнату через существующий метод getCurrentInfoHotelRoom
                 const roomData = await getCurrentInfoHotelRoom(Number(roomId));
                 if (!roomData) {
                     throw new Error('Номер не найден');
                 }
                 setRoom(roomData as HotelRoom);
 
-                // Получаем адрес, если есть (используем существующий метод)
-                const addressId = (foundHotel as any).addressId ?? (foundHotel as any).AddressId;
-                if (addressId) {
+                // Получаем адрес отеля, если есть addressId
+                if (foundHotel.addressId) {
                     try {
-                        const addressData = await getAddressById(addressId);
+                        const addressData = await getAddressById(foundHotel.addressId);
                         setAddress(addressData);
                     } catch (err) {
                         // Тихая обработка
                     }
                 }
 
-                // Если tourId не передан, пытаемся найти связанный тур
-                if (!associatedTourId && (foundHotel as any).ticketsId) {
+                // Если tourId не передан, пытаемся найти связанный тур через ticketsId
+                if (!associatedTourId && foundHotel.ticketsId) {
                     try {
                         const allTours = await getMainTours();
-                        const foundTour = allTours.find(tour => tour.id === (foundHotel as any).ticketsId);
+                        const foundTour = allTours.find((tour: ToursDto) => tour.id === foundHotel.ticketsId);
                         if (foundTour) {
                             setAssociatedTourId(foundTour.id);
                         }
@@ -212,7 +211,7 @@ const HotelRoomPage = () => {
                     {associatedTourId && (
                         <>
                             <Link to={`/catalog/tour/${associatedTourId}`} style={{ color: '#B76E3C', textDecoration: 'none' }}>
-                                Тур #{associatedTourId}
+                                Тур
                             </Link>
                             <span>/</span>
                         </>
@@ -258,7 +257,7 @@ const HotelRoomPage = () => {
                         }}>
                             <img
                                 src={getSafeImageUrl(room.imageRoom, 'room')}
-                                alt={room.nameRoom}
+                                alt={room.nameRoom || ''}
                                 style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                                 onError={(e) => {
                                     (e.target as HTMLImageElement).src = PLACEHOLDERS.room;
@@ -279,7 +278,7 @@ const HotelRoomPage = () => {
                                     marginBottom: '15px'
                                 }}>📝 Описание номера</h2>
                                 <p style={{ fontSize: '16px', lineHeight: '1.8', color: '#5A3E2B' }}>
-                                    {room.description || room.details || 'Описание отсутствует'}
+                                    {room.description || 'Описание отсутствует'}
                                 </p>
                             </section>
 
@@ -352,26 +351,6 @@ const HotelRoomPage = () => {
                                 >
                                     {associatedTourId ? '📅 Забронировать тур' : '🎫 Выбрать тур →'}
                                 </button>
-                                {!associatedTourId && (
-                                    <p style={{ 
-                                        fontSize: '12px', 
-                                        color: '#B76E3C', 
-                                        marginTop: '10px',
-                                        fontStyle: 'italic'
-                                    }}>
-                                        ⚡ Нажмите, чтобы перейти в каталог
-                                    </p>
-                                )}
-                                {associatedTourId && (
-                                    <p style={{ 
-                                        fontSize: '12px', 
-                                        color: '#28a745', 
-                                        marginTop: '10px',
-                                        fontStyle: 'italic'
-                                    }}>
-                                        ✅ Нажмите для бронирования
-                                    </p>
-                                )}
                             </div>
                         </div>
                     </div>

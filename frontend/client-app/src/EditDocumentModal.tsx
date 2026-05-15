@@ -38,7 +38,6 @@ interface EditDocumentModalProps {
   mode?: 'edit' | 'add';
 }
 
-// Функция для получения даты без времени
 const getDateString = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -248,12 +247,11 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
       }
     }
 
-    if (passportForm.type === 'internal') {
-      if (!passportForm.departmentCode?.trim()) {
-        newErrors.departmentCode = 'Код подразделения обязателен';
-      } else if (!/^\d{3}-\d{3}$/.test(passportForm.departmentCode)) {
-        newErrors.departmentCode = 'Код подразделения должен быть в формате 000-000';
-      }
+    // Код подразделения обязателен для всех типов
+    if (!passportForm.departmentCode?.trim()) {
+      newErrors.departmentCode = 'Код подразделения обязателен';
+    } else if (!/^\d{3}-\d{3}$/.test(passportForm.departmentCode)) {
+      newErrors.departmentCode = 'Код подразделения должен быть в формате 000-000';
     }
 
     if (passportForm.placeOfBirth?.trim()) {
@@ -621,7 +619,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                 )}
               </div>
 
-              {passportForm.type === 'foreign' ? (
+              {passportForm.type === 'foreign' && (
                 <div>
                   <label style={{
                     display: 'block',
@@ -663,49 +661,50 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                     </div>
                   )}
                 </div>
-              ) : (
-                <div>
-                  <label style={{
-                    display: 'block',
-                    color: '#8B5A2B',
-                    fontSize: '14px',
-                    marginBottom: '5px',
-                    fontWeight: '500'
-                  }}>
-                    Код подразделения <span style={{ color: '#dc3545' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="departmentCode"
-                    value={passportForm.departmentCode}
-                    onChange={handleDepartmentCodeChange}
-                    placeholder="000-000"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: `2px solid ${passportErrors.departmentCode ? '#dc3545' : '#D2B48C'}`,
-                      borderRadius: '15px',
-                      backgroundColor: '#FFF8F0',
-                      color: '#8B5A2B',
-                      fontSize: '15px',
-                      outline: 'none',
-                      transition: 'all 0.3s'
-                    }}
-                  />
-                  {passportErrors.departmentCode && (
-                    <div style={{
-                      color: '#dc3545',
-                      fontSize: '12px',
-                      marginTop: '3px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px'
-                    }}>
-                      <span>⚠️</span> {passportErrors.departmentCode}
-                    </div>
-                  )}
-                </div>
               )}
+
+              {/* Код подразделения - всегда показываем */}
+              <div style={passportForm.type === 'foreign' ? { gridColumn: 'span 2' } : {}}>
+                <label style={{
+                  display: 'block',
+                  color: '#8B5A2B',
+                  fontSize: '14px',
+                  marginBottom: '5px',
+                  fontWeight: '500'
+                }}>
+                  Код подразделения <span style={{ color: '#dc3545' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  name="departmentCode"
+                  value={passportForm.departmentCode}
+                  onChange={handleDepartmentCodeChange}
+                  placeholder="000-000"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: `2px solid ${passportErrors.departmentCode ? '#dc3545' : '#D2B48C'}`,
+                    borderRadius: '15px',
+                    backgroundColor: '#FFF8F0',
+                    color: '#8B5A2B',
+                    fontSize: '15px',
+                    outline: 'none',
+                    transition: 'all 0.3s'
+                  }}
+                />
+                {passportErrors.departmentCode && (
+                  <div style={{
+                    color: '#dc3545',
+                    fontSize: '12px',
+                    marginTop: '3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px'
+                  }}>
+                    <span>⚠️</span> {passportErrors.departmentCode}
+                  </div>
+                )}
+              </div>
 
               {/* Пол */}
               <div>
@@ -814,7 +813,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
               }}>
                 <li>Серия: 4 цифры (например: 4510)</li>
                 <li>Номер: {passportForm.type === 'internal' ? '6 цифр' : '9 цифр'} (например: {passportForm.type === 'internal' ? '123456' : '123456789'})</li>
-                {passportForm.type === 'internal' && <li>Код подразделения: формат 000-000 (например: 123-456)</li>}
+                <li>Код подразделения: формат 000-000 (например: 123-456)</li>
                 <li>Место рождения: минимум 5 символов, только буквы</li>
               </ul>
             </div>

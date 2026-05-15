@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrencyRates } from '../Services/CurrencyRatesApi';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../Contexts/AuthContext'; // ДОБАВИТЬ ИМПОРТ
+import { useAuth } from '../Contexts/AuthContext';
 
 const Footer = () => {
-    const { user } = useAuth(); // ИСПОЛЬЗОВАТЬ КОНТЕКСТ ВМЕСТО authApi.getStoredUser()
+    const { user } = useAuth();
     const [currencyRatesOptions, setCurrencyRatesOptions] = useState<Array<{ code: string, rate: number }>>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showAuthWarning, setShowAuthWarning] = useState(false);
-
-    // УДАЛИТЬ ЭТУ СТРОКУ: const currentUser = authApi.getStoredUser();
 
     const today = new Date();
     const day = String(today.getDate()).padStart(2, '0');
@@ -42,8 +40,22 @@ const Footer = () => {
         fetchRates();
     }, [formattedToday]);
 
+    // Функция для прокрутки к секции на странице Information
+    const handleScrollToSection = (sectionId: string) => {
+        // Если мы уже на странице information
+        if (window.location.pathname === '/information') {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        } else {
+            // Если мы на другой странице - переходим и передаем параметр в URL
+            window.location.href = `/information#${sectionId}`;
+        }
+    };
+
     const handleAccountClick = (e: React.MouseEvent) => {
-        if (!user) { // ИСПОЛЬЗОВАТЬ user ВМЕСТО currentUser
+        if (!user) {
             e.preventDefault();
             setShowAuthWarning(true);
         }
@@ -126,18 +138,44 @@ const Footer = () => {
                                 </Link>
                             </li>
                             <li style={{ marginBottom: '8px' }}>
-                                <Link to="/information#mission" style={{ color: '#F5F0E5', fontSize: '14px', textDecoration: 'none', opacity: 0.9, transition: 'opacity 0.3s' }}
+                                <button
+                                    onClick={() => handleScrollToSection('mission')}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#F5F0E5',
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                        opacity: 0.9,
+                                        transition: 'opacity 0.3s',
+                                        padding: 0,
+                                        fontFamily: 'inherit'
+                                    }}
                                     onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.9'}>
+                                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.9'}
+                                >
                                     Миссия и цели
-                                </Link>
+                                </button>
                             </li>
                             <li style={{ marginBottom: '8px' }}>
-                                <Link to="/information#quality" style={{ color: '#F5F0E5', fontSize: '14px', textDecoration: 'none', opacity: 0.9, transition: 'opacity 0.3s' }}
+                                <button
+                                    onClick={() => handleScrollToSection('quality')}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#F5F0E5',
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                        opacity: 0.9,
+                                        transition: 'opacity 0.3s',
+                                        padding: 0,
+                                        fontFamily: 'inherit'
+                                    }}
                                     onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.9'}>
+                                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.9'}
+                                >
                                     Качество продукта
-                                </Link>
+                                </button>
                             </li>
                         </ul>
                     </div>

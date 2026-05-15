@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import { getMainTours } from '../Services/ToursApi';
-import { getCurrentHotelInfo, getAllHotels, HotelMainInfoDto } from '../Services/HotelsApi';
+import { getMainTours, ToursDto } from '../Services/ToursApi';
+import { getAllHotels } from '../Services/HotelsApi';
 import { getCurrentInfoHotelRoom } from '../Services/HotelRoomsApi';
 import { getAddressById, Address } from '../Services/AddressApi';
 import NavBar from '../Components/NavBar';
 import { getSafeImageUrl, PLACEHOLDERS } from '../Components/OptimizedImage';
 import Loader from '../Components/Loader';
 
-interface ExtendedHotel extends HotelMainInfoDto {
-    timeOfStay?: number | null;
-    details?: string | null;
+// Используем существующие интерфейсы из API вместо кастомных
+interface ExtendedHotel {
+    id: number;
+    name: string;
+    stars: number;
+    timeOfStay: string;
+    imageHotel: string;
+    details: string;
     addressId?: number | null;
     ticketsId?: number | null;
     hotelRoomsId?: number | null;
@@ -61,7 +66,7 @@ const HotelPage = () => {
                 setLoading(true);
                 setError(null);
 
-                // Получаем ВСЕ отели через существующий метод
+                // Получаем ВСЕ отели через существующий метод getAllHotels
                 const allHotels = await getAllHotels();
                 const foundHotel = allHotels.find(h => h.id === Number(id));
                 
@@ -71,26 +76,24 @@ const HotelPage = () => {
                 
                 setHotel(foundHotel as ExtendedHotel);
 
-                // Получаем адрес, если есть (используем существующий метод)
-                const addressId = (foundHotel as any).addressId ?? (foundHotel as any).AddressId;
-                if (addressId) {
+                // Получаем адрес, если есть addressId
+                if (foundHotel.addressId) {
                     try {
-                        const addressData = await getAddressById(addressId);
+                        const addressData = await getAddressById(foundHotel.addressId);
                         setAddress(addressData);
                     } catch (err) {
                         // Тихая обработка
                     }
                 }
 
-                // Получаем комнаты отеля
-                const hotelRoomsId = (foundHotel as any).hotelRoomsId ?? (foundHotel as any).HotelRoomsId;
-                await fetchHotelRooms(hotelRoomsId);
+                // Получаем комнаты отеля через hotelRoomsId
+                await fetchHotelRooms(foundHotel.hotelRoomsId);
 
-                // Если tourId не передан, пытаемся найти связанный тур
-                if (!associatedTourId && (foundHotel as any).ticketsId) {
+                // Если tourId не передан, пытаемся найти связанный тур через ticketsId
+                if (!associatedTourId && foundHotel.ticketsId) {
                     try {
                         const allTours = await getMainTours();
-                        const foundTour = allTours.find(tour => tour.id === (foundHotel as any).ticketsId);
+                        const foundTour = allTours.find((tour: ToursDto) => tour.id === foundHotel.ticketsId);
                         if (foundTour) {
                             setAssociatedTourId(foundTour.id);
                         }
@@ -238,10 +241,10 @@ const HotelPage = () => {
                                 </div>
                                 <span>•</span>
                                 <span>📍 {address?.country || 'Страна не указана'}, {address?.city || 'Город не указан'}</span>
-                                {(hotel as any).timeOfStay && (
+                                {hotel.timeOfStay && (
                                     <>
                                         <span>•</span>
-                                        <span>⏱ {(hotel as any).timeOfStay} дней</span>
+                                        <span>⏱ {hotel.timeOfStay}</span>
                                     </>
                                 )}
                             </div>
@@ -298,7 +301,7 @@ const HotelPage = () => {
                                     lineHeight: '1.8',
                                     color: '#5A3E2B'
                                 }}>
-                                    {hotel.description || (hotel as any).details || 'Описание отсутствует'}
+                                    {hotel.details || 'Описание отсутствует'}
                                 </p>
                                 {address && (
                                     <p style={{
@@ -387,7 +390,7 @@ const HotelPage = () => {
                                                     Этаж: {room.floor}
                                                 </p>
                                                 <p style={{ color: '#5A3E2B', fontSize: '14px', lineHeight: '1.6' }}>
-                                                    {room.description || room.details || 'Подробности отсутствуют'}
+                                                    {room.details || 'Подробности отсутствуют'}
                                                 </p>
                                                 <Link
                                                     to={`/hotel-room/${hotel.id}/${room.id}${associatedTourId ? `?tourId=${associatedTourId}` : ''}`}

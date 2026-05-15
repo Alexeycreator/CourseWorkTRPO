@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from 'react-router-dom';
-import { getMainTours } from "../Services/ToursApi";
+import { getAllTours, Tours } from "../Services/ToursApi"; // ← ТОЛЬКО getAllTours!
 import NavBar from "../Components/NavBar";
 import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
 import Loader from "../Components/Loader";
 
-// Локальный интерфейс для горящего тура
 interface HotTourItem {
     id: number;
     imageTour?: string | null;
@@ -17,7 +16,8 @@ interface HotTourItem {
     oldPrice?: number | null;
     nowPrice?: number | null;
     countNights?: number | null;
-    hotTour?: boolean;
+    hotTour?: number;
+    description?: string | null;
 }
 
 const HotTourPage = () => {
@@ -28,9 +28,12 @@ const HotTourPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const calculateNights = (startDate: string, endDate: string): number => {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+    const calculateNights = (startDate: string | null | undefined, endDate: string | null | undefined): number => {
+        const start = parseDate(startDate);
+        const end = parseDate(endDate);
+
+        if (!start || !end) return 0;
+
         const diffTime = Math.abs(end.getTime() - start.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
@@ -48,40 +51,63 @@ const HotTourPage = () => {
         return 0;
     };
 
-    // Загружаем все туры и фильтруем горящие
+    const parseDate = (dateString: string | null | undefined): Date | null => {
+        if (!dateString) return null;
+
+        if (dateString.includes('-')) {
+            const date = new Date(dateString);
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        if (dateString.includes('.')) {
+            const parts = dateString.split('.');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const year = parseInt(parts[2], 10);
+                const date = new Date(year, month, day);
+                return isNaN(date.getTime()) ? null : date;
+            }
+        }
+
+        return null;
+    };
+
     const fetchHotTours = async () => {
         try {
             setLoading(true);
-            
-            // Загружаем все туры через готовый метод API
-            const allTours = await getMainTours();
-            
-            // Фильтруем только горящие туры (hotTour === true)
-            const hotToursList = allTours.filter(tour => tour.hotTour === true);
-            
+
+            // Получаем ВСЕ туры через getAllTours
+            const allTours = await getAllTours();
+            console.log('Все туры:', allTours);
+
+            const hotToursList = allTours.filter(tour => tour.hotTour == true);
+            console.log('Горящие туры:', hotToursList);
+
             if (hotToursList.length === 0) {
                 setError("На данный момент горящих туров нет");
                 setTours([]);
             } else {
-                // Преобразуем в формат с oldPrice и nowPrice
-                const formattedTours: HotTourItem[] = hotToursList.map((tour: any) => ({
+                const formattedTours: HotTourItem[] = hotToursList.map((tour: Tours) => ({
                     id: tour.id,
                     imageTour: tour.imageTour,
-                    nameTour: tour.nameTour,
+                    nameTour: tour.name,
                     details: tour.details,
                     startDot: tour.startDot,
                     endDot: tour.endDot,
                     type: tour.type,
-                    countNights: tour.countNights,
+                    countNights: calculateNights(tour.startDot, tour.endDot),
                     oldPrice: tour.price,
-                    nowPrice: tour.price ? tour.price * 0.8 : 0, // 20% скидка
-                    hotTour: true
+                    nowPrice: tour.price ? tour.price * 0.8 : 0,
+                    hotTour: 1,
+                    description: tour.description
                 }));
                 setTours(formattedTours);
                 setError(null);
             }
-            
+
         } catch (err: any) {
+            console.error('Ошибка загрузки:', err);
             setError(err.serverMessage || err.message || "Не удалось загрузить горящие туры");
         } finally {
             setLoading(false);
@@ -102,7 +128,6 @@ const HotTourPage = () => {
 
     const filterToursBySearch = (toursList: HotTourItem[]): HotTourItem[] => {
         if (!searchQuery.trim()) return toursList;
-        
         const query = searchQuery.toLowerCase().trim();
         return toursList.filter(tour => {
             const searchableFields = [
@@ -110,18 +135,15 @@ const HotTourPage = () => {
                 tour.startDot,
                 tour.endDot,
                 tour.type,
-                tour.details
+                tour.details,
+                tour.description
             ].filter(field => field && typeof field === 'string');
-            
-            return searchableFields.some(field => 
-                field?.toLowerCase().includes(query)
-            );
+            return searchableFields.some(field => field?.toLowerCase().includes(query));
         });
     };
 
     const getFilteredAndSortedTours = () => {
         let filtered = filterToursBySearch(tours);
-        
         if (sortBy === 'price-asc') {
             filtered = [...filtered].sort((a, b) => (a.nowPrice || 0) - (b.nowPrice || 0));
         } else if (sortBy === 'price-desc') {
@@ -133,18 +155,15 @@ const HotTourPage = () => {
                 return discountB - discountA;
             });
         }
-        
         return filtered;
     };
 
     const filteredAndSortedTours = getFilteredAndSortedTours();
-
-    const resetSearch = () => {
-        setSearchQuery('');
-    };
+    const resetSearch = () => setSearchQuery('');
 
     const hasNoHotTours = tours.length === 0 && !loading && error === "На данный момент горящих туров нет";
     const hasNoSearchResults = tours.length > 0 && filteredAndSortedTours.length === 0 && !loading && !error;
+    const hasToursToShow = tours.length > 0 && filteredAndSortedTours.length > 0;
 
     if (loading) {
         return <Loader message="Загрузка горящих туров..." fullScreen />;
@@ -171,32 +190,21 @@ const HotTourPage = () => {
                     <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
                     <h2 style={{ color: '#8B5A2B', marginBottom: '15px' }}>Ошибка загрузки</h2>
                     <p style={{ color: '#B76E3C', marginBottom: '25px' }}>{error}</p>
-                    <button
-                        onClick={fetchHotTours}
-                        style={{
-                            padding: '12px 30px',
-                            background: '#C0A080',
-                            color: '#FFF8F0',
-                            border: '2px solid #8B5A2B',
-                            borderRadius: '25px',
-                            cursor: 'pointer',
-                            fontSize: '16px',
-                            transition: 'all 0.3s'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#8B5A2B';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#C0A080';
-                        }}
-                    >
+                    <button onClick={fetchHotTours} style={{
+                        padding: '12px 30px',
+                        background: '#C0A080',
+                        color: '#FFF8F0',
+                        border: '2px solid #8B5A2B',
+                        borderRadius: '25px',
+                        cursor: 'pointer',
+                        fontSize: '16px'
+                    }}>
                         Попробовать снова
                     </button>
                 </div>
             </div>
         );
     }
-
     return (
         <div style={{
             background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)',
@@ -205,7 +213,7 @@ const HotTourPage = () => {
             paddingTop: '70px'
         }}>
             <NavBar />
-            
+
             <div style={{ position: 'fixed', top: '10%', left: '2%', fontSize: '40px', opacity: 0.05, pointerEvents: 'none' }}>𓂀</div>
             <div style={{ position: 'fixed', bottom: '10%', right: '3%', fontSize: '50px', opacity: 0.05, pointerEvents: 'none' }}>𓊹</div>
             <div style={{ position: 'fixed', top: '30%', right: '5%', fontSize: '35px', opacity: 0.05, pointerEvents: 'none' }}>𓋴</div>
@@ -233,7 +241,7 @@ const HotTourPage = () => {
                     }}>
                         Специальные предложения с максимальными скидками! 🐪
                     </p>
-                    
+
                     <div style={{
                         width: '150px',
                         height: '3px',
@@ -302,7 +310,7 @@ const HotTourPage = () => {
                             )}
                         </div>
                     </div>
-                    
+
                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                         <span style={{ color: '#8B5A2B', fontSize: '16px' }}>𓊹 Сортировать:</span>
                         <select
@@ -327,13 +335,13 @@ const HotTourPage = () => {
                     </div>
                 </div>
 
-                {!hasNoHotTours && !hasNoSearchResults && (
+                {hasToursToShow && (
                     <div style={{ marginBottom: '20px', color: '#8B5A2B' }}>
                         Найдено туров: {filteredAndSortedTours.length}
                     </div>
                 )}
 
-                {!hasNoHotTours && !hasNoSearchResults && (
+                {hasToursToShow && (
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
@@ -344,7 +352,7 @@ const HotTourPage = () => {
                             const discount = calculateDiscount(tour.oldPrice, tour.nowPrice);
                             const oldPrice = tour.oldPrice || 0;
                             const nowPrice = tour.nowPrice || 0;
-                            
+
                             return (
                                 <div
                                     key={tour.id}
@@ -449,7 +457,7 @@ const HotTourPage = () => {
                                             gap: '5px'
                                         }}>
                                             <span>📍</span>
-                                            <span>{tour.startDot} → {tour.endDot}</span>
+                                            <span>{tour.startDot || '—'} → {tour.endDot || '—'}</span>
                                         </div>
 
                                         <h3 style={{
@@ -482,10 +490,10 @@ const HotTourPage = () => {
                                             color: '#8B5A2B'
                                         }}>
                                             <span style={{ background: '#F0E5D5', padding: '4px 8px', borderRadius: '15px' }}>
-                                                🏷️ {tour.type}
+                                                🏷️ {tour.type || '—'}
                                             </span>
                                             <span style={{ background: '#F0E5D5', padding: '4px 8px', borderRadius: '15px' }}>
-                                                🌙 {tour.countNights || (tour.startDot && tour.endDot ? calculateNights(tour.startDot, tour.endDot) : 0)} ночей
+                                                🌙 {tour.countNights} ночей
                                             </span>
                                         </div>
 
@@ -582,7 +590,7 @@ const HotTourPage = () => {
                     }}>
                         <div style={{ fontSize: '60px', marginBottom: '20px' }}>🏜️</div>
                         <h3>На данный момент горящих туров нет</h3>
-                        <p>Загляните позже — новые предложения появляются регулярно!</p>
+                        <p>Чтобы добавить горящий тур, обновите запись в базе данных: установите значение поля hotTour = 1</p>
                         <Link to="/catalog">
                             <button
                                 style={{
@@ -638,7 +646,7 @@ const HotTourPage = () => {
                         }}>
                             🎯 Не нашли подходящий горящий тур?
                         </h2>
-                        
+
                         <p style={{
                             color: '#B76E3C',
                             marginBottom: '25px',
@@ -648,7 +656,7 @@ const HotTourPage = () => {
                         }}>
                             Оставьте заявку, и мы подберем для вас индивидуальное предложение со скидкой!
                         </p>
-                        
+
                         <div style={{
                             display: 'flex',
                             gap: '15px',
