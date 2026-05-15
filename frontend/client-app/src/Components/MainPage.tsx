@@ -12,11 +12,28 @@ const MainPage = () => {
     const [error, setError] = useState<string | null>(null);
 
     const calculateNights = (startDate: string, endDate: string): number => {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        const start = parseDate(startDate);
+        const end = parseDate(endDate);
+        if (!start || !end) return 0;
         const diffTime = Math.abs(end.getTime() - start.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
+    };
+
+    const parseDate = (dateStr: string | null | undefined): Date | null => {
+        if (!dateStr) return null;
+        if (dateStr.includes('.')) {
+            const parts = dateStr.split('.');
+            if (parts.length === 3) {
+                const year = parseInt(parts[2], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const day = parseInt(parts[0], 10);
+                const date = new Date(year, month, day);
+                return isNaN(date.getTime()) ? null : date;
+            }
+        }
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date;
     };
 
     const formatPrice = (price: number | null | undefined): string => {
