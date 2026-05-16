@@ -204,7 +204,6 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
         return age;
     };
 
-    // Безопасное получение названия тура
     const getTourName = (): string => {
         if (tour) {
             if ('nameTour' in tour && tour.nameTour) return tour.nameTour;
@@ -213,13 +212,11 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
         return 'Бронирование';
     };
 
-    // Безопасное получение ID тура
     const getTourId = (): number => {
         if (tour && 'id' in tour && tour.id) return tour.id;
         return 0;
     };
 
-    // Безопасное получение типа тура
     const getTourType = (): string => {
         if (tour) {
             if ('type' in tour && tour.type) return tour.type;
@@ -228,7 +225,6 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
         return 'Экскурсионный';
     };
 
-    // Безопасное получение дат
     const getTourStartDot = (): string => {
         if (tour && 'startDot' in tour && tour.startDot) return tour.startDot;
         return '';
@@ -257,13 +253,12 @@ const TicketPayment: React.FC<TicketPaymentProps> = ({
                 throw new Error('Тур не выбран');
             }
 
-            // Вызываем onSubmit с полными данными для создания билета
             await onSubmit({
                 price: convertedPrice,
                 departureTime: new Date(departureDate),
                 arrivalTime: new Date(arrivalDate),
                 dateSale: new Date(),
-                hotelRoomsId: 1, // Значение по умолчанию, будет переопределено в TourPage
+                hotelRoomsId: 1,
                 tourId: tour.id,
                 client_Id: clientData.id
             });

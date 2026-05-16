@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import { getMainTours, ToursDto } from "../Services/ToursApi";
+import NavBar from "../Components/NavBar";
 import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
 import Loader from "../Components/Loader";
 import './MainPage.css';
@@ -11,37 +12,77 @@ const MainPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const calculateNights = (startDate: string, endDate: string): number => {
-        const start = parseDate(startDate);
-        const end = parseDate(endDate);
-        if (!start || !end) return 0;
-        const diffTime = Math.abs(end.getTime() - start.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
+    // Состояния для валюты
+    const [selectedCurrency, setSelectedCurrency] = useState('RUB');
+    const [currentRate, setCurrentRate] = useState(1);
+    const [signCurrency, setSignCurrency] = useState('₽');
+
+    // Обработчик смены валюты из NavBar
+    const handleCurrencyChange = (currency: string, rate: number) => {
+        switch (currency) {
+            case "RUB": setSignCurrency('₽'); break;
+            case "USD": setSignCurrency('$'); break;
+            case "EUR": setSignCurrency('€'); break;
+            default: setSignCurrency('₽'); break;
+        }
+        setSelectedCurrency(currency);
+        setCurrentRate(rate);
     };
 
+    // Единая функция парсинга даты
     const parseDate = (dateStr: string | null | undefined): Date | null => {
         if (!dateStr) return null;
-        if (dateStr.includes('.')) {
-            const parts = dateStr.split('.');
-            if (parts.length === 3) {
-                const year = parseInt(parts[2], 10);
-                const month = parseInt(parts[1], 10) - 1;
-                const day = parseInt(parts[0], 10);
-                const date = new Date(year, month, day);
-                return isNaN(date.getTime()) ? null : date;
-            }
+
+        // Формат YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return isNaN(date.getTime()) ? null : date;
         }
+
+        // Формат DD.MM.YYYY
+        if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+            const [day, month, year] = dateStr.split('.').map(Number);
+            const date = new Date(year, month - 1, day);
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        // Стандартный парсинг
         const date = new Date(dateStr);
         return isNaN(date.getTime()) ? null : date;
     };
 
+    // Функция расчета ночей (исправлена — проверка на end <= start)
+    const calculateNights = (startDate: string, endDate: string): number | null => {
+        const start = parseDate(startDate);
+        const end = parseDate(endDate);
+        if (!start || !end || end <= start) return null;
+        const diffTime = end.getTime() - start.getTime();
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    // Функция отображения ночей
+    const getNightsDisplay = (tour: ToursDto): string => {
+        if (tour.countNights != null && tour.countNights > 0) {
+            return `${tour.countNights} ночей`;
+        }
+        if (tour.startDot && tour.endDot) {
+            const nights = calculateNights(tour.startDot, tour.endDot);
+            if (nights != null && nights >= 0) {
+                return nights === 0 ? 'Однодневный тур' : `${nights} ночей`;
+            }
+        }
+        return 'Количество ночей не указано';
+    };
+
+    // Форматирование цены с учётом валюты
     const formatPrice = (price: number | null | undefined): string => {
         if (price === null || price === undefined) return '0';
+        const convertedPrice = price / currentRate;
         return Intl.NumberFormat('ru-RU', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
-        }).format(price);
+        }).format(convertedPrice);
     };
 
     const fetchTours = async () => {
@@ -210,11 +251,11 @@ const MainPage = () => {
                             fontSize: '24px',
                             fontWeight: '600',
                         }}>
-                            {formatPrice(tour.price)} ₽
+                            {formatPrice(tour.price)} {signCurrency}
                         </span>
                     </div>
                     <span style={{ color: '#B76E3C', fontSize: '14px' }}>
-                        {tour.countNights || (tour.startDot && tour.endDot ? calculateNights(tour.startDot, tour.endDot) : 0)} ночей
+                        {getNightsDisplay(tour)}
                     </span>
                 </div>
                 <button
@@ -258,6 +299,9 @@ const MainPage = () => {
             flexDirection: 'column' as const,
             paddingTop: '70px'
         }}>
+            {/* NavBar с обработчиком смены валюты */}
+            <NavBar onCurrencyChange={handleCurrencyChange} />
+
             {/* Фоновые иероглифы */}
             <div className="hieroglyph-bg" style={{ top: '5%', left: '2%' }}>𓂀</div>
             <div className="hieroglyph-bg" style={{ top: '15%', right: '3%' }}>𓊹</div>

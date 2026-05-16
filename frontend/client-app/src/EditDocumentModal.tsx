@@ -74,7 +74,13 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
   const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (data && open) {
+    if (!open) {
+      setPassportErrors({});
+      setAddressErrors({});
+      return;
+    }
+
+    if (data) {
       setPassportForm({
         seria: data.passport.seria || '',
         number: data.passport.number || '',
@@ -96,7 +102,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
         apartment: data.address.apartment || '',
         id: data.address.id
       });
-    } else if (open && mode === 'add') {
+    } else if (mode === 'add') {
       setPassportForm({
         seria: '',
         number: '',
@@ -127,7 +133,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
   };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const maxLength = passportForm.type === 'internal' ? 6 : 9;
+    const maxLength = passportForm.type === 'internal' ? 6 : 6;
     const value = e.target.value.replace(/\D/g, '').slice(0, maxLength);
     setPassportForm(prev => ({ ...prev, number: value }));
     if (passportErrors.number) {
@@ -182,7 +188,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
   const handleTextAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const filteredValue = value.replace(/[^а-яА-Яa-zA-Z\s\-\.]/g, '');
-    
+
     if (name === 'city') {
       setAddressForm(prev => ({ ...prev, city: filteredValue }));
       if (addressErrors.city) {
@@ -207,7 +213,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
       newErrors.seria = 'Серия должна содержать ровно 4 цифры';
     }
 
-    const numberLength = passportForm.type === 'internal' ? 6 : 9;
+    const numberLength = passportForm.type == 'internal' ? 6 : 6;
     if (!passportForm.number?.trim()) {
       newErrors.number = 'Номер паспорта обязателен';
     } else if (!new RegExp(`^\\d{${numberLength}}$`).test(passportForm.number)) {
@@ -227,7 +233,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
       const today = new Date();
       const minDate = new Date();
       minDate.setFullYear(today.getFullYear() - 100);
-      
+
       if (selectedDate > today) {
         newErrors.dateOfIssue = 'Дата выдачи не может быть в будущем';
       } else if (selectedDate < minDate) {
@@ -247,7 +253,6 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
       }
     }
 
-    // Код подразделения обязателен для всех типов
     if (!passportForm.departmentCode?.trim()) {
       newErrors.departmentCode = 'Код подразделения обязателен';
     } else if (!/^\d{3}-\d{3}$/.test(passportForm.departmentCode)) {
@@ -332,7 +337,9 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
-      backdropFilter: 'blur(5px)'
+      backdropFilter: 'blur(5px)',
+      paddingTop: '40px 20px',
+      overflow: 'auto'
     }}>
       <div style={{
         background: '#FFF8F0',
@@ -340,12 +347,14 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
         padding: '30px',
         maxWidth: '900px',
         width: '90%',
-        maxHeight: '90vh',
+        maxHeight: '85vh',
         overflow: 'auto',
         border: '3px solid #C0A080',
         position: 'relative',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)'
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+        marginBottom: '40px'
       }}>
+        {/* ... остальной контент без изменений ... */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -445,7 +454,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   }}
                 >
                   <option value="internal">Паспорт РФ</option>
-                  <option value="foreign">Загранпаспорт</option>
+                  {/* <option value="foreign">Загранпаспорт</option> */}
                 </select>
               </div>
 
@@ -507,8 +516,8 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                   name="number"
                   value={passportForm.number}
                   onChange={handleNumberChange}
-                  maxLength={passportForm.type === 'internal' ? 6 : 9}
-                  placeholder={passportForm.type === 'internal' ? '000000' : '000000000'}
+                  maxLength={passportForm.type == 'internal' ? 6 : 6}
+                  placeholder={passportForm.type == 'internal' ? '000000' : '000000000'}
                   style={{
                     width: '100%',
                     padding: '12px',
@@ -812,7 +821,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                 fontSize: '13px'
               }}>
                 <li>Серия: 4 цифры (например: 4510)</li>
-                <li>Номер: {passportForm.type === 'internal' ? '6 цифр' : '9 цифр'} (например: {passportForm.type === 'internal' ? '123456' : '123456789'})</li>
+                <li>Номер: {passportForm.type === 'internal' ? '6 цифр' : '6 цифр'} (например: {passportForm.type === 'internal' ? '123456' : '123456789'})</li>
                 <li>Код подразделения: формат 000-000 (например: 123-456)</li>
                 <li>Место рождения: минимум 5 символов, только буквы</li>
               </ul>

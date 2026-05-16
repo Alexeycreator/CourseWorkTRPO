@@ -13,7 +13,6 @@ import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
 import Loader from "../Components/Loader";
 import { createTicket } from "../Services/TicketsApi";
 
-// Интерфейс для location.state
 interface LocationState {
     openBooking?: boolean;
 }
@@ -28,23 +27,21 @@ const TourPage = () => {
 
     const [selectedTour, setSelectedTour] = useState<CurrentTourDto | null>(null);
     const [errorTour, setErrorTour] = useState<string | null>(null);
-
     const [addressTour, setAddressTour] = useState<Address | null>(null);
 
-    // состояния курсов валют
     const [selectedCurrency, setSelectedCurrency] = useState('RUB');
     const [currentRate, setCurrentRate] = useState(1);
     const [signCurrency, setSignCurrency] = useState('₽');
-
     const [convertedPrice, setConvertedPrice] = useState<number>(0);
 
-    // Состояния для модального окна оплаты
     const [showPayment, setShowPayment] = useState(false);
     const [clientData, setClientData] = useState<UserResponse | null>(null);
     const [passportData, setPassportData] = useState<Passports | null>(null);
     const [addressData, setAddressData] = useState<Address | null>(null);
 
-    // Состояние для отеля
+    const [showDocumentAlert, setShowDocumentAlert] = useState(false);
+    const [showLoginAlert, setShowLoginAlert] = useState(false);
+
     const [hotel, setHotel] = useState<HotelMainInfoDto | null>(null);
 
     const fetchTour = async () => {
@@ -54,20 +51,16 @@ const TourPage = () => {
                 const tourData = await getCurrentMainTour(Number(id));
                 let addressData = null;
 
-                // Получаем адрес тура (если есть)
                 if (tourData.addresses && tourData.addresses.length > 0) {
                     try {
                         addressData = await getAddressById(tourData.addresses[0].id);
-                    } catch (addrErr) {
-                        // Тихая обработка - адрес не обязателен
-                    }
+                    } catch (addrErr) { }
                 }
 
                 setSelectedTour(tourData);
                 setAddressTour(addressData);
                 setErrorTour(null);
 
-                // ===== ЗАГРУЗКА ОТЕЛЕЙ =====
                 if (tourData.hotels && tourData.hotels.length > 0) {
                     setHotel(tourData.hotels[0]);
                 } else {
@@ -100,7 +93,6 @@ const TourPage = () => {
             const client = await clientApi.getById(Number(user.id));
             setClientData(client);
 
-            // Получаем паспорт через API метод
             try {
                 const passportInfo = await getInfoPassport(user.id);
                 if (passportInfo) {
@@ -128,9 +120,7 @@ const TourPage = () => {
                         setAddressData(address);
                     }
                 }
-            } catch (err) {
-                // Тихая обработка - паспорт не обязателен
-            }
+            } catch (err) { }
         } catch (error) {
             setErrorTour('Ошибка загрузки данных клиента');
         }
@@ -163,7 +153,6 @@ const TourPage = () => {
     const parseDate = (dateStr: string | null | undefined): Date | null => {
         if (!dateStr) return null;
 
-        // Если формат ДД.ММ.ГГГГ
         if (dateStr.includes('.')) {
             const parts = dateStr.split('.');
             if (parts.length === 3) {
@@ -174,12 +163,10 @@ const TourPage = () => {
                 return isNaN(date.getTime()) ? null : date;
             }
         }
-        // Если формат YYYY-MM-DD
         const date = new Date(dateStr);
         return isNaN(date.getTime()) ? null : date;
     };
 
-    // Функция для форматирования даты для отображения
     const formatDateForDisplay = (dateStr: string | null | undefined): string => {
         if (!dateStr) return '—';
         const date = parseDate(dateStr);
@@ -206,7 +193,7 @@ const TourPage = () => {
         }).format(totalPrice);
     };
 
-    const handleCurrencyChange = async (currency: string, rate: number) => {
+    const handleCurrencyChange = (currency: string, rate: number) => {
         switch (currency) {
             case "RUB": setSignCurrency('₽'); break;
             case "USD": setSignCurrency('$'); break;
@@ -220,20 +207,24 @@ const TourPage = () => {
     };
 
     const handleBooking = () => {
-        if (isAuthenticated && (!clientData || !passportData)) {
-            alert('Пожалуйста, обновите страницу или заполните данные в личном кабинете');
+        if (!isAuthenticated) {
+            setShowLoginAlert(true);
+            return;
+        }
+
+        if (!clientData || !passportData) {
+            setShowDocumentAlert(true);
             return;
         }
         setShowPayment(true);
     };
 
     const handleSubmitBooking = async (ticketData: any) => {
-        if (!clientData?.id || !selectedTour) {
+        if (!user?.id || !selectedTour) {
             throw new Error('Недостаточно данных для бронирования');
         }
 
         try {
-            // Получаем корректную дату начала
             let departureDate: Date;
             if (selectedDate) {
                 const parsed = parseDate(selectedDate);
@@ -247,7 +238,6 @@ const TourPage = () => {
                 departureDate = new Date();
             }
 
-            // Получаем корректную дату окончания
             let arrivalDate: Date;
             if (selectedTour.endDot) {
                 const parsed = parseDate(selectedTour.endDot);
@@ -258,10 +248,9 @@ const TourPage = () => {
                 arrivalDate.setDate(departureDate.getDate() + 7);
             }
 
-            // Округляем цену до целого числа
             const roundedPrice = Math.round(convertedPrice);
 
-            await createTicket(clientData.id, {
+            await createTicket(user.id, {
                 price: roundedPrice,
                 departureTime: departureDate,
                 arrivalTime: arrivalDate,
@@ -340,7 +329,6 @@ const TourPage = () => {
                 position: 'relative',
                 zIndex: 2
             }}>
-                {/* Хлебные крошки */}
                 <div style={{
                     display: 'flex',
                     gap: '10px',
@@ -356,7 +344,6 @@ const TourPage = () => {
                     <span>{selectedTour.nameTour || 'Тур'}</span>
                 </div>
 
-                {/* Основной контент */}
                 <div style={{
                     background: 'rgba(255, 248, 240, 0.8)',
                     backdropFilter: 'blur(10px)',
@@ -365,7 +352,6 @@ const TourPage = () => {
                     boxShadow: '0 20px 40px rgba(139, 69, 19, 0.15)',
                     border: '2px solid #C0A080'
                 }}>
-                    {/* Заголовок */}
                     <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -391,7 +377,6 @@ const TourPage = () => {
                         </div>
                     </div>
 
-                    {/* Изображение */}
                     <div style={{ marginBottom: '30px' }}>
                         <div style={{
                             width: '100%',
@@ -420,13 +405,11 @@ const TourPage = () => {
                         </div>
                     </div>
 
-                    {/* Две колонки */}
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 350px',
                         gap: '40px'
                     }}>
-                        {/* Левая колонка - описание */}
                         <div>
                             <section style={{ marginBottom: '30px' }}>
                                 <h2 style={{
@@ -444,7 +427,6 @@ const TourPage = () => {
                                 </p>
                             </section>
 
-                            {/* Блок отеля */}
                             {hotel && (
                                 <section style={{ marginBottom: '30px' }}>
                                     <h2 style={{
@@ -587,7 +569,6 @@ const TourPage = () => {
                             )}
                         </div>
 
-                        {/* Правая колонка - бронирование */}
                         <div>
                             <div style={{
                                 background: '#FFF8F0',
@@ -713,6 +694,180 @@ const TourPage = () => {
                     </div>
                 </div>
             </div>
+
+            {showDocumentAlert && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 10000,
+                    backdropFilter: 'blur(5px)'
+                }}>
+                    <div style={{
+                        background: '#FFF8F0',
+                        borderRadius: '30px',
+                        padding: '40px',
+                        maxWidth: '500px',
+                        width: '90%',
+                        textAlign: 'center',
+                        border: '2px solid #C0A080',
+                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+                    }}>
+                        <div style={{ fontSize: '60px', marginBottom: '20px' }}>📄</div>
+                        <h2 style={{
+                            color: '#8B5A2B',
+                            fontSize: '24px',
+                            fontFamily: "'Cormorant Garamond', serif",
+                            marginBottom: '15px'
+                        }}>
+                            Необходимы документы
+                        </h2>
+                        <p style={{
+                            color: '#B76E3C',
+                            fontSize: '16px',
+                            marginBottom: '25px',
+                            lineHeight: '1.5'
+                        }}>
+                            Для бронирования тура необходимо добавить паспортные данные в личном кабинете.
+                            <br />
+                            Перейдите в раздел "Мои документы" и заполните информацию о паспорте.
+                        </p>
+                        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button
+                                onClick={() => {
+                                    setShowDocumentAlert(false);
+                                    navigate(`/account/${user?.id}`, { state: { activeTab: 'documents' } });
+                                }}
+                                style={{
+                                    padding: '12px 30px',
+                                    background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                                    color: '#FFF8F0',
+                                    border: '2px solid #D2B48C',
+                                    borderRadius: '25px',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                                📋 Перейти в личный кабинет
+                            </button>
+                            <button
+                                onClick={() => setShowDocumentAlert(false)}
+                                style={{
+                                    padding: '12px 30px',
+                                    background: 'transparent',
+                                    color: '#8B5A2B',
+                                    border: '2px solid #D2B48C',
+                                    borderRadius: '25px',
+                                    fontSize: '16px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(183, 110, 60, 0.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                ✕ Отмена
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showLoginAlert && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 10000,
+                    backdropFilter: 'blur(5px)'
+                }}>
+                    <div style={{
+                        background: '#FFF8F0',
+                        borderRadius: '30px',
+                        padding: '40px',
+                        maxWidth: '500px',
+                        width: '90%',
+                        textAlign: 'center',
+                        border: '2px solid #C0A080',
+                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+                    }}>
+                        <div style={{ fontSize: '60px', marginBottom: '20px' }}>🔐</div>
+                        <h2 style={{
+                            color: '#8B5A2B',
+                            fontSize: '24px',
+                            fontFamily: "'Cormorant Garamond', serif",
+                            marginBottom: '15px'
+                        }}>
+                            Необходима авторизация
+                        </h2>
+                        <p style={{
+                            color: '#B76E3C',
+                            fontSize: '16px',
+                            marginBottom: '25px',
+                            lineHeight: '1.5'
+                        }}>
+                            Для бронирования тура необходимо войти в личный кабинет.
+                            <br />
+                            Если у вас нет аккаунта, вы можете зарегистрироваться.
+                        </p>
+                        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button
+                                onClick={() => {
+                                    setShowLoginAlert(false);
+                                    window.dispatchEvent(new CustomEvent('openAuthModal'));
+                                }}
+                                style={{
+                                    padding: '12px 30px',
+                                    background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                                    color: '#FFF8F0',
+                                    border: '2px solid #D2B48C',
+                                    borderRadius: '25px',
+                                    fontSize: '16px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                                🔑 Войти
+                            </button>
+                            <button
+                                onClick={() => setShowLoginAlert(false)}
+                                style={{
+                                    padding: '12px 30px',
+                                    background: 'transparent',
+                                    color: '#8B5A2B',
+                                    border: '2px solid #D2B48C',
+                                    borderRadius: '25px',
+                                    fontSize: '16px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(183, 110, 60, 0.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                ✕ Отмена
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <TicketPayment
                 isOpen={showPayment}
