@@ -105,14 +105,6 @@ public sealed class TicketsController(ServerDbContext dbContext) : ControllerBas
                 return NotFound(new { message = $"Такого пользователя нет" });
             }
 
-            if (user.Role != "admin")
-            {
-                if (user.Role != "employee")
-                {
-                    return BadRequest(new { message = $"У пользователя недостаточно прав" });
-                }
-            }
-
             if (request == null)
             {
                 return BadRequest(new { message = $"Данные пустые" });

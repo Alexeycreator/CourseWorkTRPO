@@ -7,4 +7,5 @@ public class CreateHotelDto
     public string? ImageHotel { get; set; }
     public string? Details { get; set; }
     public int? HotelRoomId { get; set; }
+    public int AddressId { get; set; }
 }
