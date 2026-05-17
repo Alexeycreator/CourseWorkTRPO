@@ -80,7 +80,7 @@ public sealed class HotelsController(ServerDbContext dbContext) : ControllerBase
                     return NotFound(new { message = $"Данных о номере отеля не существует" });
                 }
             }
-            
+
             var address = await dbContext.Addresses.FindAsync(request.AddressId);
             if (address == null)
             {
@@ -159,9 +159,29 @@ public sealed class HotelsController(ServerDbContext dbContext) : ControllerBase
                 hotel.Stars = request.Stars;
             }
 
-            if (request.HotelRoomId != hotel.HotelRoomsId)
+            if (request.HotelRoomId > 0)
             {
-                hotel.HotelRoomsId = request.HotelRoomId;
+                var hotelRoom = await dbContext.HotelRooms.FindAsync(request.HotelRoomId);
+                if (hotelRoom == null)
+                {
+                    return NotFound(new { message = $"Данных о номере отеля не существует" });
+                }
+
+                if (request.HotelRoomId != hotel.HotelRoomsId)
+                {
+                    hotel.HotelRoomsId = request.HotelRoomId;
+                }
+            }
+            
+            var address = await dbContext.Addresses.FindAsync(request.AddressId);
+            if (address == null)
+            {
+                return NotFound(new { message = $"Данных об адресе отеля не существует" });
+            }
+
+            if (hotel.AddressId != request.AddressId)
+            {
+                hotel.AddressId = request.AddressId;
             }
 
             await dbContext.SaveChangesAsync();
