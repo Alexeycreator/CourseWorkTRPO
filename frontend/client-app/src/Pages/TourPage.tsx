@@ -60,6 +60,8 @@ const TourPage = () => {
     const [documentsChecked, setDocumentsChecked] = useState(false);
     const [hotelRoomId, setHotelRoomId] = useState<number>(1)
 
+    const [showAuthToast, setShowAuthToast] = useState(false);
+
     // Функция для расчета цены со скидкой (20% для горящих туров)
     const getDiscountedPrice = (price: number | null | undefined): number => {
         if (!price) return 0;
@@ -235,13 +237,67 @@ const TourPage = () => {
         }
     }, [location]);
 
-    const calculateNights = (startDate: string | null | undefined, endDate: string | null | undefined): number => {
+    const parseDateForNights = (dateStr: string | null | undefined): Date | null => {
+        if (!dateStr) return null;
+        try {
+            // Формат YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                const [year, month, day] = dateStr.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
+                if (!isNaN(date.getTime())) return date;
+            }
+            // Формат DD.MM.YYYY
+            if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+                const [day, month, year] = dateStr.split('.').map(Number);
+                const date = new Date(year, month - 1, day);
+                if (!isNaN(date.getTime())) return date;
+            }
+            const date = new Date(dateStr);
+            if (!isNaN(date.getTime())) return date;
+            return null;
+        } catch { return null; }
+    };
+
+    const calculateNightsCount = (startDate: string | null | undefined, endDate: string | null | undefined): number => {
         if (!startDate || !endDate) return 0;
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        const diffTime = Math.abs(end.getTime() - start.getTime());
+
+        let start: Date | null = null;
+        let end: Date | null = null;
+
+        // Парсим дату начала
+        if (startDate.includes('.')) {
+            // Формат DD.MM.YYYY
+            const [day, month, year] = startDate.split('.').map(Number);
+            start = new Date(year, month - 1, day);
+        } else if (startDate.includes('-')) {
+            // Формат YYYY-MM-DD
+            const [year, month, day] = startDate.split('-').map(Number);
+            start = new Date(year, month - 1, day);
+        } else {
+            start = new Date(startDate);
+        }
+
+        // Парсим дату окончания
+        if (endDate.includes('.')) {
+            // Формат DD.MM.YYYY
+            const [day, month, year] = endDate.split('.').map(Number);
+            end = new Date(year, month - 1, day);
+        } else if (endDate.includes('-')) {
+            // Формат YYYY-MM-DD
+            const [year, month, day] = endDate.split('-').map(Number);
+            end = new Date(year, month - 1, day);
+        } else {
+            end = new Date(endDate);
+        }
+
+        // Проверяем валидность дат
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+        if (end <= start) return 0;
+
+        const diffTime = end.getTime() - start.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
+
+        return diffDays; // Возвращает количество дней = количество ночей
     };
 
     const calculatePrice = (tourPrice: number | null | undefined, currencyRate: number): string => {
@@ -269,15 +325,15 @@ const TourPage = () => {
     };
 
     const handleBooking = () => {
-        // Проверка авторизации
         if (!isAuthenticated) {
-            if (window.confirm('Для бронирования необходимо авторизоваться. Перейти на страницу входа?')) {
-                navigate('/login');
-            }
+            setShowAuthToast(true);
+            setTimeout(() => {
+                setShowAuthToast(false);
+                window.dispatchEvent(new CustomEvent('openAuthModal'));
+            }, 2000);
             return;
         }
 
-        // Проверка наличия документов
         if (!documentsChecked) {
             alert('Пожалуйста, подождите, данные проверяются...');
             return;
@@ -295,21 +351,11 @@ const TourPage = () => {
             alert('Ошибка загрузки данных клиента. Пожалуйста, обновите страницу.');
             return;
         }
-
-        // Все проверки пройдены, открываем окно оплаты
         setShowPayment(true);
     };
 
-    // Функция для парсинга даты (добавьте в начало компонента TourPage)
     const parseDate = (dateStr: string | null | undefined): Date | null => {
         if (!dateStr) return null;
-
-        // Формат DD.MM.YYYY
-        if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
-            const [day, month, year] = dateStr.split('.').map(Number);
-            const date = new Date(year, month - 1, day);
-            return isNaN(date.getTime()) ? null : date;
-        }
 
         // Формат YYYY-MM-DD
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -318,8 +364,39 @@ const TourPage = () => {
             return isNaN(date.getTime()) ? null : date;
         }
 
+        // Формат DD.MM.YYYY
+        if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+            const [day, month, year] = dateStr.split('.').map(Number);
+            const date = new Date(year, month - 1, day);
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        // Стандартный парсинг
         const date = new Date(dateStr);
         return isNaN(date.getTime()) ? null : date;
+    };
+
+    // Функция расчета ночей (как в MainPage.tsx)
+    const calculateNights = (startDate: string | null | undefined, endDate: string | null | undefined): number | null => {
+        const start = parseDate(startDate);
+        const end = parseDate(endDate);
+        if (!start || !end || end <= start) return null;
+        const diffTime = end.getTime() - start.getTime();
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    // Функция отображения ночей (как в MainPage.tsx)
+    const getNightsDisplay = (tour: CurrentTourDto): string => {
+        if (tour.countNights != null && tour.countNights > 0) {
+            return `${tour.countNights} ночей`;
+        }
+        if (tour.startDot && tour.endDot) {
+            const nights = calculateNights(tour.startDot, tour.endDot);
+            if (nights != null && nights >= 0) {
+                return nights === 0 ? 'Однодневный тур' : `${nights} ночей`;
+            }
+        }
+        return 'Количество ночей не указано';
     };
 
     // Исправленный handleSubmitBooking
@@ -805,7 +882,7 @@ const TourPage = () => {
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ color: '#8B5A2B' }}>🌙 Ночей:</span>
-                                        <span style={{ color: '#B76E3C' }}>{selectedTour.countNights || calculateNights(selectedTour.startDot, selectedTour.endDot)}</span>
+                                        <span style={{ color: '#B76E3C' }}>{getNightsDisplay(selectedTour)}</span>
                                     </div>
                                 </div>
 
@@ -895,6 +972,38 @@ const TourPage = () => {
                 currencySymbol={signCurrency}
                 hotelRoomId={hotelRoomId}
             />
+            {showAuthToast && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '30px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: '#8B5A2B',
+                    color: '#FFF8F0',
+                    padding: '12px 24px',
+                    borderRadius: '30px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    zIndex: 3000,
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                    animation: 'fadeInUp 0.3s ease-out',
+                    whiteSpace: 'nowrap'
+                }}>
+                    🔐 Для бронирования необходимо войти или зарегистрироваться
+                </div>
+            )}
+            <style>{`
+                @keyframes fadeInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
+                }
+            `}</style>
         </div>
     );
 };
