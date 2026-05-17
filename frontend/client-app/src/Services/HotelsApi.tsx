@@ -18,6 +18,7 @@ export interface CreateHotelDto {
     imageHotel?: string | null;
     details?: string | null;
     hotelRoomId?: number | null;
+    addressId: number;
 }
 
 // DTO для обновления отеля
