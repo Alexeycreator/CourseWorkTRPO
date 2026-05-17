@@ -115,7 +115,7 @@ const HotelRoomPage = () => {
     const handleBookClick = () => {
         if (associatedTourId) {
             navigate(`/catalog/tour/${associatedTourId}`, { 
-                state: { openBooking: true }
+                state: { openBooking: false }
             });
         } else {
             const confirm = window.confirm(
@@ -349,7 +349,7 @@ const HotelRoomPage = () => {
                                     onMouseEnter={(e) => e.currentTarget.style.background = '#8B5A2B'}
                                     onMouseLeave={(e) => e.currentTarget.style.background = '#B76E3C'}
                                 >
-                                    {associatedTourId ? '📅 Забронировать тур' : '🎫 Выбрать тур →'}
+                                    {associatedTourId ? 'Вернуться на страницу тура' : '🎫 Выбрать тур →'}
                                 </button>
                             </div>
                         </div>

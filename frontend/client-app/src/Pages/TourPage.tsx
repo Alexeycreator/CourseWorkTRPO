@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../Contexts/AuthContext';
-import { getCurrentMainTour, CurrentTourDto } from '../Services/ToursApi';
+import { getCurrentMainTour, CurrentTourDto, getAllTours, Tours } from '../Services/ToursApi';
 import { getCurrentHotelInfo } from '../Services/HotelsApi';
 import NavBar from '../Components/NavBar';
 import { Address, getAddressById } from '../Services/AddressApi';
@@ -13,9 +13,17 @@ import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
 import Loader from "../Components/Loader";
 import { createTicket } from "../Services/TicketsApi";
 
+// Интерфейс для location.state
 interface LocationState {
     openBooking?: boolean;
 }
+
+const DELETED_PASSPORTS_KEY = 'deletedPassports';
+
+const getDeletedPassportIds = (): number[] => {
+    try { return JSON.parse(localStorage.getItem(DELETED_PASSPORTS_KEY) || '[]'); }
+    catch { return []; }
+};
 
 const TourPage = () => {
     const { id } = useParams<{ id: string }>();
@@ -27,39 +35,97 @@ const TourPage = () => {
 
     const [selectedTour, setSelectedTour] = useState<CurrentTourDto | null>(null);
     const [errorTour, setErrorTour] = useState<string | null>(null);
+    const [isHotTour, setIsHotTour] = useState<boolean>(false);
+
     const [addressTour, setAddressTour] = useState<Address | null>(null);
 
+    // состояния курсов валют
     const [selectedCurrency, setSelectedCurrency] = useState('RUB');
     const [currentRate, setCurrentRate] = useState(1);
     const [signCurrency, setSignCurrency] = useState('₽');
+
     const [convertedPrice, setConvertedPrice] = useState<number>(0);
 
+    // Состояния для модального окна оплаты
     const [showPayment, setShowPayment] = useState(false);
     const [clientData, setClientData] = useState<UserResponse | null>(null);
     const [passportData, setPassportData] = useState<Passports | null>(null);
     const [addressData, setAddressData] = useState<Address | null>(null);
 
-    const [showDocumentAlert, setShowDocumentAlert] = useState(false);
-    const [showLoginAlert, setShowLoginAlert] = useState(false);
-
+    // Состояние для отеля
     const [hotel, setHotel] = useState<HotelMainInfoDto | null>(null);
+
+    // Состояние для проверки документов
+    const [hasValidDocuments, setHasValidDocuments] = useState(false);
+    const [documentsChecked, setDocumentsChecked] = useState(false);
+    const [hotelRoomId, setHotelRoomId] = useState<number>(1)
+
+    // Функция для расчета цены со скидкой (20% для горящих туров)
+    const getDiscountedPrice = (price: number | null | undefined): number => {
+        if (!price) return 0;
+        if (isHotTour) {
+            return price * 0.8; // 20% скидка
+        }
+        return price;
+    };
 
     const fetchTour = async () => {
         try {
             setLoading(true);
             if (id) {
                 const tourData = await getCurrentMainTour(Number(id));
+
+                // Получаем информацию о том, является ли тур горящим из отдельного API
+                try {
+                    const allTours = await getAllTours();
+                    const tourInfo = allTours.find(t => t.id === Number(id));
+                    if (tourInfo) {
+                        setIsHotTour(tourInfo.hotTour === true);
+                    }
+                } catch (err) {
+                    console.log('Не удалось загрузить информацию о горящем туре');
+                }
+
                 let addressData = null;
 
+                if (tourData.hotels && tourData.hotels.length > 0) {
+                    const firstHotel = tourData.hotels[0];
+                    setHotel(firstHotel);
+                    try {
+                        // Если в отеле есть поле hotelRoomsId
+                        if ((firstHotel as any).hotelRoomsId) {
+                            setHotelRoomId((firstHotel as any).hotelRoomsId);
+                        } else {
+                            // Если нет, нужно получить дополнительную информацию об отеле
+                            const hotelFullInfo = await getCurrentHotelInfo(tourData.id);
+                            if (hotelFullInfo && hotelFullInfo.length > 0 && hotelFullInfo[0].mainInfo && hotelFullInfo[0].mainInfo.length > 0) {
+                                setHotelRoomId(hotelFullInfo[0].mainInfo[0].id);
+                            }
+                        }
+                    } catch (err) {
+                        console.log('Не удалось получить hotelRoomId');
+                        setHotelRoomId(1); // fallback
+                    }
+                }
+
+                // Получаем адрес тура (если есть)
                 if (tourData.addresses && tourData.addresses.length > 0) {
                     try {
                         addressData = await getAddressById(tourData.addresses[0].id);
-                    } catch (addrErr) { }
+                    } catch (addrErr) {
+                        // Тихая обработка - адрес не обязателен
+                    }
                 }
 
                 setSelectedTour(tourData);
                 setAddressTour(addressData);
                 setErrorTour(null);
+
+                // Устанавливаем цены
+                if (tourData.price) {
+                    const discounted = getDiscountedPrice(tourData.price);
+                    setConvertedPrice(discounted / currentRate);
+                }
 
                 if (tourData.hotels && tourData.hotels.length > 0) {
                     setHotel(tourData.hotels[0]);
@@ -93,9 +159,14 @@ const TourPage = () => {
             const client = await clientApi.getById(Number(user.id));
             setClientData(client);
 
+            // Получаем паспорт через API метод
             try {
                 const passportInfo = await getInfoPassport(user.id);
-                if (passportInfo) {
+
+                // Проверяем, не удален ли паспорт локально
+                const deletedIds = getDeletedPassportIds();
+
+                if (passportInfo && !deletedIds.includes(passportInfo.id)) {
                     const passport: Passports = {
                         id: passportInfo.id,
                         seria: passportInfo.seria,
@@ -106,6 +177,7 @@ const TourPage = () => {
                         dateOfIssue: passportInfo.dateOfIssue.toString()
                     };
                     setPassportData(passport);
+                    setHasValidDocuments(true);
 
                     if (passportInfo.address) {
                         const address: Address = {
@@ -119,10 +191,22 @@ const TourPage = () => {
                         };
                         setAddressData(address);
                     }
+                } else {
+                    // Паспорт не найден или удален локально
+                    setPassportData(null);
+                    setAddressData(null);
+                    setHasValidDocuments(false);
                 }
-            } catch (err) { }
+            } catch (err) {
+                // Паспорт не найден
+                setPassportData(null);
+                setAddressData(null);
+                setHasValidDocuments(false);
+            }
         } catch (error) {
             setErrorTour('Ошибка загрузки данных клиента');
+        } finally {
+            setDocumentsChecked(true);
         }
     };
 
@@ -135,65 +219,42 @@ const TourPage = () => {
 
     useEffect(() => {
         if (selectedTour?.price) {
-            setConvertedPrice(selectedTour.price);
+            const discounted = getDiscountedPrice(selectedTour.price);
+            setConvertedPrice(discounted / currentRate);
         }
-    }, [selectedTour]);
+    }, [selectedTour, currentRate, selectedCurrency, isHotTour]);
 
     useEffect(() => {
         const state = location.state as LocationState;
         if (state?.openBooking) {
             const timer = setTimeout(() => {
-                setShowPayment(true);
+                handleBooking();
                 window.history.replaceState({}, document.title);
             }, 300);
             return () => clearTimeout(timer);
         }
     }, [location]);
 
-    const parseDate = (dateStr: string | null | undefined): Date | null => {
-        if (!dateStr) return null;
-
-        if (dateStr.includes('.')) {
-            const parts = dateStr.split('.');
-            if (parts.length === 3) {
-                const year = parseInt(parts[2], 10);
-                const month = parseInt(parts[1], 10) - 1;
-                const day = parseInt(parts[0], 10);
-                const date = new Date(year, month, day);
-                return isNaN(date.getTime()) ? null : date;
-            }
-        }
-        const date = new Date(dateStr);
-        return isNaN(date.getTime()) ? null : date;
-    };
-
-    const formatDateForDisplay = (dateStr: string | null | undefined): string => {
-        if (!dateStr) return '—';
-        const date = parseDate(dateStr);
-        if (!date) return dateStr;
-        return date.toLocaleDateString('ru-RU');
-    };
-
     const calculateNights = (startDate: string | null | undefined, endDate: string | null | undefined): number => {
-        const start = parseDate(startDate);
-        const end = parseDate(endDate);
-
-        if (!start || !end) return 0;
-
+        if (!startDate || !endDate) return 0;
+        const start = new Date(startDate);
+        const end = new Date(endDate);
         const diffTime = Math.abs(end.getTime() - start.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
     };
 
     const calculatePrice = (tourPrice: number | null | undefined, currencyRate: number): string => {
-        const totalPrice = (tourPrice || 0) / currencyRate;
+        if (!tourPrice) return '0';
+        const discountedPrice = getDiscountedPrice(tourPrice);
+        const totalPrice = discountedPrice / currencyRate;
         return Intl.NumberFormat('ru-RU', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }).format(totalPrice);
     };
 
-    const handleCurrencyChange = (currency: string, rate: number) => {
+    const handleCurrencyChange = async (currency: string, rate: number) => {
         switch (currency) {
             case "RUB": setSignCurrency('₽'); break;
             case "USD": setSignCurrency('$'); break;
@@ -202,68 +263,116 @@ const TourPage = () => {
         setSelectedCurrency(currency);
         setCurrentRate(rate);
         if (selectedTour?.price) {
-            setConvertedPrice(selectedTour.price / rate);
+            const discounted = getDiscountedPrice(selectedTour.price);
+            setConvertedPrice(discounted / rate);
         }
     };
 
     const handleBooking = () => {
+        // Проверка авторизации
         if (!isAuthenticated) {
-            setShowLoginAlert(true);
+            if (window.confirm('Для бронирования необходимо авторизоваться. Перейти на страницу входа?')) {
+                navigate('/login');
+            }
             return;
         }
 
-        if (!clientData || !passportData) {
-            setShowDocumentAlert(true);
+        // Проверка наличия документов
+        if (!documentsChecked) {
+            alert('Пожалуйста, подождите, данные проверяются...');
             return;
         }
+
+        if (!hasValidDocuments || !passportData) {
+            const message = 'Для бронирования тура необходимо добавить паспортные данные.\n\nПерейти в личный кабинет для добавления документов?';
+            if (window.confirm(message)) {
+                navigate(`/account/${user?.id}`);
+            }
+            return;
+        }
+
+        if (!clientData) {
+            alert('Ошибка загрузки данных клиента. Пожалуйста, обновите страницу.');
+            return;
+        }
+
+        // Все проверки пройдены, открываем окно оплаты
         setShowPayment(true);
     };
 
+    // Функция для парсинга даты (добавьте в начало компонента TourPage)
+    const parseDate = (dateStr: string | null | undefined): Date | null => {
+        if (!dateStr) return null;
+
+        // Формат DD.MM.YYYY
+        if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+            const [day, month, year] = dateStr.split('.').map(Number);
+            const date = new Date(year, month - 1, day);
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        // Формат YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(year, month - 1, day);
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date;
+    };
+
+    // Исправленный handleSubmitBooking
     const handleSubmitBooking = async (ticketData: any) => {
-        if (!user?.id || !selectedTour) {
+        if (!clientData?.id || !selectedTour) {
             throw new Error('Недостаточно данных для бронирования');
         }
 
+        if (!passportData) {
+            throw new Error('Для бронирования необходимы паспортные данные');
+        }
+
+        if (!hotelRoomId || hotelRoomId <= 0) {
+            throw new Error('Не удалось определить номер в отеле для бронирования');
+        }
+
+        // Парсим даты
+        let startDate: Date;
+        let endDate: Date;
+
+        // Получаем дату начала
+        const parsedStartDate = parseDate(selectedDate || selectedTour.startDot);
+        if (!parsedStartDate) {
+            throw new Error('Некорректная дата начала тура');
+        }
+        startDate = parsedStartDate;
+
+        // Получаем дату окончания
+        const parsedEndDate = parseDate(selectedTour.endDot);
+        if (!parsedEndDate) {
+            throw new Error('Некорректная дата окончания тура');
+        }
+        endDate = parsedEndDate;
+
         try {
-            let departureDate: Date;
-            if (selectedDate) {
-                const parsed = parseDate(selectedDate);
-                if (!parsed) throw new Error('Некорректный формат даты начала');
-                departureDate = parsed;
-            } else if (selectedTour.startDot) {
-                const parsed = parseDate(selectedTour.startDot);
-                if (!parsed) throw new Error('Некорректный формат даты начала тура');
-                departureDate = parsed;
-            } else {
-                departureDate = new Date();
-            }
-
-            let arrivalDate: Date;
-            if (selectedTour.endDot) {
-                const parsed = parseDate(selectedTour.endDot);
-                if (!parsed) throw new Error('Некорректный формат даты окончания тура');
-                arrivalDate = parsed;
-            } else {
-                arrivalDate = new Date();
-                arrivalDate.setDate(departureDate.getDate() + 7);
-            }
-
-            const roundedPrice = Math.round(convertedPrice);
-
-            await createTicket(user.id, {
-                price: roundedPrice,
-                departureTime: departureDate,
-                arrivalTime: arrivalDate,
+            await createTicket(clientData.id, {
+                price: convertedPrice,
+                departureTime: startDate,
+                arrivalTime: endDate,
                 dateSale: new Date(),
-                hotelRoomsId: 1,
+                hotelRoomsId: hotelRoomId,
                 tourId: selectedTour.id
             });
-
             setShowPayment(false);
         } catch (error: any) {
-            console.error('Ошибка бронирования:', error);
-            const errorMessage = error.serverMessage || error.response?.data?.message || error.message || 'Произошла ошибка при бронировании. Пожалуйста, попробуйте позже.';
-            alert(errorMessage);
+            const errorMessage = error.serverMessage || error.message || 'Произошла ошибка при бронировании. Пожалуйста, попробуйте позже.';
+
+            if (errorMessage.toLowerCase().includes('паспорт') || errorMessage.toLowerCase().includes('passport')) {
+                alert('Для бронирования необходимы паспортные данные. Пожалуйста, добавьте их в личном кабинете.');
+                navigate(`/account/${user?.id}`);
+            } else {
+                alert(errorMessage);
+            }
             throw error;
         }
     };
@@ -329,6 +438,7 @@ const TourPage = () => {
                 position: 'relative',
                 zIndex: 2
             }}>
+                {/* Хлебные крошки */}
                 <div style={{
                     display: 'flex',
                     gap: '10px',
@@ -344,14 +454,35 @@ const TourPage = () => {
                     <span>{selectedTour.nameTour || 'Тур'}</span>
                 </div>
 
+                {/* Основной контент */}
                 <div style={{
                     background: 'rgba(255, 248, 240, 0.8)',
                     backdropFilter: 'blur(10px)',
                     borderRadius: '40px',
                     padding: '40px',
                     boxShadow: '0 20px 40px rgba(139, 69, 19, 0.15)',
-                    border: '2px solid #C0A080'
+                    border: '2px solid #C0A080',
+                    position: 'relative'
                 }}>
+                    {/* Метка горящего тура */}
+                    {isHotTour && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '20px',
+                            right: '20px',
+                            background: '#B76E3C',
+                            color: '#FFF8F0',
+                            padding: '8px 20px',
+                            borderRadius: '30px',
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            zIndex: 10
+                        }}>
+                            🔥 Горящий тур
+                        </div>
+                    )}
+
+                    {/* Заголовок */}
                     <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -377,6 +508,7 @@ const TourPage = () => {
                         </div>
                     </div>
 
+                    {/* Изображение */}
                     <div style={{ marginBottom: '30px' }}>
                         <div style={{
                             width: '100%',
@@ -405,11 +537,13 @@ const TourPage = () => {
                         </div>
                     </div>
 
+                    {/* Две колонки */}
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 350px',
                         gap: '40px'
                     }}>
+                        {/* Левая колонка - описание */}
                         <div>
                             <section style={{ marginBottom: '30px' }}>
                                 <h2 style={{
@@ -427,6 +561,7 @@ const TourPage = () => {
                                 </p>
                             </section>
 
+                            {/* Блок отеля */}
                             {hotel && (
                                 <section style={{ marginBottom: '30px' }}>
                                     <h2 style={{
@@ -569,6 +704,7 @@ const TourPage = () => {
                             )}
                         </div>
 
+                        {/* Правая колонка - бронирование */}
                         <div>
                             <div style={{
                                 background: '#FFF8F0',
@@ -588,43 +724,69 @@ const TourPage = () => {
                                     Забронировать тур
                                 </h3>
 
+                                {/* Предупреждение о необходимости документов */}
+                                {isAuthenticated && documentsChecked && !hasValidDocuments && (
+                                    <div style={{
+                                        background: '#FFF3CD',
+                                        border: '1px solid #FFC107',
+                                        borderRadius: '10px',
+                                        padding: '12px',
+                                        marginBottom: '15px',
+                                        fontSize: '13px',
+                                        color: '#856404'
+                                    }}>
+                                        ⚠️ Для бронирования необходимо добавить паспортные данные в{' '}
+                                        <Link
+                                            to={`/account/${user?.id}`}
+                                            style={{
+                                                color: '#856404',
+                                                textDecoration: 'underline',
+                                                fontWeight: 'bold'
+                                            }}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                navigate(`/account/${user?.id}`);
+                                            }}
+                                        >
+                                            личном кабинете
+                                        </Link>
+                                    </div>
+                                )}
+
                                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                                    {/* Старая цена (зачеркнутая) для горящих туров */}
+                                    {isHotTour && selectedTour.price && selectedTour.price > 0 && (
+                                        <div>
+                                            <span style={{
+                                                fontSize: '20px',
+                                                color: '#B76E3C',
+                                                textDecoration: 'line-through'
+                                            }}>
+                                                {Intl.NumberFormat('ru-RU', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2
+                                                }).format(selectedTour.price / currentRate)} {signCurrency}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {/* Новая цена */}
                                     <span style={{
                                         fontSize: '36px',
                                         fontWeight: '700',
-                                        color: '#8B5A2B'
+                                        color: isHotTour ? '#B76E3C' : '#8B5A2B'
                                     }}>
                                         {calculatePrice(selectedTour.price, currentRate)} {signCurrency}
                                     </span>
-                                    <div style={{ color: '#B76E3C', fontSize: '14px', marginTop: '5px' }}>
-                                        за {selectedTour.countNights || (selectedTour.startDot && selectedTour.endDot ? calculateNights(selectedTour.startDot, selectedTour.endDot) : 0)} ночей
-                                    </div>
-                                </div>
-
-                                <div style={{ marginBottom: '15px' }}>
-                                    <label style={{ display: 'block', color: '#8B5A2B', fontSize: '14px', marginBottom: '5px' }}>
-                                        📅 Дата вылета
-                                    </label>
-                                    <select
-                                        value={selectedDate}
-                                        onChange={(e) => setSelectedDate(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '10px',
-                                            border: '2px solid #D2B48C',
-                                            borderRadius: '10px',
-                                            backgroundColor: '#FFF8F0',
-                                            color: '#8B5A2B',
-                                            fontSize: '14px'
-                                        }}
-                                    >
-                                        <option value="">Выберите дату</option>
-                                        {selectedTour.startDot && (
-                                            <option value={selectedTour.startDot}>
-                                                {formatDateForDisplay(selectedTour.startDot)}
-                                            </option>
-                                        )}
-                                    </select>
+                                    {/* Индикатор скидки */}
+                                    {isHotTour && (
+                                        <div style={{
+                                            fontSize: '12px',
+                                            color: '#28a745',
+                                            marginTop: '5px'
+                                        }}>
+                                            🔥 Скидка 20% на горящий тур!
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div style={{
@@ -634,12 +796,12 @@ const TourPage = () => {
                                     marginBottom: '20px'
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span style={{ color: '#8B5A2B' }}>✈️ Вылет:</span>
-                                        <span style={{ color: '#B76E3C' }}>{formatDateForDisplay(selectedTour.startDot)}</span>
+                                        <span style={{ color: '#8B5A2B' }}>✈️ Вылет из:</span>
+                                        <span style={{ color: '#B76E3C' }}>{selectedTour.startDot || '—'}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span style={{ color: '#8B5A2B' }}>📍 Прибытие:</span>
-                                        <span style={{ color: '#B76E3C' }}>{formatDateForDisplay(selectedTour.endDot)}</span>
+                                        <span style={{ color: '#8B5A2B' }}>📍 Назначение:</span>
+                                        <span style={{ color: '#B76E3C' }}>{selectedTour.endDot || '—'}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                         <span style={{ color: '#8B5A2B' }}>🌙 Ночей:</span>
@@ -649,22 +811,32 @@ const TourPage = () => {
 
                                 <button
                                     onClick={handleBooking}
+                                    disabled={isAuthenticated && documentsChecked && !hasValidDocuments}
                                     style={{
                                         width: '100%',
                                         padding: '15px',
-                                        background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
+                                        background: isAuthenticated && documentsChecked && !hasValidDocuments
+                                            ? '#CCCCCC'
+                                            : 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
                                         color: '#FFF8F0',
                                         border: '2px solid #D2B48C',
                                         borderRadius: '30px',
                                         fontSize: '18px',
                                         fontWeight: '600',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s'
+                                        cursor: isAuthenticated && documentsChecked && !hasValidDocuments ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.3s',
+                                        opacity: isAuthenticated && documentsChecked && !hasValidDocuments ? 0.7 : 1
                                     }}
-                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                    onMouseEnter={(e) => {
+                                        if (!(isAuthenticated && documentsChecked && !hasValidDocuments)) {
+                                            e.currentTarget.style.transform = 'scale(1.02)';
+                                        }
+                                    }}
                                     onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                 >
-                                    Забронировать
+                                    {isAuthenticated && documentsChecked && !hasValidDocuments
+                                        ? 'Необходимы документы'
+                                        : 'Забронировать'}
                                 </button>
 
                                 <p style={{ textAlign: 'center', fontSize: '12px', color: '#B76E3C', marginTop: '15px' }}>
@@ -695,180 +867,6 @@ const TourPage = () => {
                 </div>
             </div>
 
-            {showDocumentAlert && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 10000,
-                    backdropFilter: 'blur(5px)'
-                }}>
-                    <div style={{
-                        background: '#FFF8F0',
-                        borderRadius: '30px',
-                        padding: '40px',
-                        maxWidth: '500px',
-                        width: '90%',
-                        textAlign: 'center',
-                        border: '2px solid #C0A080',
-                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
-                    }}>
-                        <div style={{ fontSize: '60px', marginBottom: '20px' }}>📄</div>
-                        <h2 style={{
-                            color: '#8B5A2B',
-                            fontSize: '24px',
-                            fontFamily: "'Cormorant Garamond', serif",
-                            marginBottom: '15px'
-                        }}>
-                            Необходимы документы
-                        </h2>
-                        <p style={{
-                            color: '#B76E3C',
-                            fontSize: '16px',
-                            marginBottom: '25px',
-                            lineHeight: '1.5'
-                        }}>
-                            Для бронирования тура необходимо добавить паспортные данные в личном кабинете.
-                            <br />
-                            Перейдите в раздел "Мои документы" и заполните информацию о паспорте.
-                        </p>
-                        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button
-                                onClick={() => {
-                                    setShowDocumentAlert(false);
-                                    navigate(`/account/${user?.id}`, { state: { activeTab: 'documents' } });
-                                }}
-                                style={{
-                                    padding: '12px 30px',
-                                    background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
-                                    color: '#FFF8F0',
-                                    border: '2px solid #D2B48C',
-                                    borderRadius: '25px',
-                                    fontSize: '16px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                            >
-                                📋 Перейти в личный кабинет
-                            </button>
-                            <button
-                                onClick={() => setShowDocumentAlert(false)}
-                                style={{
-                                    padding: '12px 30px',
-                                    background: 'transparent',
-                                    color: '#8B5A2B',
-                                    border: '2px solid #D2B48C',
-                                    borderRadius: '25px',
-                                    fontSize: '16px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(183, 110, 60, 0.1)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                ✕ Отмена
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {showLoginAlert && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 10000,
-                    backdropFilter: 'blur(5px)'
-                }}>
-                    <div style={{
-                        background: '#FFF8F0',
-                        borderRadius: '30px',
-                        padding: '40px',
-                        maxWidth: '500px',
-                        width: '90%',
-                        textAlign: 'center',
-                        border: '2px solid #C0A080',
-                        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
-                    }}>
-                        <div style={{ fontSize: '60px', marginBottom: '20px' }}>🔐</div>
-                        <h2 style={{
-                            color: '#8B5A2B',
-                            fontSize: '24px',
-                            fontFamily: "'Cormorant Garamond', serif",
-                            marginBottom: '15px'
-                        }}>
-                            Необходима авторизация
-                        </h2>
-                        <p style={{
-                            color: '#B76E3C',
-                            fontSize: '16px',
-                            marginBottom: '25px',
-                            lineHeight: '1.5'
-                        }}>
-                            Для бронирования тура необходимо войти в личный кабинет.
-                            <br />
-                            Если у вас нет аккаунта, вы можете зарегистрироваться.
-                        </p>
-                        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button
-                                onClick={() => {
-                                    setShowLoginAlert(false);
-                                    window.dispatchEvent(new CustomEvent('openAuthModal'));
-                                }}
-                                style={{
-                                    padding: '12px 30px',
-                                    background: 'linear-gradient(135deg, #B76E3C, #8B5A2B)',
-                                    color: '#FFF8F0',
-                                    border: '2px solid #D2B48C',
-                                    borderRadius: '25px',
-                                    fontSize: '16px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                            >
-                                🔑 Войти
-                            </button>
-                            <button
-                                onClick={() => setShowLoginAlert(false)}
-                                style={{
-                                    padding: '12px 30px',
-                                    background: 'transparent',
-                                    color: '#8B5A2B',
-                                    border: '2px solid #D2B48C',
-                                    borderRadius: '25px',
-                                    fontSize: '16px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(183, 110, 60, 0.1)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                                ✕ Отмена
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <TicketPayment
                 isOpen={showPayment}
                 onClose={() => setShowPayment(false)}
@@ -887,13 +885,15 @@ const TourPage = () => {
                     program: selectedTour.program || '',
                     type: selectedTour.type || '',
                     typeTour: selectedTour.type || '',
-                    price: selectedTour.price || 0
+                    price: selectedTour.price || 0,
+                    hotTour: isHotTour
                 } : null}
                 clientData={clientData}
                 passportData={passportData}
                 addressData={addressData}
                 convertedPrice={convertedPrice}
                 currencySymbol={signCurrency}
+                hotelRoomId={hotelRoomId}
             />
         </div>
     );

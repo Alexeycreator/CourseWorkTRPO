@@ -98,6 +98,10 @@ const ClientAccountPage = () => {
   const [currentRate, setCurrentRate] = useState(1);
   const [signCurrency, setSignCurrency] = useState('₽');
 
+  // Новое состояние для админ-подвкладок и сотрудник-подвкладок
+  const [adminSubTab, setAdminSubTab] = useState<'none' | 'clients' | 'employees' | 'tour' | 'hotel' | 'room'>('none');
+  const [employeeSubTab, setEmployeeSubTab] = useState<'none' | 'hotel' | 'room'>('none');
+
   const navItems: NavItem[] = [
     { id: 'profile', label: '📋 Мои данные', roles: ['admin', 'employee', 'user'] },
     { id: 'documents', label: '📄 Документы', roles: ['admin', 'employee', 'user'] },
@@ -116,7 +120,7 @@ const ClientAccountPage = () => {
   });
 
   const [newHotel, setNewHotel] = useState<CreateHotelDto & { addressId?: number | null }>({
-    name: '', stars: 3, imageHotel: '/default-hotel.jpg', details: '', hotelRoomId: null, addressId: null
+    name: '', stars: 3, imageHotel: '/default-hotel.jpg', details: '', hotelRoomId: null, addressId: 0
   });
 
   const [newRoom, setNewRoom] = useState<CreateHotelRoomsDto>({
@@ -169,6 +173,7 @@ const ClientAccountPage = () => {
       console.log('Номера не загружены:', e);
     }
   };
+
   const fetchAvailableAddresses = async () => {
     try {
       const addresses = await getAddresses();
@@ -177,6 +182,7 @@ const ClientAccountPage = () => {
       console.log('Адреса не загружены:', e);
     }
   };
+
   const fetchUser = async () => {
     if (!user?.id) return;
     setLoading(true);
@@ -477,6 +483,7 @@ const ClientAccountPage = () => {
     try {
       await createTour(user.id, newTour);
       setShowTourForm(false); resetTourForm();
+      setAdminSubTab('none');
       showStatus('Тур добавлен!', 'success');
     } catch (error: any) { showStatus(error.serverMessage || error.message || 'Ошибка создания тура', 'error'); }
     finally { setLoading(false); }
@@ -484,6 +491,8 @@ const ClientAccountPage = () => {
 
   const handleAddHotelAsync = async () => {
     if (!newHotel.name || !newHotel.stars) { showStatus('Заполните название и звёзды', 'error'); return; }
+    if (!newHotel.addressId || newHotel.addressId <= 0) { showStatus('Выберите адрес отеля', 'error'); return; }
+    if (!newHotel.hotelRoomId || newHotel.hotelRoomId <= 0) { showStatus('Выберите номер отеля', 'error'); return; }
     if (!user?.id) return;
     setLoading(true);
     try {
@@ -491,18 +500,16 @@ const ClientAccountPage = () => {
         name: newHotel.name,
         stars: Number(newHotel.stars),
         imageHotel: newHotel.imageHotel || '/default-hotel.jpg',
-        details: newHotel.details || ''
+        details: newHotel.details || '',
+        addressId: newHotel.addressId,
+        hotelRoomId: newHotel.hotelRoomId
       };
-      if (newHotel.addressId && newHotel.addressId > 0) {
-        hotelData.addressId = newHotel.addressId;
-      }
-      if (newHotel.hotelRoomId && newHotel.hotelRoomId > 0) {
-        hotelData.hotelRoomId = newHotel.hotelRoomId;
-      }
 
       console.log('Отправка данных отеля:', JSON.stringify(hotelData, null, 2));
       await createHotel(user.id, hotelData);
       setShowHotelForm(false); resetHotelForm();
+      setAdminSubTab('none');
+      setEmployeeSubTab('none');
       showStatus('Отель добавлен!', 'success');
       await fetchAvailableHotels();
       await fetchAvailableRooms();
@@ -522,6 +529,8 @@ const ClientAccountPage = () => {
     try {
       await createHotelRoom(newRoom, user.id);
       setShowRoomForm(false); resetRoomForm();
+      setAdminSubTab('none');
+      setEmployeeSubTab('none');
       showStatus('Номер добавлен!', 'success');
       await fetchAvailableRooms();
     } catch (error: any) { showStatus(error.serverMessage || 'Ошибка создания номера', 'error'); }
@@ -529,7 +538,7 @@ const ClientAccountPage = () => {
   };
 
   const resetTourForm = () => setNewTour({ nameTour: '', startDot: '', endDot: '', details: '', imageTour: '', description: '', separately: '', included: '', program: '', hotTour: false, typeTour: 'Экскурсионный', price: 0, hotelsId: 0 });
-  const resetHotelForm = () => setNewHotel({ name: '', stars: 3, imageHotel: '/default-hotel.jpg', details: '', hotelRoomId: null });
+  const resetHotelForm = () => setNewHotel({ name: '', stars: 3, imageHotel: '/default-hotel.jpg', details: '', hotelRoomId: null, addressId: 0 });
   const resetRoomForm = () => setNewRoom({ nameRoom: '', floor: 1, details: '', imageRoom: '/default-room.jpg', typeRoom: 'Стандарт' });
 
   const resetForms = () => {
@@ -542,7 +551,10 @@ const ClientAccountPage = () => {
     if (tabId !== 'profile') setIsEditing(false);
     resetForms();
     setSelectedUserId(null); setViewingUserData(null);
+    setAdminSubTab('none');
+    setEmployeeSubTab('none');
     if (tabId === 'admin') { fetchAvailableHotels(); fetchAvailableRooms(); fetchAvailableAddresses(); }
+    if (tabId === 'employee') { fetchAvailableRooms(); fetchAvailableAddresses(); }
   };
 
   const handleLogout = () => { if (logout) logout(); window.location.href = '/'; };
@@ -646,7 +658,6 @@ const ClientAccountPage = () => {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '25px' }}>
                   <h3>📄 Мои документы</h3>
-                  {/* {!passportData && <button onClick={handleAddDocument} style={btnPrimarySmall}>➕ Добавить</button>} */}
                 </div>
                 {isLoadingPassports ? <div style={{ textAlign: 'center', padding: '40px' }}>⏳ Загрузка...</div> :
                   !passportData ? <div style={{ textAlign: 'center', padding: '40px', background: '#FFF8F0', borderRadius: '20px', border: '2px dashed #D2B48C' }}><p>Нет документов</p><button onClick={handleAddDocument} style={btnPrimary}>➕ Добавить первый документ</button></div> :
@@ -711,13 +722,14 @@ const ClientAccountPage = () => {
               <div>
                 <h3>👨‍💼 Панель администратора</h3>
                 <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                  <button onClick={() => { setShowTourForm(false); setShowHotelForm(false); setShowRoomForm(false); }} style={{ ...btnTab, background: !showTourForm && !showHotelForm && !showRoomForm ? '#B76E3C' : '#C0A080' }}>👥 Пользователи</button>
-                  <button onClick={() => { setShowTourForm(!showTourForm); setShowHotelForm(false); setShowRoomForm(false); fetchAvailableHotels(); }} style={{ ...btnTab, background: showTourForm ? '#B76E3C' : '#C0A080' }}>✈️ Тур</button>
-                  <button onClick={() => { setShowHotelForm(!showHotelForm); setShowTourForm(false); setShowRoomForm(false); fetchAvailableRooms(); fetchAvailableAddresses(); }} style={{ ...btnTab, background: showHotelForm ? '#B76E3C' : '#C0A080' }}>🏨 Отель</button>
-                  <button onClick={() => { setShowRoomForm(!showRoomForm); setShowTourForm(false); setShowHotelForm(false); }} style={{ ...btnTab, background: showRoomForm ? '#B76E3C' : '#C0A080' }}>🛏️ Номер</button>
+                  <button onClick={() => { setAdminSubTab('clients'); fetchAllClients(); }} style={{ ...btnTab, background: adminSubTab === 'clients' ? '#B76E3C' : '#C0A080' }}>👥 Клиенты</button>
+                  <button onClick={() => { setAdminSubTab('employees'); fetchAllEmployees(); }} style={{ ...btnTab, background: adminSubTab === 'employees' ? '#B76E3C' : '#C0A080' }}>💼 Сотрудники</button>
+                  <button onClick={() => { setAdminSubTab('tour'); fetchAvailableHotels(); }} style={{ ...btnTab, background: adminSubTab === 'tour' ? '#B76E3C' : '#C0A080' }}>✈️ Тур</button>
+                  <button onClick={() => { setAdminSubTab('hotel'); fetchAvailableRooms(); fetchAvailableAddresses(); }} style={{ ...btnTab, background: adminSubTab === 'hotel' ? '#B76E3C' : '#C0A080' }}>🏨 Отель</button>
+                  <button onClick={() => { setAdminSubTab('room'); }} style={{ ...btnTab, background: adminSubTab === 'room' ? '#B76E3C' : '#C0A080' }}>🛏️ Номер</button>
                 </div>
 
-                {showTourForm && (
+                {adminSubTab === 'tour' && (
                   <div style={formCardStyle}>
                     <h4>Добавление нового тура</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -737,12 +749,12 @@ const ClientAccountPage = () => {
                     <div style={{ gridColumn: 'span 2' }}><label>Программа тура *</label><textarea value={newTour.program} onChange={e => setNewTour({ ...newTour, program: e.target.value })} rows={5} style={inputStyle} /></div>
                     <div style={{ display: 'flex', gap: '15px', marginTop: '25px', justifyContent: 'flex-end' }}>
                       <button onClick={handleAddTourAsync} disabled={loading} style={btnPrimary}>{loading ? 'Сохранение...' : 'Сохранить тур'}</button>
-                      <button onClick={() => setShowTourForm(false)} style={btnSecondary}>Отмена</button>
+                      <button onClick={() => setAdminSubTab('none')} style={btnSecondary}>Отмена</button>
                     </div>
                   </div>
                 )}
 
-                {showHotelForm && (
+                {adminSubTab === 'hotel' && (
                   <div style={formCardStyle}>
                     <h4>Добавление нового отеля</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -750,20 +762,20 @@ const ClientAccountPage = () => {
                       <div><label>Звёзды *</label><select value={newHotel.stars} onChange={e => setNewHotel({ ...newHotel, stars: Number(e.target.value) })} style={inputStyle}>{[1, 2, 3, 4, 5].map(s => <option key={s} value={s}>{'★'.repeat(s)}</option>)}</select></div>
                       <div><label>URL изображения</label><input value={newHotel.imageHotel || ''} onChange={e => setNewHotel({ ...newHotel, imageHotel: e.target.value })} style={inputStyle} /></div>
                       <div>
-                        <label>Номер в отеле (опционально)</label>
+                        <label>Номер в отеле *</label>
                         <select value={newHotel.hotelRoomId || 0} onChange={e => setNewHotel({ ...newHotel, hotelRoomId: e.target.value ? Number(e.target.value) : null })} style={inputStyle}>
-                          <option value={0}>-- Без номера --</option>
+                          <option value={0}>-- Выберите номер --</option>
                           {availableRooms.map(room => <option key={room.id} value={room.id}>{room.nameRoom} (этаж {room.floor}, {room.typeRoom})</option>)}
                         </select>
                       </div>
                       <div>
-                        <label>Адрес отеля (опционально)</label>
+                        <label>Адрес отеля *</label>
                         <select
                           value={newHotel.addressId || 0}
-                          onChange={e => setNewHotel({ ...newHotel, addressId: e.target.value ? Number(e.target.value) : null })}
+                          onChange={e => setNewHotel({ ...newHotel, addressId: e.target.value ? Number(e.target.value) : 0 })}
                           style={inputStyle}
                         >
-                          <option value={0}>-- Без адреса --</option>
+                          <option value={0}>-- Выберите адрес --</option>
                           {availableAddresses.map(addr => (
                             <option key={addr.id} value={addr.id}>
                               {addr.country}, {addr.city}, {addr.street}, д. {addr.house}{addr.apartment ? `, кв. ${addr.apartment}` : ''}
@@ -775,12 +787,12 @@ const ClientAccountPage = () => {
                     <div style={{ gridColumn: 'span 2' }}><label>Детали</label><textarea value={newHotel.details || ''} onChange={e => setNewHotel({ ...newHotel, details: e.target.value })} rows={3} style={inputStyle} /></div>
                     <div style={{ display: 'flex', gap: '15px', marginTop: '25px', justifyContent: 'flex-end' }}>
                       <button onClick={handleAddHotelAsync} disabled={loading} style={btnPrimary}>{loading ? 'Сохранение...' : 'Сохранить отель'}</button>
-                      <button onClick={() => setShowHotelForm(false)} style={btnSecondary}>Отмена</button>
+                      <button onClick={() => setAdminSubTab('none')} style={btnSecondary}>Отмена</button>
                     </div>
                   </div>
                 )}
 
-                {showRoomForm && (
+                {adminSubTab === 'room' && (
                   <div style={formCardStyle}>
                     <h4>Добавление нового номера</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -792,26 +804,25 @@ const ClientAccountPage = () => {
                     <div style={{ gridColumn: 'span 2' }}><label>Детали</label><textarea value={newRoom.details || ''} onChange={e => setNewRoom({ ...newRoom, details: e.target.value })} rows={3} style={inputStyle} /></div>
                     <div style={{ display: 'flex', gap: '15px', marginTop: '25px', justifyContent: 'flex-end' }}>
                       <button onClick={handleAddRoomAsync} disabled={loading} style={btnPrimary}>{loading ? 'Сохранение...' : 'Сохранить номер'}</button>
-                      <button onClick={() => setShowRoomForm(false)} style={btnSecondary}>Отмена</button>
+                      <button onClick={() => setAdminSubTab('none')} style={btnSecondary}>Отмена</button>
                     </div>
                   </div>
                 )}
 
-                {!showTourForm && !showHotelForm && !showRoomForm && (
-                  <>
-                    <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-                      <button onClick={() => { setSelectedUserType('clients'); fetchAllClients(); }} style={{ ...btnTab, background: selectedUserType === 'clients' ? '#B76E3C' : '#C0A080' }}>👥 Клиенты</button>
-                      <button onClick={() => { setSelectedUserType('employees'); fetchAllEmployees(); }} style={{ ...btnTab, background: selectedUserType === 'employees' ? '#B76E3C' : '#C0A080' }}>💼 Сотрудники</button>
-                    </div>
+                {adminSubTab === 'clients' && (
+                  <div>
+                    <h4>👥 Клиенты</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
                       <div style={{ background: '#FFF8F0', borderRadius: '15px', padding: '15px', maxHeight: '500px', overflowY: 'auto' }}>
-                        {selectedUserType === 'clients'
-                          ? allClients.map(c => <div key={c.id} onClick={() => handleViewUser(c.id, 'clients')} style={{ padding: '10px', cursor: 'pointer', background: selectedUserId === c.id ? '#B76E3C' : 'transparent', color: selectedUserId === c.id ? '#FFF' : '#8B5A2B', borderRadius: '10px', marginBottom: '3px' }}>{c.surName} {c.firstName}</div>)
-                          : allEmployees.map(e => <div key={e.id} onClick={() => handleViewUser(e.id, 'employees')} style={{ padding: '10px', cursor: 'pointer', background: selectedUserId === e.id ? '#B76E3C' : 'transparent', color: selectedUserId === e.id ? '#FFF' : '#8B5A2B', borderRadius: '10px', marginBottom: '3px' }}>{e.surName} {e.firstName} - {e.position}</div>)
-                        }
+                        {allClients.map(c => (
+                          <div key={c.id} onClick={() => handleViewUser(c.id, 'clients')} 
+                            style={{ padding: '10px', cursor: 'pointer', background: selectedUserId === c.id ? '#B76E3C' : 'transparent', color: selectedUserId === c.id ? '#FFF' : '#8B5A2B', borderRadius: '10px', marginBottom: '3px' }}>
+                            {c.surName} {c.firstName}
+                          </div>
+                        ))}
                       </div>
                       <div style={{ background: '#FFF8F0', borderRadius: '15px', padding: '20px' }}>
-                        {viewingUserData ? (
+                        {viewingUserData && selectedUserType === 'clients' ? (
                           <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                               <h4>{viewingUserData.surName} {viewingUserData.firstName}</h4>
@@ -829,14 +840,59 @@ const ClientAccountPage = () => {
                                 <input placeholder="Имя" value={viewingUserData.firstName || ''} onChange={e => setViewingUserData({ ...viewingUserData, firstName: e.target.value })} style={inputStyle} />
                                 <input placeholder="Email" value={viewingUserData.email || ''} onChange={e => setViewingUserData({ ...viewingUserData, email: e.target.value })} style={inputStyle} />
                                 <input placeholder="Телефон" value={viewingUserData.phoneNumber || ''} onChange={e => setViewingUserData({ ...viewingUserData, phoneNumber: e.target.value })} style={inputStyle} />
-                                <button onClick={async () => { await clientApi.update(viewingUserData.id, viewingUserData as any); setIsEditingUser(false); if (selectedUserType === 'clients') fetchAllClients(); else fetchAllEmployees(); showStatus('Сохранено!', 'success'); }} style={btnPrimary}>Сохранить</button>
+                                <button onClick={async () => { await clientApi.update(viewingUserData.id, viewingUserData as any); setIsEditingUser(false); fetchAllClients(); showStatus('Сохранено!', 'success'); }} style={btnPrimary}>Сохранить</button>
                               </div>
                             )}
                           </div>
-                        ) : <p style={{ textAlign: 'center', padding: '40px' }}>Выберите пользователя</p>}
+                        ) : <p style={{ textAlign: 'center', padding: '40px' }}>Выберите клиента</p>}
                       </div>
                     </div>
-                  </>
+                  </div>
+                )}
+
+                {adminSubTab === 'employees' && (
+                  <div>
+                    <h4>💼 Сотрудники</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
+                      <div style={{ background: '#FFF8F0', borderRadius: '15px', padding: '15px', maxHeight: '500px', overflowY: 'auto' }}>
+                        {allEmployees.map(e => (
+                          <div key={e.id} onClick={() => handleViewUser(e.id, 'employees')} 
+                            style={{ padding: '10px', cursor: 'pointer', background: selectedUserId === e.id ? '#B76E3C' : 'transparent', color: selectedUserId === e.id ? '#FFF' : '#8B5A2B', borderRadius: '10px', marginBottom: '3px' }}>
+                            {e.surName} {e.firstName} - {e.position}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ background: '#FFF8F0', borderRadius: '15px', padding: '20px' }}>
+                        {viewingUserData && selectedUserType === 'employees' ? (
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                              <h4>{viewingUserData.surName} {viewingUserData.firstName}</h4>
+                              <div style={{ display: 'flex', gap: '10px' }}>
+                                <button onClick={() => setIsEditingUser(!isEditingUser)} style={btnPrimarySmall}>{isEditingUser ? 'Отмена' : '✏️'}</button>
+                                <button onClick={handleDeleteViewedUser} style={btnDangerSmall}>🗑️</button>
+                              </div>
+                            </div>
+                            <p><strong>Email:</strong> {viewingUserData.email}</p>
+                            <p><strong>Телефон:</strong> {viewingUserData.phoneNumber}</p>
+                            <p><strong>Роль:</strong> {viewingUserData.role || viewingUserData.position}</p>
+                            {isEditingUser && (
+                              <div style={{ marginTop: '15px', padding: '15px', background: 'rgba(210,180,140,0.1)', borderRadius: '10px', display: 'grid', gap: '10px' }}>
+                                <input placeholder="Фамилия" value={viewingUserData.surName || ''} onChange={e => setViewingUserData({ ...viewingUserData, surName: e.target.value })} style={inputStyle} />
+                                <input placeholder="Имя" value={viewingUserData.firstName || ''} onChange={e => setViewingUserData({ ...viewingUserData, firstName: e.target.value })} style={inputStyle} />
+                                <input placeholder="Email" value={viewingUserData.email || ''} onChange={e => setViewingUserData({ ...viewingUserData, email: e.target.value })} style={inputStyle} />
+                                <input placeholder="Телефон" value={viewingUserData.phoneNumber || ''} onChange={e => setViewingUserData({ ...viewingUserData, phoneNumber: e.target.value })} style={inputStyle} />
+                                <button onClick={async () => { await clientApi.update(viewingUserData.id, viewingUserData as any); setIsEditingUser(false); fetchAllEmployees(); showStatus('Сохранено!', 'success'); }} style={btnPrimary}>Сохранить</button>
+                              </div>
+                            )}
+                          </div>
+                        ) : <p style={{ textAlign: 'center', padding: '40px' }}>Выберите сотрудника</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {adminSubTab === 'none' && (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>Выберите действие</div>
                 )}
               </div>
             )}
@@ -845,63 +901,74 @@ const ClientAccountPage = () => {
               <div>
                 <h3>👨‍💻 Панель сотрудника</h3>
                 <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-                  <button onClick={() => { setShowHotelForm(!showHotelForm); setShowRoomForm(false); fetchAvailableRooms(); }} style={{ ...btnTab, background: showHotelForm ? '#B76E3C' : '#C0A080' }}>🏨 Добавить отель</button>
-                  <button onClick={() => { setShowRoomForm(!showRoomForm); setShowHotelForm(false); }} style={{ ...btnTab, background: showRoomForm ? '#B76E3C' : '#C0A080' }}>🛏️ Добавить номер</button>
+                  <button onClick={() => { setEmployeeSubTab('hotel'); fetchAvailableRooms(); fetchAvailableAddresses(); }} style={{ ...btnTab, background: employeeSubTab === 'hotel' ? '#B76E3C' : '#C0A080' }}>🏨 Добавить отель</button>
+                  <button onClick={() => { setEmployeeSubTab('room'); }} style={{ ...btnTab, background: employeeSubTab === 'room' ? '#B76E3C' : '#C0A080' }}>🛏️ Добавить номер</button>
                 </div>
 
-                {showHotelForm && (
+                {employeeSubTab === 'hotel' && (
                   <div style={formCardStyle}>
                     <h4>Добавление отеля</h4>
-                    <div><label>Название *</label><input value={newHotel.name} onChange={e => setNewHotel({ ...newHotel, name: e.target.value })} style={inputStyle} /></div>
-                    <div><label>Звёзды *</label><select value={newHotel.stars} onChange={e => setNewHotel({ ...newHotel, stars: Number(e.target.value) })} style={inputStyle}>{[1, 2, 3, 4, 5].map(s => <option key={s} value={s}>{'★'.repeat(s)}</option>)}</select></div>
-                    <div><label>URL изображения</label><input value={newHotel.imageHotel || ''} onChange={e => setNewHotel({ ...newHotel, imageHotel: e.target.value })} style={inputStyle} /></div>
-                    <div>
-                      <label>Номер в отеле (опционально)</label>
-                      <select value={newHotel.hotelRoomId || 0} onChange={e => setNewHotel({ ...newHotel, hotelRoomId: e.target.value ? Number(e.target.value) : null })} style={inputStyle}>
-                        <option value={0}>-- Без номера --</option>
-                        {availableRooms.map(room => <option key={room.id} value={room.id}>{room.nameRoom} (этаж {room.floor}, {room.typeRoom})</option>)}
-                      </select>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div><label>Название *</label><input value={newHotel.name} onChange={e => setNewHotel({ ...newHotel, name: e.target.value })} style={inputStyle} /></div>
+                      <div><label>Звёзды *</label><select value={newHotel.stars} onChange={e => setNewHotel({ ...newHotel, stars: Number(e.target.value) })} style={inputStyle}>{[1, 2, 3, 4, 5].map(s => <option key={s} value={s}>{'★'.repeat(s)}</option>)}</select></div>
+                      <div><label>URL изображения</label><input value={newHotel.imageHotel || ''} onChange={e => setNewHotel({ ...newHotel, imageHotel: e.target.value })} style={inputStyle} /></div>
+                      <div>
+                        <label>Номер в отеле *</label>
+                        <select value={newHotel.hotelRoomId || 0} onChange={e => setNewHotel({ ...newHotel, hotelRoomId: e.target.value ? Number(e.target.value) : null })} style={inputStyle}>
+                          <option value={0}>-- Выберите номер --</option>
+                          {availableRooms.map(room => <option key={room.id} value={room.id}>{room.nameRoom} (этаж {room.floor}, {room.typeRoom})</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label>Адрес отеля *</label>
+                        <select
+                          value={newHotel.addressId || 0}
+                          onChange={e => setNewHotel({ ...newHotel, addressId: e.target.value ? Number(e.target.value) : 0 })}
+                          style={inputStyle}
+                        >
+                          <option value={0}>-- Выберите адрес --</option>
+                          {availableAddresses.map(addr => (
+                            <option key={addr.id} value={addr.id}>
+                              {addr.country}, {addr.city}, {addr.street}, д. {addr.house}{addr.apartment ? `, кв. ${addr.apartment}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label>Адрес отеля (опционально)</label>
-                      <select
-                        value={newHotel.addressId || 0}
-                        onChange={e => setNewHotel({ ...newHotel, addressId: e.target.value ? Number(e.target.value) : null })}
-                        style={inputStyle}
-                      >
-                        <option value={0}>-- Без адреса --</option>
-                        {availableAddresses.map(addr => (
-                          <option key={addr.id} value={addr.id}>
-                            {addr.country}, {addr.city}, {addr.street}, д. {addr.house}{addr.apartment ? `, кв. ${addr.apartment}` : ''}
-                          </option>
-                        ))}
-                      </select>
+                    <div style={{ gridColumn: 'span 2' }}><label>Детали</label><textarea value={newHotel.details || ''} onChange={e => setNewHotel({ ...newHotel, details: e.target.value })} rows={3} style={inputStyle} /></div>
+                    <div style={{ display: 'flex', gap: '15px', marginTop: '25px', justifyContent: 'flex-end' }}>
+                      <button onClick={handleAddHotelAsync} disabled={loading} style={btnPrimary}>{loading ? 'Сохранение...' : 'Сохранить отель'}</button>
+                      <button onClick={() => setEmployeeSubTab('none')} style={btnSecondary}>Отмена</button>
                     </div>
-                    <div><label>Детали</label><textarea value={newHotel.details || ''} onChange={e => setNewHotel({ ...newHotel, details: e.target.value })} rows={3} style={inputStyle} /></div>
-                    <button onClick={handleAddHotelAsync} disabled={loading} style={{ ...btnPrimary, marginTop: '15px' }}>{loading ? 'Сохранение...' : 'Сохранить'}</button>
                   </div>
                 )}
 
-                {showRoomForm && (
+                {employeeSubTab === 'room' && (
                   <div style={formCardStyle}>
                     <h4>Добавление номера</h4>
-                    <div><label>Название *</label><input value={newRoom.nameRoom} onChange={e => setNewRoom({ ...newRoom, nameRoom: e.target.value })} style={inputStyle} /></div>
-                    <div><label>Тип *</label><select value={newRoom.typeRoom} onChange={e => setNewRoom({ ...newRoom, typeRoom: e.target.value })} style={inputStyle}><option>Стандарт</option><option>Люкс</option><option>Полулюкс</option><option>Семейный</option><option>Эконом</option></select></div>
-                    <div><label>Этаж *</label><input type="number" value={newRoom.floor} onChange={e => setNewRoom({ ...newRoom, floor: Number(e.target.value) })} style={inputStyle} /></div>
-                    <div><label>URL изображения</label><input value={newRoom.imageRoom || ''} onChange={e => setNewRoom({ ...newRoom, imageRoom: e.target.value })} style={inputStyle} /></div>
-                    <div><label>Детали</label><textarea value={newRoom.details || ''} onChange={e => setNewRoom({ ...newRoom, details: e.target.value })} rows={3} style={inputStyle} /></div>
-                    <button onClick={handleAddRoomAsync} disabled={loading} style={{ ...btnPrimary, marginTop: '15px' }}>{loading ? 'Сохранение...' : 'Сохранить'}</button>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div><label>Название *</label><input value={newRoom.nameRoom} onChange={e => setNewRoom({ ...newRoom, nameRoom: e.target.value })} style={inputStyle} /></div>
+                      <div><label>Тип *</label><select value={newRoom.typeRoom} onChange={e => setNewRoom({ ...newRoom, typeRoom: e.target.value })} style={inputStyle}><option>Стандарт</option><option>Люкс</option><option>Полулюкс</option><option>Семейный</option><option>Эконом</option></select></div>
+                      <div><label>Этаж *</label><input type="number" min="1" value={newRoom.floor} onChange={e => setNewRoom({ ...newRoom, floor: Number(e.target.value) })} style={inputStyle} /></div>
+                      <div><label>URL изображения</label><input value={newRoom.imageRoom || ''} onChange={e => setNewRoom({ ...newRoom, imageRoom: e.target.value })} style={inputStyle} /></div>
+                    </div>
+                    <div style={{ gridColumn: 'span 2' }}><label>Детали</label><textarea value={newRoom.details || ''} onChange={e => setNewRoom({ ...newRoom, details: e.target.value })} rows={3} style={inputStyle} /></div>
+                    <div style={{ display: 'flex', gap: '15px', marginTop: '25px', justifyContent: 'flex-end' }}>
+                      <button onClick={handleAddRoomAsync} disabled={loading} style={btnPrimary}>{loading ? 'Сохранение...' : 'Сохранить номер'}</button>
+                      <button onClick={() => setEmployeeSubTab('none')} style={btnSecondary}>Отмена</button>
+                    </div>
                   </div>
                 )}
 
-                {!showHotelForm && !showRoomForm && <div style={{ textAlign: 'center', padding: '40px' }}>Выберите действие</div>}
+                {employeeSubTab === 'none' && (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>Выберите действие</div>
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* EditDocumentModal рендерится здесь, вне контента, как отдельное окно */}
       <EditDocumentModal
         open={isModalOpen}
         data={modalData}

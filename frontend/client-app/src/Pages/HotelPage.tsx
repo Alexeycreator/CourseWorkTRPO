@@ -113,7 +113,7 @@ const HotelPage = () => {
 
     const handleBookClick = () => {
         if (associatedTourId) {
-            navigate(`/catalog/tour/${associatedTourId}`, { state: { openBooking: true } });
+            navigate(`/catalog/tour/${associatedTourId}`, { state: { openBooking: false } });
         } else {
             navigate('/catalog');
         }
@@ -456,7 +456,7 @@ const HotelPage = () => {
                                 </h3>
                                 <p style={{ color: '#B76E3C', marginBottom: '15px' }}>
                                     {associatedTourId
-                                        ? 'Нажмите, чтобы перейти к бронированию тура'
+                                        ? 'Нажмите, чтобы перейти на страницу тура'
                                         : 'Выберите тур в каталоге'
                                     }
                                 </p>
@@ -476,7 +476,7 @@ const HotelPage = () => {
                                     onMouseEnter={(e) => e.currentTarget.style.background = '#8B5A2B'}
                                     onMouseLeave={(e) => e.currentTarget.style.background = '#B76E3C'}
                                 >
-                                    {associatedTourId ? 'Забронировать тур' : 'Выбрать тур →'}
+                                    {associatedTourId ? 'Страница тура' : 'Выбрать тур →'}
                                 </button>
                                 {!associatedTourId && (
                                     <p style={{
