@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
-import { getMainTours, ToursDto } from "../Services/ToursApi";
+import { getMainTours, ToursDto, getAllTours } from "../Services/ToursApi";
 import NavBar from "../Components/NavBar";
 import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
 import Loader from "../Components/Loader";
+import { useCurrency } from '../Contexts/CurrencyContext';
 import './MainPage.css';
 
 const MainPage = () => {
@@ -12,21 +13,10 @@ const MainPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Состояния для валюты
-    const [selectedCurrency, setSelectedCurrency] = useState('RUB');
-    const [currentRate, setCurrentRate] = useState(1);
-    const [signCurrency, setSignCurrency] = useState('₽');
+    const { selectedCurrency, currentRate, signCurrency, setCurrency } = useCurrency();
 
-    // Обработчик смены валюты из NavBar
     const handleCurrencyChange = (currency: string, rate: number) => {
-        switch (currency) {
-            case "RUB": setSignCurrency('₽'); break;
-            case "USD": setSignCurrency('$'); break;
-            case "EUR": setSignCurrency('€'); break;
-            default: setSignCurrency('₽'); break;
-        }
-        setSelectedCurrency(currency);
-        setCurrentRate(rate);
+        setCurrency(currency, rate);
     };
 
     // Единая функция парсинга даты
@@ -69,7 +59,7 @@ const MainPage = () => {
         if (tour.startDot && tour.endDot) {
             const nights = calculateNights(tour.startDot, tour.endDot);
             if (nights != null && nights >= 0) {
-                return nights === 0 ? 'Однодневный тур' : `${nights} ночей`;
+                return nights === 0 ? 'Однодневный тур' : `${nights - 1} ночей`;
             }
         }
         return 'Количество ночей не указано';
@@ -88,7 +78,8 @@ const MainPage = () => {
     const fetchTours = async () => {
         try {
             setLoading(true);
-            const data = await getMainTours();
+            const allTours = await getAllTours();
+            const data = allTours.filter(tour => tour.hotTour !== true);
             setTours(data);
             setError(null);
         } catch (err: any) {

@@ -14,6 +14,7 @@ import PrivacyTermsPage from './Pages/PrivacyTermsPage';
 import { AuthProvider } from './Contexts/AuthContext';
 import HotelPage from './Pages/HotelPage';
 import HotelRoomPage from './Pages/HotelRoomPage';
+import { CurrencyProvider } from './Contexts/CurrencyContext';
 
 
 interface ScrollToTopProps {
@@ -38,32 +39,34 @@ function App() {
 
     return (
         <AuthProvider>
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: '100vh',
-                background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)'
-            }}>
-                <NavBar />
-                <ScrollToTop location={location} />
-                <div style={{ flex: '1 0 auto', width: '100%' }}>
-                    <Routes  location={location} key={location.pathname}>
-                        <Route path='/' element={<MainPage />} />
-                        <Route path='/catalog' element={<CatalogToursPage />} />
-                        <Route path='/hot-tours' element={<HotTourPage />} />
-                        <Route path='/information' element={<InformationPage />} />
-                        <Route path='/help' element={<HelpPage />} />
-                        <Route path='/account/:id' element={<ClientAccountPage />} />
-                        <Route path='/catalog/tour/:id' element={<TourPage />} />
-                        <Route path='/hot-tours/tour/:id' element={<TourPage />} /> {/* Динамический маршрут */}
-                        <Route path="/hotel/:id" element={<HotelPage />} />
-                        <Route path="/hotel-room/:hotelId/:roomId" element={<HotelRoomPage />} />
-                        <Route path='/legal' element={<PrivacyTermsPage />} />
-                        <Route path='*' element={<NotFoundPage />} />
-                    </Routes>
+            <CurrencyProvider>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: '100vh',
+                    background: 'linear-gradient(135deg, #F5F0E5 0%, #F0E5D5 50%, #E5D5C5 100%)'
+                }}>
+                    <NavBar />
+                    <ScrollToTop location={location} />
+                    <div style={{ flex: '1 0 auto', width: '100%' }}>
+                        <Routes location={location} key={location.pathname}>
+                            <Route path='/' element={<MainPage />} />
+                            <Route path='/catalog' element={<CatalogToursPage />} />
+                            <Route path='/hot-tours' element={<HotTourPage />} />
+                            <Route path='/information' element={<InformationPage />} />
+                            <Route path='/help' element={<HelpPage />} />
+                            <Route path='/account/:id' element={<ClientAccountPage />} />
+                            <Route path='/catalog/tour/:id' element={<TourPage />} />
+                            <Route path='/hot-tours/tour/:id' element={<TourPage />} /> {/* Динамический маршрут */}
+                            <Route path="/hotel/:id" element={<HotelPage />} />
+                            <Route path="/hotel-room/:hotelId/:roomId" element={<HotelRoomPage />} />
+                            <Route path='/legal' element={<PrivacyTermsPage />} />
+                            <Route path='*' element={<NotFoundPage />} />
+                        </Routes>
+                    </div>
+                    <Footer />
                 </div>
-                <Footer />
-            </div>
+            </CurrencyProvider>
         </AuthProvider>
     );
 }

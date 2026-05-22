@@ -4,6 +4,8 @@ import { getAllTours, Tours } from "../Services/ToursApi";
 import NavBar from "../Components/NavBar";
 import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
 import Loader from "../Components/Loader";
+import { useCurrency } from '../Contexts/CurrencyContext';
+
 
 interface HotTourItem {
     id: number;
@@ -27,18 +29,10 @@ const HotTourPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const [selectedCurrency, setSelectedCurrency] = useState('RUB');
-    const [currentRate, setCurrentRate] = useState(1);
-    const [signCurrency, setSignCurrency] = useState('₽');
+    const { selectedCurrency, currentRate, signCurrency, setCurrency } = useCurrency();
 
     const handleCurrencyChange = (currency: string, rate: number) => {
-        switch (currency) {
-            case "RUB": setSignCurrency('₽'); break;
-            case "USD": setSignCurrency('$'); break;
-            case "EUR": setSignCurrency('€'); break;
-        }
-        setSelectedCurrency(currency);
-        setCurrentRate(rate);
+        setCurrency(currency, rate);
     };
 
     const parseDate = (dateString: string | null | undefined): Date | null => {
@@ -178,7 +172,7 @@ const HotTourPage = () => {
                             <option value="default">По умолчанию</option>
                             <option value="price-asc">Сначала дешевле</option>
                             <option value="price-desc">Сначала дороже</option>
-                            <option value="discount">По размеру скидки</option>
+                            {/* <option value="discount">По размеру скидки</option> */}
                         </select>
                     </div>
                 </div>

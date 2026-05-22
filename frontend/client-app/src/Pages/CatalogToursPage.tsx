@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from 'react-router-dom';
-import { getMainTours, ToursDto } from "../Services/ToursApi";
+import { ToursDto, getAllTours } from "../Services/ToursApi";
 import NavBar from "../Components/NavBar";
 import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
 import Loader from "../Components/Loader";
+import { useCurrency } from '../Contexts/CurrencyContext';
 
 const CatalogToursPage = () => {
   const location = useLocation();
@@ -13,18 +14,10 @@ const CatalogToursPage = () => {
   const [loadingTour, setLoadingTour] = useState(true);
   const [errorTour, setErrorTour] = useState<string | null>(null);
 
-  const [selectedCurrency, setSelectedCurrency] = useState('RUB');
-  const [currentRate, setCurrentRate] = useState(1);
-  const [signCurrency, setSignCurrency] = useState('₽');
+  const { selectedCurrency, currentRate, signCurrency, setCurrency } = useCurrency();
 
   const handleCurrencyChange = (currency: string, rate: number) => {
-    switch (currency) {
-      case "RUB": setSignCurrency('₽'); break;
-      case "USD": setSignCurrency('$'); break;
-      case "EUR": setSignCurrency('€'); break;
-    }
-    setSelectedCurrency(currency);
-    setCurrentRate(rate);
+    setCurrency(currency, rate);
   };
 
   const parseDate = (dateStr: string): Date | null => {
@@ -71,7 +64,8 @@ const CatalogToursPage = () => {
   const fetchTours = async () => {
     try {
       setLoadingTour(true);
-      const tours = await getMainTours();
+      const allTours = await getAllTours();
+      const tours = allTours.filter(tour => tour.hotTour !== true);
       setToursData(tours);
       setFilteredTours(tours);
       setErrorTour(null);

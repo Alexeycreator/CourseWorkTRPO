@@ -302,7 +302,7 @@ const HotelRoomPage = () => {
                                     {room.typeRoom && (
                                         <div style={{ background: '#FFF8F0', border: '1px solid #D2B48C', borderRadius: '15px', padding: '15px', textAlign: 'center' }}>
                                             <span style={{ fontSize: '24px', color: '#B76E3C' }}>🏷️</span>
-                                            <p style={{ color: '#8B5A2B', marginTop: '5px' }}>{room.typeRoom}</p>
+                                            <p style={{ color: '#8B5A2B', marginTop: '5px' }}>Номер: {room.typeRoom}</p>
                                         </div>
                                     )}
                                 </div>

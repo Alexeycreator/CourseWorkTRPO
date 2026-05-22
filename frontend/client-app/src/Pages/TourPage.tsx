@@ -12,6 +12,7 @@ import { HotelMainInfoDto } from '../Services/HotelsApi';
 import { getSafeImageUrl, PLACEHOLDERS } from "../Components/OptimizedImage";
 import Loader from "../Components/Loader";
 import { createTicket } from "../Services/TicketsApi";
+import { useCurrency } from '../Contexts/CurrencyContext';
 
 // Интерфейс для location.state
 interface LocationState {
@@ -39,11 +40,6 @@ const TourPage = () => {
 
     const [addressTour, setAddressTour] = useState<Address | null>(null);
 
-    // состояния курсов валют
-    const [selectedCurrency, setSelectedCurrency] = useState('RUB');
-    const [currentRate, setCurrentRate] = useState(1);
-    const [signCurrency, setSignCurrency] = useState('₽');
-
     const [convertedPrice, setConvertedPrice] = useState<number>(0);
 
     // Состояния для модального окна оплаты
@@ -61,6 +57,12 @@ const TourPage = () => {
     const [hotelRoomId, setHotelRoomId] = useState<number>(1)
 
     const [showAuthToast, setShowAuthToast] = useState(false);
+
+    const { selectedCurrency, currentRate, signCurrency, setCurrency } = useCurrency();
+
+    const handleCurrencyChange = (currency: string, rate: number) => {
+        setCurrency(currency, rate);
+    };
 
     // Функция для расчета цены со скидкой (20% для горящих туров)
     const getDiscountedPrice = (price: number | null | undefined): number => {
@@ -310,20 +312,6 @@ const TourPage = () => {
         }).format(totalPrice);
     };
 
-    const handleCurrencyChange = async (currency: string, rate: number) => {
-        switch (currency) {
-            case "RUB": setSignCurrency('₽'); break;
-            case "USD": setSignCurrency('$'); break;
-            case "EUR": setSignCurrency('€'); break;
-        }
-        setSelectedCurrency(currency);
-        setCurrentRate(rate);
-        if (selectedTour?.price) {
-            const discounted = getDiscountedPrice(selectedTour.price);
-            setConvertedPrice(discounted / rate);
-        }
-    };
-
     const handleBooking = () => {
         if (!isAuthenticated) {
             setShowAuthToast(true);
@@ -393,7 +381,7 @@ const TourPage = () => {
         if (tour.startDot && tour.endDot) {
             const nights = calculateNights(tour.startDot, tour.endDot);
             if (nights != null && nights >= 0) {
-                return nights === 0 ? 'Однодневный тур' : `${nights} ночей`;
+                return nights === 0 ? 'Однодневный тур' : `${nights - 1} ночей`;
             }
         }
         return 'Количество ночей не указано';
@@ -692,7 +680,7 @@ const TourPage = () => {
                                                     {'★'.repeat(hotel.stars || 0)}{'☆'.repeat(5 - (hotel.stars || 0))}
                                                 </span>
                                                 <span style={{ color: '#B76E3C' }}>•</span>
-                                                <span style={{ color: '#B76E3C' }}>⏱ {hotel.countNight || 0} дней</span>
+                                                <span style={{ color: '#B76E3C' }}>⏱ {getNightsDisplay(selectedTour) || 0}</span>
                                             </div>
                                             {hotel.description && (
                                                 <p style={{ color: '#5A3E2B', fontSize: '14px', marginBottom: '12px' }}>
